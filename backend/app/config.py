@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # Twilio
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
-    twilio_sip_domain: str = ""  # e.g. voxarena.sip.livekit.cloud
+    twilio_sip_domain: str = ""  # e.g. arkenos.sip.livekit.cloud
 
     # LiveKit SIP
     livekit_sip_trunk_id: str = ""  # Outbound SIP trunk ID for call transfers
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = True
 
-    # CORS — comma-separated origins, e.g. "http://localhost:3000,https://voxarena.onrender.com"
+    # CORS — comma-separated origins, e.g. "http://localhost:3000,https://arkenos.onrender.com"
     frontend_url: str = "http://localhost:3000"
 
     @property
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def build_database_url(self):
         if not self.database_url:
-            self.database_url = f"postgresql://postgres:{self.postgres_password}@{self.db_host}:5432/voxarena"
+            self.database_url = f"postgresql://postgres:{self.postgres_password}@{self.db_host}:5432/arkenos"
         return self
 
     class Config:

@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
                         <div className="w-10 lg:w-0" />
                         <div className="flex items-center gap-3">
                             <Button variant="ghost" size="sm" className="gap-2" asChild>
-                                <a href="https://voxarena.mintlify.app" target="_blank">
+                                <a href="https://arkenos.mintlify.app" target="_blank">
                                     <DocsIcon className="h-4 w-4" />
                                     Docs
                                 </a>

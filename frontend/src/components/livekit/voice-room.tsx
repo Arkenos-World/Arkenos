@@ -300,7 +300,7 @@ function RoomContent({ onDisconnect, roomName, agentName }: { onDisconnect: () =
                     // Agent typically has "agent" in identity or isAgent flag
                     const isAgent = participant?.isAgent ||
                         participant?.identity?.toLowerCase().includes("agent") ||
-                        participant?.identity?.toLowerCase().includes("voxarena");
+                        participant?.identity?.toLowerCase().includes("arkenos");
 
                     const speaker = isAgent ? "agent" : "user";
 
@@ -335,7 +335,7 @@ function RoomContent({ onDisconnect, roomName, agentName }: { onDisconnect: () =
                         <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
                             <BotIcon className="h-10 w-10 text-primary" />
                         </div>
-                        <h3 className="text-xl font-semibold">{agentName || "VoxArena Agent"}</h3>
+                        <h3 className="text-xl font-semibold">{agentName || "Arkenos Agent"}</h3>
                         <p className="text-muted-foreground text-sm mt-1">
                             Room: {room.name}
                         </p>
@@ -368,7 +368,7 @@ export function VoiceRoom({ token, serverUrl, roomName, onDisconnect, agentName 
             onDisconnected={onDisconnect}
             className="h-full"
         >
-            <RoomContent onDisconnect={onDisconnect} roomName={roomName} agentName={agentName || "VoxArena Agent"} />
+            <RoomContent onDisconnect={onDisconnect} roomName={roomName} agentName={agentName || "Arkenos Agent"} />
         </LiveKitRoom>
     );
 }

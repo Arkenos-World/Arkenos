@@ -19,12 +19,12 @@ function resolveSessionLabel(session: { agent_name?: string | null; room_name: s
     const sipMatch = room.match(/^_?(\+\d{7,15})/)
     if (session.agent_name) {
         if (sipMatch) return { primary: session.agent_name, secondary: `SIP via ${sipMatch[1]}` }
-        const shortId = room.replace(/^(preview-|voxarena-)/, '').slice(0, 18)
+        const shortId = room.replace(/^(preview-|arkenos-)/, '').slice(0, 18)
         return { primary: session.agent_name, secondary: `ID: ${shortId}` }
     }
     if (sipMatch) return { primary: 'SIP Call', secondary: `via ${sipMatch[1]}` }
     if (room.startsWith('preview-')) return { primary: 'Preview', secondary: room.replace('preview-', '').slice(0, 18) }
-    return { primary: 'Unassigned Call', secondary: room.replace(/^voxarena-/, '').slice(0, 18) }
+    return { primary: 'Unassigned Call', secondary: room.replace(/^arkenos-/, '').slice(0, 18) }
 }
 
 export default async function DashboardPage() {

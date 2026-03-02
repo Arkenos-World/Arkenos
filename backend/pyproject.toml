@@ -1,7 +1,7 @@
 [project]
-name = "voxarena-backend"
+name = "arkenos-backend"
 version = "0.1.0"
-description = "VoxArena Backend API"
+description = "Arkenos Backend API"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

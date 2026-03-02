@@ -38,7 +38,7 @@ interface Agent {
 }
 
 // Default agent that's always available
-const defaultAgent: Agent = { id: "default", name: "VoxArena Agent", type: "PIPELINE" };
+const defaultAgent: Agent = { id: "default", name: "Arkenos Agent", type: "PIPELINE" };
 
 export default function VoicePage() {
     const router = useRouter();
@@ -90,7 +90,7 @@ export default function VoicePage() {
         setError(null);
 
         try {
-            const roomName = `voxarena-${Date.now()}`;
+            const roomName = `arkenos-${Date.now()}`;
             const response = await fetch("/api/livekit/token", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

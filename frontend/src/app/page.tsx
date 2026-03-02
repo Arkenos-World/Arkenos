@@ -140,7 +140,7 @@ function AnimatedCounter({ target, prefix = "", suffix = "" }: { target: number;
 // ─── Typing Terminal ───────────────────────────────────────────────────────────
 
 const TERMINAL_LINES = [
-  { content: "git clone https://github.com/voxarena/voxarena", isCommand: true },
+  { content: "git clone https://github.com/Arkenos-World/Arkenos.git", isCommand: true },
   { content: "docker compose up -d", isCommand: true },
   { content: "All services running on localhost:3000", isCommand: false },
 ];
@@ -330,7 +330,8 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">VoxArena</span>
+            <span className="text-xl font-bold">Arkenos</span>
+            {/* <Badge variant="secondary" className="ml-2">Open Source</Badge> */}
           </div>
           <nav className="flex items-center gap-3">
             <ThemeToggle />
@@ -936,7 +937,7 @@ export default function Home() {
             <div className="flex h-6 w-6 items-center justify-center rounded bg-primary">
               <MicrophoneIcon className="h-3 w-3 text-primary-foreground" />
             </div>
-            <span className="font-semibold">VoxArena</span>
+            <span className="font-semibold">Arkenos</span>
           </div>
           <p className="text-sm text-muted-foreground">
             Open source voice AI platform.

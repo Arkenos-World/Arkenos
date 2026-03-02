@@ -2,7 +2,7 @@
 echo Running backend tests...
 cd D:\Projects\VoxArena\backend
 call venv\Scripts\activate
-set DATABASE_URL=postgresql://postgres:%DB_PASSWORD%@localhost:5432/voxarena_test
+set DATABASE_URL=postgresql://postgres:%DB_PASSWORD%@localhost:5432/arkenos_test
 set TESTING=true
 pytest -v
 if %errorlevel% neq 0 (

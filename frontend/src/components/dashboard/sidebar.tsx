@@ -55,7 +55,7 @@ function SidebarContent({ pathname, userEmail, userName }: SidebarProps & { path
                     <div className="flex h-8 w-8 items-center justify-center bg-primary">
                         <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
                     </div>
-                    <span className="font-bold text-lg">VoxArena</span>
+                    <span className="font-bold text-lg">Arkenos</span>
                 </Link>
                 {userEmail && (
                     <p className="text-xs text-muted-foreground mt-1 truncate">{userEmail}</p>

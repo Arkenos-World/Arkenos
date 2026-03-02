@@ -1,4 +1,4 @@
-# VoxArena — Product Requirements Document (PRD)
+# Arkenos — Product Requirements Document (PRD)
 
 **Version:** 1.1
 **Date:** February 25, 2026
@@ -35,16 +35,16 @@
 
 ## 1. Executive Summary
 
-**VoxArena** is an open-source voice AI agent platform built on LiveKit. The goal is to become the **"Supabase of Voice AI"** — an open-core platform that provides a complete dashboard + management layer on top of open-source voice infrastructure.
+**Arkenos** is an open-source voice AI agent platform built on LiveKit. The goal is to become the **"Supabase of Voice AI"** — an open-core platform that provides a complete dashboard + management layer on top of open-source voice infrastructure.
 
 **Competitive Positioning:**
-- **Frameworks** (LiveKit Agents, Pipecat): Code libraries, no UI, developer-only → VoxArena adds the platform layer
-- **Proprietary SaaS** (Vapi, Retell, Bland): Closed-source, vendor lock-in, $0.05-0.15/min platform tax → VoxArena is open-source, no platform tax
-- **VoxArena's gap**: The only **open-source voice agent PLATFORM** with full dashboard, analytics, function calling, and production features
+- **Frameworks** (LiveKit Agents, Pipecat): Code libraries, no UI, developer-only → Arkenos adds the platform layer
+- **Proprietary SaaS** (Vapi, Retell, Bland): Closed-source, vendor lock-in, $0.05-0.15/min platform tax → Arkenos is open-source, no platform tax
+- **Arkenos's gap**: The only **open-source voice agent PLATFORM** with full dashboard, analytics, function calling, and production features
 
 **Revenue Model:** Open-core
 - Free: Self-hosted, unlimited usage, all features
-- Paid: VoxArena Cloud (hosted), enterprise features (SSO, SLA, priority support)
+- Paid: Arkenos Cloud (hosted), enterprise features (SSO, SLA, priority support)
 - Validated by: Supabase ($70M ARR), n8n ($40M ARR), LiveKit ($10M+ run rate)
 
 **Team:** 5-6 AI coding agents working in parallel via Vibe Kanban
@@ -55,11 +55,11 @@
 
 ### 2.1 Positioning Statement
 
-> VoxArena is the open-source platform for building, deploying, and managing production voice AI agents. No vendor lock-in. No platform tax. Your infrastructure, your rules.
+> Arkenos is the open-source platform for building, deploying, and managing production voice AI agents. No vendor lock-in. No platform tax. Your infrastructure, your rules.
 
 ### 2.2 Target Users (Phase 1-2)
 
-| User | Need | Why VoxArena |
+| User | Need | Why Arkenos |
 |------|------|-------------|
 | Startup CTO | Build voice agents without vendor lock-in | Open-source, self-hosted, no per-minute tax |
 | AI Agency | Build voice agents for clients | Multi-provider, white-label potential |
@@ -120,7 +120,7 @@ Non-developer friendliness is explicitly deferred. Current UI scores 2/10 for no
 ## 4. Phase 1: Foundation Sprint
 
 **Duration:** Weeks 1-3
-**Goal:** Close the critical feature gaps that block anyone from taking VoxArena seriously
+**Goal:** Close the critical feature gaps that block anyone from taking Arkenos seriously
 **Agents:** 4 workstreams in parallel
 
 **Scope Note:** LLM provider stays as Google Gemini only. TTS provider stays as Resemble AI only. Voice picker stays as-is. Multi-provider LLM/TTS expansion is deferred to a future phase.
@@ -207,7 +207,7 @@ ELEVENLABS_API_KEY=...
 
 #### 2.1 Problem Statement
 
-This is the **#1 missing feature**. Without function/tool calling, VoxArena agents are just voice chatbots. They cannot:
+This is the **#1 missing feature**. Without function/tool calling, Arkenos agents are just voice chatbots. They cannot:
 - Book appointments
 - Look up customer records
 - Transfer calls
@@ -499,7 +499,7 @@ In session detail / call log view:
 **Environment Variables (new):**
 ```
 # S3-compatible storage for recordings (optional — can use local filesystem)
-RECORDING_S3_BUCKET=voxarena-recordings
+RECORDING_S3_BUCKET=arkenos-recordings
 RECORDING_S3_REGION=us-east-1
 RECORDING_S3_ACCESS_KEY=...
 RECORDING_S3_SECRET_KEY=...
@@ -781,7 +781,7 @@ Can be implemented as a built-in function tool (leveraging WS-2):
 
 #### 8.1 Requirements
 
-- JavaScript snippet users can embed on their website: `<script src="https://cdn.voxarena.com/widget.js" data-agent="agent-id"></script>`
+- JavaScript snippet users can embed on their website: `<script src="https://cdn.arkenos.com/widget.js" data-agent="agent-id"></script>`
 - Floating chat/call button in bottom-right corner
 - Click to start voice conversation (WebRTC)
 - Customizable colors, position, branding
@@ -832,14 +832,14 @@ Can be implemented as a built-in function tool (leveraging WS-2):
 - [ ] GitHub Issues templates
 - [ ] GitHub Actions CI/CD (lint, test, build)
 - [ ] Demo video (2-3 minutes)
-- [ ] Landing page (voxarena.com)
+- [ ] Landing page (arkenos.com)
 - [ ] ProductHunt launch
 - [ ] HackerNews "Show HN" post
 - [ ] Reddit posts (r/selfhosted, r/artificial, r/voiceai)
 - [ ] Discord community server
 - [ ] YouTube walkthrough video
 - [ ] Dev.to / Hashnode blog post
-- [ ] Compare page: VoxArena vs Vapi vs Retell
+- [ ] Compare page: Arkenos vs Vapi vs Retell
 
 ---
 
@@ -848,9 +848,9 @@ Can be implemented as a built-in function tool (leveraging WS-2):
 **Duration:** Months 3-6
 **Goal:** Launch hosted cloud version for revenue
 
-### 7.1 VoxArena Cloud
+### 7.1 Arkenos Cloud
 
-Hosted version at `cloud.voxarena.com`:
+Hosted version at `cloud.arkenos.com`:
 - One-click agent creation (no infrastructure setup)
 - Managed LiveKit, database, storage
 - Usage-based pricing (no per-minute platform tax — differentiation from Vapi/Retell)

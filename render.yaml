@@ -1,20 +1,20 @@
-# VoxArena — Render Infrastructure as Code
+# Arkenos — Render Infrastructure as Code
 # Docs: https://docs.render.com/infrastructure-as-code
 #
 # SETUP: After first deploy, update placeholder URLs with actual Render URLs
 # and set all secrets (sync: false) via the Render dashboard.
 
 databases:
-  - name: voxarena-db
+  - name: arkenos-db
     plan: basic_256mb
-    databaseName: voxarena
-    user: voxarena
+    databaseName: arkenos
+    user: arkenos
     region: oregon
 
 services:
   # ── Backend API (FastAPI) ─────────────────────────────────
   - type: web
-    name: voxarena-backend
+    name: arkenos-backend
     runtime: docker
     rootDir: backend
     dockerfilePath: ./Dockerfile
@@ -25,7 +25,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: voxarena-db
+          name: arkenos-db
           property: connectionString
       - key: FRONTEND_URL
         sync: false
@@ -50,7 +50,7 @@ services:
 
   # ── Frontend (Next.js — native Node runtime) ──────────────
   - type: web
-    name: voxarena-frontend
+    name: arkenos-frontend
     runtime: node
     rootDir: frontend
     buildCommand: npm ci && npm run build
@@ -89,7 +89,7 @@ services:
 
   # ── Voice Agent (LiveKit Background Worker) ───────────────
   - type: worker
-    name: voxarena-agent
+    name: arkenos-agent
     runtime: docker
     rootDir: agent
     dockerfilePath: ./Dockerfile

@@ -1,7 +1,7 @@
 [project]
-name = "voxarena-agent"
+name = "arkenos-agent"
 version = "0.1.0"
-description = "VoxArena Voice Agent with Deepgram STT, Gemini LLM, and Resemble AI TTS"
+description = "Arkenos Voice Agent — STT, LLM, and TTS orchestration runtime"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

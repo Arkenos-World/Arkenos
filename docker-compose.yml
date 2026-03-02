@@ -1,4 +1,4 @@
-# VoxArena Docker Compose
+# Arkenos Docker Compose
 # Usage: docker-compose up -d --build
 version: "3.8"
 
@@ -8,11 +8,11 @@ services:
   # ============================================
   postgres:
     image: postgres:15-alpine
-    container_name: voxarena-db
+    container_name: arkenos-db
     env_file:
       - ./backend/.env
     environment:
-      POSTGRES_DB: voxarena
+      POSTGRES_DB: arkenos
       POSTGRES_USER: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -32,7 +32,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: voxarena-backend
+    container_name: arkenos-backend
     env_file:
       - ./backend/.env
     environment:
@@ -51,7 +51,7 @@ services:
     build:
       context: ./agent
       dockerfile: Dockerfile
-    container_name: voxarena-agent
+    container_name: arkenos-agent
     env_file:
       - ./agent/.env
     environment:
@@ -67,7 +67,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: voxarena-frontend
+    container_name: arkenos-frontend
     env_file:
       - ./frontend/.env
     environment:

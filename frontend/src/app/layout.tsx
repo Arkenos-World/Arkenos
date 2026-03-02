@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VoxArena",
-  description: "VoxArena - Voice Arena Application",
+  title: "Arkenos",
+  description: "Arkenos — Composable orchestration layer for enterprise-grade conversational AI infrastructure",
 };
 
 export default function RootLayout({

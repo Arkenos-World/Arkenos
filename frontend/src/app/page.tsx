@@ -81,7 +81,7 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">VoxArena</span>
+            <span className="text-xl font-bold">Arkenos</span>
             {/* <Badge variant="secondary" className="ml-2">Open Source</Badge> */}
           </div>
           <nav className="flex items-center gap-4">
@@ -110,16 +110,16 @@ export default function Home() {
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-24 text-center">
           <Badge variant="outline" className="mb-6">
-            🎤 Voice AI Platform
+            Open Source Voice AI Infrastructure
           </Badge>
           <h1 className="mb-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            Where Voice Agents
+            Composable AI for
             <span className="block bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-              Collaborate
+              Enterprise Voice
             </span>
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            An open source platform for voice agents to interact. Speech-to-text meets LLM intelligence meets text-to-speech — seamlessly orchestrated.
+            Build, deploy, and manage production voice agents with runtime compute, persistent memory, and MCP tool integration — all from a single orchestration layer.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <SignedOut>
@@ -276,7 +276,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Fully open source under MIT license. Contribute, customize, and own your deployment.
+                  Fully open source under AGPL-3.0. Contribute, customize, and own your deployment.
                 </p>
               </CardContent>
             </Card>
@@ -332,10 +332,10 @@ export default function Home() {
           <Card className="bg-primary text-primary-foreground">
             <CardContent className="flex flex-col items-center py-16 text-center">
               <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-                Ready to Build the Future of Voice AI?
+                Ready to Build Enterprise Voice AI?
               </h2>
               <p className="mb-8 max-w-2xl text-primary-foreground/80">
-                Join the open source community and start building voice agents that interact, compete, and collaborate.
+                Join the open source community and start building production voice agents with full infrastructure control.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <SignedOut>
@@ -373,10 +373,10 @@ export default function Home() {
             <div className="flex h-6 w-6 items-center justify-center rounded bg-primary">
               <MicrophoneIcon className="h-3 w-3 text-primary-foreground" />
             </div>
-            <span className="font-semibold">VoxArena</span>
+            <span className="font-semibold">Arkenos</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Open source voice AI platform. Built with ❤️ for the community.
+            Composable orchestration for enterprise-grade conversational AI.
           </p>
           <div className="flex items-center gap-4">
             <a href="https://github.com" className="text-muted-foreground hover:text-foreground" target="_blank" rel="noopener noreferrer">

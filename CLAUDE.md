@@ -1,7 +1,7 @@
-# VoxArena — Agent Context
+# Arkenos — Agent Context
 
 ## Project Overview
-Open-source voice AI platform with three services.
+Composable orchestration layer for enterprise-grade conversational AI infrastructure. Open-source, three services.
 
 ## Services
 | Service  | Stack                                              | Local URL             |
@@ -11,8 +11,8 @@ Open-source voice AI platform with three services.
 | agent    | Python, LiveKit, AssemblyAI, Gemini, Resemble AI   | N/A                   |
 
 ## Database
-Main: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/voxarena
-Test: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/voxarena_test
+Main: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/arkenos
+Test: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/arkenos_test
 (Set POSTGRES_PASSWORD in backend/.env)
 
 ## How to Run Each Service

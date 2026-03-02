@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       
       // Dispatch the agent to join this room with metadata
       const dispatchMetadata = agentId ? JSON.stringify({ agentId }) : undefined;
-      await agentDispatch.createDispatch(roomName, "voxarena-agent", { metadata: dispatchMetadata });
+      await agentDispatch.createDispatch(roomName, "arkenos-agent", { metadata: dispatchMetadata });
       console.log(`Dispatched agent to room: ${roomName} with agentId: ${agentId || 'none'}`);
     } catch (err) {
       // Room might already exist, that's okay

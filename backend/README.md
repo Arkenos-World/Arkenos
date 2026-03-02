@@ -1,6 +1,6 @@
-# VoxArena Backend
+# Arkenos Backend
 
-FastAPI backend for VoxArena Voice Agent Platform.
+FastAPI backend for Arkenos Voice Agent Platform.
 
 ## Tech Stack
 
@@ -39,7 +39,7 @@ cp .env.example .env
 
 ```bash
 # Create the database in PostgreSQL first
-createdb voxarena
+createdb arkenos
 
 # Run migrations
 alembic upgrade head

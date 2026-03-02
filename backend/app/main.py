@@ -6,8 +6,8 @@ from app.routers import agents, sessions, livekit, telephony, resemble, calls, u
 settings = get_settings()
 
 app = FastAPI(
-    title="VoxArena API",
-    description="Backend API for VoxArena Voice Agent Platform",
+    title="Arkenos API",
+    description="Backend API for Arkenos — Composable orchestration for conversational AI",
     version="0.1.0",
 )
 
@@ -33,9 +33,9 @@ app.include_router(costs.router, prefix="/api/costs", tags=["Costs"])
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "voxarena-api"}
+    return {"status": "ok", "service": "arkenos-api"}
 
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to VoxArena API", "docs": "/docs"}
+    return {"message": "Welcome to Arkenos API", "docs": "/docs"}

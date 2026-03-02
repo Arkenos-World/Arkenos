@@ -1,5 +1,5 @@
 """
-VoxArena Voice Agent
+Arkenos Voice Agent
 
 A LiveKit-based voice agent using:
 - Deepgram for Speech-to-Text

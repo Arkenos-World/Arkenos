@@ -1,4 +1,4 @@
-# VoxArena Backend Dockerfile
+# Arkenos Backend Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -18,7 +18,7 @@ EXPOSE 8000
 # Create startup script with debug output
 RUN echo '#!/bin/bash\n\
 set -e\n\
-echo "=== VoxArena Backend Startup ==="\n\
+echo "=== Arkenos Backend Startup ==="\n\
 echo "PORT=${PORT:-8000}"\n\
 echo "DATABASE_URL set: $([ -n "$DATABASE_URL" ] && echo YES || echo NO)"\n\
 echo "DB_HOST=${DB_HOST:-not set}"\n\

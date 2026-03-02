@@ -140,8 +140,8 @@ export default async function CallDetailsPage({
                         <h1 className="text-2xl font-bold">Call Details</h1>
                         <p className="text-muted-foreground">
                             {session.agent_name
-                                ? `${session.agent_name} — ID: ${session.room_name.replace(/^(preview-|voxarena-)/, '')}`
-                                : `Call — ID: ${session.room_name.replace(/^(preview-|voxarena-)/, '')}`
+                                ? `${session.agent_name} — ID: ${session.room_name.replace(/^(preview-|arkenos-)/, '')}`
+                                : `Call — ID: ${session.room_name.replace(/^(preview-|arkenos-)/, '')}`
                             }
                         </p>
                     </div>

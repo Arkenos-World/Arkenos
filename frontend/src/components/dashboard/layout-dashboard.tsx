@@ -126,7 +126,7 @@ export default async function DashboardLayout({ children, activeNav = "Dashboard
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                             <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
                         </div>
-                        <span className="font-bold text-lg">VoxArena</span>
+                        <span className="font-bold text-lg">Arkenos</span>
                     </Link>
                     <p className="text-xs text-muted-foreground mt-1 truncate">
                         {user?.emailAddresses[0]?.emailAddress}
@@ -230,7 +230,7 @@ export default async function DashboardLayout({ children, activeNav = "Dashboard
                         <div />
                         <div className="flex items-center gap-3">
                             <Button variant="ghost" size="sm" className="gap-2" asChild>
-                                <a href="https://voxarena.mintlify.app" target="_blank">
+                                <a href="https://arkenos.mintlify.app" target="_blank">
                                     <DocsIcon className="h-4 w-4" />
                                     Docs
                                 </a>

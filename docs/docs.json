@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "willow",
-  "name": "VoxArena",
+  "name": "Arkenos",
   "colors": {
     "primary": "#6D28D9",
     "light": "#8B5CF6",
@@ -62,13 +62,13 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/dhruv0206/VoxArena"
+        "href": "https://github.com/arkenos-ai/arkenos"
       }
     ]
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/dhruv0206/VoxArena"
+      "github": "https://github.com/arkenos-ai/arkenos"
     }
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import * as THREE from "three";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 
 interface AbstractBallProps {
@@ -20,15 +20,18 @@ interface AbstractBallProps {
     cameraSpeedX?: number;
     cameraZoom?: number;
     className?: string;
+    interactive?: boolean;
 }
 
-// Vertex Shader
+// Vertex Shader — with explosion uniform for blast effect
 const noiseVertexShader = `
 varying vec3 vNormal;
+varying float vExplosion;
 uniform float time;
 uniform float weight;
 uniform float morph;
 uniform float psize;
+uniform float explosion;
 
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -94,15 +97,22 @@ float cnoise(vec3 P) {
 void main() {
     float f = morph * cnoise(normal + time);
     vNormal = normalize(normal);
-    vec4 pos = vec4(position + f * normal, 1.0);
+
+    // Explosion: each particle scatters outward along its normal + noise offset
+    float scatter = explosion * (1.0 + 0.6 * cnoise(normal * 3.0 + time * 2.0));
+    vExplosion = explosion;
+
+    vec4 pos = vec4(position + (f + scatter) * normal, 1.0);
     gl_Position = projectionMatrix * modelViewMatrix * pos;
+
     gl_PointSize = psize;
 }
 `;
 
-// Fragment Shader
+// Fragment Shader — fades particles during explosion
 const fragmentShader = `
 varying vec3 vNormal;
+varying float vExplosion;
 uniform float time;
 uniform float RGBr;
 uniform float RGBg;
@@ -179,9 +189,11 @@ void main() {
     float n = cnoise(-1.0 * (vNormal + time));
     n = 50.0 * cnoise((RGBn) * (vNormal)) * cnoise(RGBm * (vNormal + time));
     n -= 0.10 * cnoise(dnoise * vNormal);
-    // Clamp and brighten the color for better visibility
     vec3 color = vec3(0.8 + 0.2 * abs(r + n), 0.8 + 0.2 * abs(g + n), 0.8 + 0.2 * abs(b + n));
-    gl_FragColor = vec4(color, 1.0);
+
+    // Fade out particles as they scatter
+    float alpha = 1.0 - smoothstep(0.0, 25.0, vExplosion) * 0.6;
+    gl_FragColor = vec4(color, alpha);
 }
 `;
 
@@ -201,6 +213,7 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
     cameraSpeedX = 0.0,
     cameraZoom = 150,
     className = "",
+    interactive = false,
 }) => {
     const mountRef = useRef<HTMLDivElement>(null);
     const sceneRef = useRef<THREE.Scene | null>(null);
@@ -208,6 +221,7 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
     const meshRef = useRef<THREE.Mesh | null>(null);
     const pointRef = useRef<THREE.Points | null>(null);
+    const tweensRef = useRef<gsap.core.Tween[]>([]);
     const uniformsRef = useRef<{
         time: { value: number };
         RGBr: { value: number };
@@ -218,6 +232,7 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
         morph: { value: number };
         dnoise: { value: number };
         psize: { value: number };
+        explosion: { value: number };
     }>({
         time: { value: 0.0 },
         RGBr: { value: chromaRGBr / 10 },
@@ -228,6 +243,7 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
         morph: { value: perlinMorph },
         dnoise: { value: perlinDNoise },
         psize: { value: spherePsize },
+        explosion: { value: 0.0 },
     });
 
     useEffect(() => {
@@ -254,7 +270,7 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         mountRef.current.appendChild(renderer.domElement);
 
-        // Geometry and Material - detail level controls number of points (lower = fewer dots)
+        // Geometry and Material
         const geometry = new THREE.IcosahedronGeometry(20, 10);
         const material = new THREE.ShaderMaterial({
             uniforms: uniformsRef.current,
@@ -262,6 +278,7 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
             vertexShader: noiseVertexShader,
             fragmentShader: fragmentShader,
             wireframe: sphereWireframe,
+            transparent: true,
         });
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -269,7 +286,6 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
-        // Set initial visibility based on spherePoints prop
         mesh.visible = !spherePoints;
         point.visible = spherePoints;
 
@@ -280,14 +296,11 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
         let animationFrameId: number;
         const animate = () => {
             uniformsRef.current.time.value += perlinTime / 10000;
-            uniformsRef.current.morph.value = perlinMorph;
-            uniformsRef.current.dnoise.value = perlinDNoise;
             uniformsRef.current.RGBr.value = chromaRGBr / 10;
             uniformsRef.current.RGBg.value = chromaRGBg / 10;
             uniformsRef.current.RGBb.value = chromaRGBb / 10;
             uniformsRef.current.RGBn.value = chromaRGBn / 100;
             uniformsRef.current.RGBm.value = chromaRGBm;
-            uniformsRef.current.psize.value = spherePsize;
 
             mesh.rotation.y += cameraSpeedY / 100;
             mesh.rotation.z += cameraSpeedX / 100;
@@ -305,13 +318,72 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
         // Handle resize
         const handleResize = () => {
             if (!mountRef.current) return;
-            const width = mountRef.current.clientWidth;
-            const height = mountRef.current.clientHeight;
-            renderer.setSize(width, height);
-            camera.aspect = width / height;
+            const w = mountRef.current.clientWidth;
+            const h = mountRef.current.clientHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
             camera.updateProjectionMatrix();
         };
         window.addEventListener("resize", handleResize);
+
+        // Mouse interaction — blast on enter, reconverge on leave
+        const el = mountRef.current;
+
+        const killTweens = () => {
+            tweensRef.current.forEach(t => t.kill());
+            tweensRef.current = [];
+        };
+
+        const handleMouseEnter = () => {
+            if (!interactive) return;
+            killTweens();
+
+            // Blast: controlled burst outward
+            tweensRef.current.push(
+                gsap.to(uniformsRef.current.explosion, {
+                    value: 6,
+                    duration: 0.6,
+                    ease: "power3.out",
+                }),
+                gsap.to(uniformsRef.current.morph, {
+                    value: perlinMorph * 1.6,
+                    duration: 0.6,
+                    ease: "power3.out",
+                }),
+                gsap.to(uniformsRef.current.dnoise, {
+                    value: perlinDNoise * 2,
+                    duration: 0.6,
+                    ease: "power3.out",
+                }),
+            );
+        };
+
+        const handleMouseLeave = () => {
+            if (!interactive) return;
+            killTweens();
+
+            // Reconverge: particles pull back together
+            tweensRef.current.push(
+                gsap.to(uniformsRef.current.explosion, {
+                    value: 0,
+                    duration: 1.4,
+                    ease: "elastic.out(1, 0.4)",
+                }),
+                gsap.to(uniformsRef.current.morph, {
+                    value: perlinMorph,
+                    duration: 1.2,
+                    ease: "power2.inOut",
+                }),
+                gsap.to(uniformsRef.current.dnoise, {
+                    value: perlinDNoise,
+                    duration: 1.2,
+                    ease: "power2.inOut",
+                }),
+            );
+        };
+
+        el.addEventListener("mouseenter", handleMouseEnter);
+        el.addEventListener("mouseleave", handleMouseLeave);
 
         // Store refs
         sceneRef.current = scene;
@@ -322,7 +394,10 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
 
         return () => {
             window.removeEventListener("resize", handleResize);
+            el.removeEventListener("mouseenter", handleMouseEnter);
+            el.removeEventListener("mouseleave", handleMouseLeave);
             cancelAnimationFrame(animationFrameId);
+            killTweens();
             if (mountRef.current && renderer.domElement) {
                 mountRef.current.removeChild(renderer.domElement);
             }
@@ -332,16 +407,18 @@ const AbstractBall: React.FC<AbstractBallProps> = ({
         };
     }, []);
 
-    // Update uniforms when props change
+    // Update uniforms when props change (only when not mid-explosion)
     useEffect(() => {
-        uniformsRef.current.morph.value = perlinMorph;
-        uniformsRef.current.dnoise.value = perlinDNoise;
+        if (uniformsRef.current.explosion.value === 0) {
+            uniformsRef.current.morph.value = perlinMorph;
+            uniformsRef.current.dnoise.value = perlinDNoise;
+            uniformsRef.current.psize.value = spherePsize;
+        }
         uniformsRef.current.RGBr.value = chromaRGBr / 10;
         uniformsRef.current.RGBg.value = chromaRGBg / 10;
         uniformsRef.current.RGBb.value = chromaRGBb / 10;
         uniformsRef.current.RGBn.value = chromaRGBn / 100;
         uniformsRef.current.RGBm.value = chromaRGBm;
-        uniformsRef.current.psize.value = spherePsize;
     }, [perlinMorph, perlinDNoise, chromaRGBr, chromaRGBg, chromaRGBb, chromaRGBn, chromaRGBm, spherePsize]);
 
     // Camera zoom animation

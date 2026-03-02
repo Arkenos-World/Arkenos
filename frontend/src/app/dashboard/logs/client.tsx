@@ -7,62 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-function PhoneIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-        </svg>
-    );
-}
-
-function ClockIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-    );
-}
-
-function MicrophoneIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-        </svg>
-    );
-}
-
-function ChevronLeftIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
-    );
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-        </svg>
-    );
-}
-
-function ArrowUpRightIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
-        </svg>
-    );
-}
-
-function ArrowDownLeftIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 4.5l-15 15m0 0h11.25m-11.25 0V8.25" />
-        </svg>
-    );
-}
+import {
+    PhoneIcon,
+    ClockIcon,
+    MicrophoneIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ArrowUpRightIcon,
+    ArrowDownLeftIcon,
+} from "@/components/icons";
+import { sentimentDotColor } from "@/lib/design-tokens";
 
 function resolveSessionLabel(session: { agent_name?: string | null; room_name: string }): {
     primary: string
@@ -285,13 +239,11 @@ export function CallLogsClient({ userId }: CallLogsClientProps) {
                                                 <MicrophoneIcon className="h-5 w-5 text-primary" />
                                                 {session.analysis?.sentiment && (
                                                     <span
-                                                        className={`absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
-                                                            session.analysis.sentiment === "positive"
-                                                                ? "bg-emerald-500"
-                                                                : session.analysis.sentiment === "negative"
-                                                                    ? "bg-red-500"
-                                                                    : "bg-yellow-500"
-                                                        }`}
+                                                        className={`absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${sentimentDotColor(
+                                                            session.analysis.sentiment === "positive" ? 1
+                                                                : session.analysis.sentiment === "negative" ? -1
+                                                                    : 0
+                                                        )}`}
                                                         title={`Sentiment: ${session.analysis.sentiment}`}
                                                     />
                                                 )}

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import type {
     CostSummary, ProviderCost, CostTimelineEntry, AgentCost
 } from "@/lib/api"
+import { deltaColor } from "@/lib/design-tokens"
 
 // ─── Color palette (consistent with analytics) ──────────────────────────────
 const C = {

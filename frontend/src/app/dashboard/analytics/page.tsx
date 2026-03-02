@@ -8,7 +8,7 @@ export default async function AnalyticsPage() {
     if (!userId) redirect("/sign-in");
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
     return (
-        <DashboardLayout activeNav="Analytics">
+        <DashboardLayout>
             <AnalyticsClient userId={userId} apiUrl={apiUrl} />
         </DashboardLayout>
     );

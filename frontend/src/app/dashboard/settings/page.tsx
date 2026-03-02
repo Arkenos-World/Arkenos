@@ -15,7 +15,7 @@ export default async function SettingsPage() {
     const user = await currentUser();
 
     return (
-        <DashboardLayout activeNav="Settings">
+        <DashboardLayout>
             <div className="space-y-6 max-w-2xl">
                 {/* Header */}
                 <div>

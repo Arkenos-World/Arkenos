@@ -8,7 +8,7 @@ export default async function CostsPage() {
     if (!userId) redirect("/sign-in");
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
     return (
-        <DashboardLayout activeNav="Costs">
+        <DashboardLayout>
             <CostsClient userId={userId} apiUrl={apiUrl} />
         </DashboardLayout>
     );

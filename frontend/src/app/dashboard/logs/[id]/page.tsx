@@ -7,38 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CallAnalysis, SessionCosts } from "@/lib/api";
 import { TransferControls } from "@/components/sessions/transfer-controls";
-
-function ArrowLeftIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-        </svg>
-    );
-}
-
-function ClockIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-    );
-}
-
-function UserIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-        </svg>
-    );
-}
-
-function BotIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-        </svg>
-    );
-}
+import { ArrowLeftIcon, ClockIcon, UserIcon, BotIcon } from "@/components/icons";
+import { STATUS_BG } from "@/lib/design-tokens";
 
 interface Session {
     id: string;
@@ -114,7 +84,7 @@ export default async function CallDetailsPage({
 
     if (!session) {
         return (
-            <DashboardLayout activeNav="Call Logs">
+            <DashboardLayout>
                 <div className="text-center py-16">
                     <h1 className="text-2xl font-bold mb-2">Call Not Found</h1>
                     <p className="text-muted-foreground mb-4">This call doesn&apos;t exist or you don&apos;t have access.</p>
@@ -127,7 +97,7 @@ export default async function CallDetailsPage({
     }
 
     return (
-        <DashboardLayout activeNav="Call Logs">
+        <DashboardLayout>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center gap-4">
@@ -277,10 +247,10 @@ export default async function CallDetailsPage({
                                             variant="outline"
                                             className={
                                                 session.analysis.sentiment === "positive"
-                                                    ? "border-emerald-500 text-emerald-600 bg-emerald-500/10"
+                                                    ? STATUS_BG.positive
                                                     : session.analysis.sentiment === "negative"
-                                                        ? "border-red-500 text-red-600 bg-red-500/10"
-                                                        : "border-yellow-500 text-yellow-600 bg-yellow-500/10"
+                                                        ? STATUS_BG.negative
+                                                        : STATUS_BG.neutral
                                             }
                                         >
                                             {session.analysis.sentiment}
@@ -297,12 +267,12 @@ export default async function CallDetailsPage({
                                         variant="outline"
                                         className={
                                             session.analysis.outcome === "resolved"
-                                                ? "border-emerald-500 text-emerald-600 bg-emerald-500/10"
+                                                ? STATUS_BG.positive
                                                 : session.analysis.outcome === "unresolved"
-                                                    ? "border-red-500 text-red-600 bg-red-500/10"
+                                                    ? STATUS_BG.negative
                                                     : session.analysis.outcome === "transferred"
-                                                        ? "border-yellow-500 text-yellow-600 bg-yellow-500/10"
-                                                        : "border-orange-500 text-orange-600 bg-orange-500/10"
+                                                        ? STATUS_BG.transferred
+                                                        : STATUS_BG.transferred
                                         }
                                     >
                                         {session.analysis.outcome}

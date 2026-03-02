@@ -271,7 +271,7 @@ def create_transfer_call_tool(room_name: str, session_id_holder: dict) -> object
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{BACKEND_API_URL}/sessions/{session_id}/transfer",
-                    json={"phone_number": phone_number, "type": transfer_type},
+                    json={"phone_number": phone_number, "type": transfer_type.upper()},
                     timeout=10,
                 )
                 response.raise_for_status()
@@ -497,6 +497,12 @@ async def entrypoint(ctx: agents.JobContext):
             first_message = config.get("first_message") or first_message
             voice_id = config.get("voice_id")
             first_message_mode = config.get("first_message_mode", "assistant_speaks_first")
+
+            # Replace {{agent_name}} placeholder with the actual agent name
+            agent_name = agent_config.get("name", "")
+            if agent_name:
+                system_prompt = system_prompt.replace("{{agent_name}}", agent_name)
+                first_message = first_message.replace("{{agent_name}}", agent_name)
             
     # Get STT provider from config (default to assemblyai)
     stt_provider = "assemblyai"
@@ -682,6 +688,7 @@ async def entrypoint(ctx: agents.JobContext):
     function_tools = []
     if agent_config:
         functions_config = agent_config.get("config", {}).get("functions", [])
+        logger.info(f"Functions from config: {functions_config}")
         if functions_config:
             function_tools = create_function_tools(functions_config, ctx.room.name)
             logger.info(f"Registered {len(function_tools)} config function tool(s)")

@@ -62,7 +62,7 @@ async def analyze_call(session_id: str) -> None:
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}",
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}",
                 json={
                     "contents": [
                         {"role": "user", "parts": [{"text": prompt}]}

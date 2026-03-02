@@ -504,14 +504,17 @@ function FunctionDialog({ open, onOpenChange, initial, onSave }: FunctionDialogP
 export function FunctionConfig({ functions, onChange }: FunctionConfigProps) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingFunction, setEditingFunction] = useState<FunctionDefinition | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
 
     const handleAdd = () => {
         setEditingFunction(null);
+        setIsEditing(false);
         setDialogOpen(true);
     };
 
     const handleEdit = (fn: FunctionDefinition) => {
         setEditingFunction(fn);
+        setIsEditing(true);
         setDialogOpen(true);
     };
 
@@ -520,7 +523,7 @@ export function FunctionConfig({ functions, onChange }: FunctionConfigProps) {
     };
 
     const handleSave = (fn: FunctionDefinition) => {
-        if (editingFunction) {
+        if (isEditing) {
             onChange(functions.map((f) => (f.id === fn.id ? fn : f)));
         } else {
             onChange([...functions, fn]);
@@ -529,11 +532,8 @@ export function FunctionConfig({ functions, onChange }: FunctionConfigProps) {
 
     const handleAddTemplate = (template: FunctionTemplate) => {
         const fn = { ...template.fn, id: crypto.randomUUID() };
-        setEditingFunction(null);
-        // Open dialog pre-filled with template
-        setEditingFunction(null);
-        // Directly add and open for editing so user can set the URL
         setEditingFunction(fn);
+        setIsEditing(false);
         setDialogOpen(true);
     };
 

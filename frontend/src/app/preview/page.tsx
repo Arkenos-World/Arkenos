@@ -77,6 +77,7 @@ const sttModels = [
 ];
 
 const llmModels = [
+    { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)", provider: "Google" },
     { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "Google" },
 ];
 
@@ -484,7 +485,7 @@ export default function PreviewPage() {
     const router = useRouter();
     const { userId } = useAuth();
     const [connectionState, setConnectionState] = useState<ConnectionStateType>("idle");
-    const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+    const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
     const [connectionData, setConnectionData] = useState<{
         token: string;
         wsUrl: string;

@@ -2,18 +2,26 @@
 
 import json
 import re
+import uuid
 import logging
 import hashlib
+from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, Header, HTTPException, Path
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models import Agent, AgentFile
-from app.schemas import CodingAgentRequest
+from app.models import Agent, AgentFile, CodingAgentConversation, CodingAgentMessage
+from app.schemas import (
+    CodingAgentRequest,
+    ConversationListItem,
+    ConversationDetailResponse,
+    MessageResponse,
+)
 from app.services import minio_client
 from app.services.coding_agent_prompt import SYSTEM_PROMPT
 from app.dependencies import verify_agent_ownership
@@ -101,7 +109,6 @@ def _save_file_to_storage(
         agent_file.size_bytes = len(content_bytes)
         agent_file.version = (agent_file.version or 0) + 1
     else:
-        import uuid
         agent_file = AgentFile(
             id=str(uuid.uuid4()),
             agent_id=agent_id,
@@ -136,10 +143,118 @@ def _delete_file_from_storage(agent_id: str, file_path: str, db: Session) -> Non
         db.commit()
 
 
+# ---- Conversation CRUD endpoints ----
+
+
+@router.get("/conversations")
+async def list_conversations(
+    agent_id: str = Path(...),
+    db: Session = Depends(get_db),
+    _agent: Agent = Depends(verify_agent_ownership),
+):
+    """List all conversations for this agent, newest first."""
+    convs = (
+        db.query(
+            CodingAgentConversation,
+            func.count(CodingAgentMessage.id).label("message_count"),
+        )
+        .outerjoin(CodingAgentMessage)
+        .filter(CodingAgentConversation.agent_id == agent_id)
+        .group_by(CodingAgentConversation.id)
+        .order_by(CodingAgentConversation.updated_at.desc())
+        .all()
+    )
+    return [
+        ConversationListItem(
+            id=c.id,
+            title=c.title,
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+            message_count=count,
+        )
+        for c, count in convs
+    ]
+
+
+@router.post("/conversations")
+async def create_conversation(
+    agent_id: str = Path(...),
+    x_user_id: str = Header(...),
+    db: Session = Depends(get_db),
+    _agent: Agent = Depends(verify_agent_ownership),
+):
+    """Create a new empty conversation."""
+    conv = CodingAgentConversation(
+        id=str(uuid.uuid4()),
+        agent_id=agent_id,
+        user_id=x_user_id,
+        title="New conversation",
+    )
+    db.add(conv)
+    db.commit()
+    db.refresh(conv)
+    return {"id": conv.id, "title": conv.title}
+
+
+@router.get("/conversations/{conv_id}")
+async def get_conversation(
+    conv_id: str,
+    agent_id: str = Path(...),
+    db: Session = Depends(get_db),
+    _agent: Agent = Depends(verify_agent_ownership),
+):
+    """Get a conversation with all its messages."""
+    conv = db.query(CodingAgentConversation).filter(
+        CodingAgentConversation.id == conv_id,
+        CodingAgentConversation.agent_id == agent_id,
+    ).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return ConversationDetailResponse(
+        id=conv.id,
+        title=conv.title,
+        messages=[
+            MessageResponse(
+                id=m.id,
+                role=m.role,
+                content=m.content,
+                file_changes=m.file_changes,
+                created_at=m.created_at,
+            )
+            for m in conv.messages
+        ],
+        created_at=conv.created_at,
+        updated_at=conv.updated_at,
+    )
+
+
+@router.delete("/conversations/{conv_id}")
+async def delete_conversation(
+    conv_id: str,
+    agent_id: str = Path(...),
+    db: Session = Depends(get_db),
+    _agent: Agent = Depends(verify_agent_ownership),
+):
+    """Delete a conversation and all its messages."""
+    conv = db.query(CodingAgentConversation).filter(
+        CodingAgentConversation.id == conv_id,
+        CodingAgentConversation.agent_id == agent_id,
+    ).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    db.delete(conv)
+    db.commit()
+    return {"ok": True}
+
+
+# ---- Chat streaming endpoint ----
+
+
 @router.post("/chat")
 async def chat_stream(
     request: CodingAgentRequest,
     agent_id: str = Path(...),
+    x_user_id: str = Header(...),
     db: Session = Depends(get_db),
     _agent: Agent = Depends(verify_agent_ownership),
 ):
@@ -151,6 +266,43 @@ async def chat_stream(
     async def event_stream():
         full_text = ""
         try:
+            # Resolve or create conversation
+            conv_id = request.conversation_id
+            if conv_id:
+                conv = db.query(CodingAgentConversation).filter(
+                    CodingAgentConversation.id == conv_id,
+                    CodingAgentConversation.agent_id == agent_id,
+                ).first()
+                if not conv:
+                    yield _sse("error", content="Conversation not found")
+                    return
+            else:
+                title = request.prompt[:80].strip()
+                if len(request.prompt) > 80:
+                    title += "..."
+                conv = CodingAgentConversation(
+                    id=str(uuid.uuid4()),
+                    agent_id=agent_id,
+                    user_id=x_user_id,
+                    title=title,
+                )
+                db.add(conv)
+                db.commit()
+                db.refresh(conv)
+                conv_id = conv.id
+
+            yield _sse("conversation", id=conv_id, title=conv.title)
+
+            # Save user message
+            user_msg = CodingAgentMessage(
+                id=str(uuid.uuid4()),
+                conversation_id=conv_id,
+                role="user",
+                content=request.prompt,
+            )
+            db.add(user_msg)
+            db.commit()
+
             # Phase 1: Read files and build context
             yield _sse("status", message="Reading agent files...")
 
@@ -171,7 +323,7 @@ async def chat_stream(
                     f"User request: {request.prompt}"
                 )
 
-            # Phase 2: Call LLM with streaming
+            # Phase 2: Call LLM with multi-turn history
             yield _sse("status", message="Thinking...")
 
             import google.generativeai as genai
@@ -182,7 +334,24 @@ async def chat_stream(
                 system_instruction=SYSTEM_PROMPT,
             )
 
-            response = await model.generate_content_async(user_message, stream=True)
+            # Build chat history from previous messages
+            previous_messages = (
+                db.query(CodingAgentMessage)
+                .filter(
+                    CodingAgentMessage.conversation_id == conv_id,
+                    CodingAgentMessage.id != user_msg.id,
+                )
+                .order_by(CodingAgentMessage.created_at)
+                .all()
+            )
+
+            history = []
+            for msg in previous_messages:
+                role = "user" if msg.role == "user" else "model"
+                history.append({"role": role, "parts": [msg.content]})
+
+            chat = model.start_chat(history=history)
+            response = await chat.send_message_async(user_message, stream=True)
 
             async for chunk in response:
                 if chunk.text:
@@ -191,11 +360,11 @@ async def chat_stream(
 
             # Phase 3: Parse and auto-apply file changes
             file_changes = _parse_file_changes(full_text)
+            applied_changes = []
 
             if file_changes:
                 yield _sse("status", message=f"Applying {len(file_changes)} file change(s)...")
 
-                applied_changes = []
                 for change in file_changes:
                     fp = change["file_path"]
                     action = change["action"]
@@ -225,6 +394,21 @@ async def chat_stream(
                     file_changes=applied_changes,
                     auto_applied=True,
                 )
+
+            # Save assistant message
+            assistant_msg = CodingAgentMessage(
+                id=str(uuid.uuid4()),
+                conversation_id=conv_id,
+                role="assistant",
+                content=full_text,
+                file_changes=[
+                    {"file_path": c["file_path"], "action": c["action"]}
+                    for c in applied_changes
+                ] if applied_changes else None,
+            )
+            db.add(assistant_msg)
+            conv.updated_at = datetime.utcnow()
+            db.commit()
 
             yield _sse("done")
 

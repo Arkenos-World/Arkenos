@@ -18,13 +18,20 @@ import {
     Loader2,
     Eye,
     AlertCircle,
+    History,
 } from "lucide-react";
-import type { CodingAgentMessage } from "@/lib/api";
+import type { CodingAgentMessage, ConversationListItem } from "@/lib/api";
 
 interface FileChange {
     file_path: string;
     action: "create" | "modify" | "delete" | "update";
     content?: string | null;
+}
+
+interface DetectedFileChange {
+    file_path: string;
+    action: string;
+    saved: boolean;
 }
 
 /** Events streamed from the backend */
@@ -35,6 +42,7 @@ type StreamEvent =
     | { type: "file_write"; file_path: string; action: string; size_bytes?: number; version?: number }
     | { type: "file_error"; file_path: string; error: string }
     | { type: "file_changes"; file_changes: FileChange[]; auto_applied: boolean }
+    | { type: "conversation"; id: string; title: string }
     | { type: "done" }
     | { type: "error"; content: string };
 
@@ -184,12 +192,14 @@ function StepIcon({ kind, action }: { kind: string; action?: string }) {
 
 function FileChangeCard({
     change,
+    saved = true,
     onOpen,
 }: {
-    change: FileChange;
+    change: { file_path: string; action: string };
+    saved?: boolean;
     onOpen?: () => void;
 }) {
-    const actionColors = {
+    const actionColors: Record<string, string> = {
         create: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
         update: "text-blue-400 bg-blue-500/10 border-blue-500/20",
         modify: "text-blue-400 bg-blue-500/10 border-blue-500/20",
@@ -210,10 +220,17 @@ function FileChangeCard({
                 </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-emerald-400 text-[11px] flex items-center gap-1">
-                    <Check className="h-3 w-3" />
-                    Saved
-                </span>
+                {saved ? (
+                    <span className="text-emerald-400 text-[11px] flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        Saved
+                    </span>
+                ) : (
+                    <span className="text-amber-400 text-[11px] flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Applying...
+                    </span>
+                )}
                 {change.action !== "delete" && onOpen && (
                     <Button
                         variant="ghost"
@@ -241,15 +258,26 @@ export function CodingAgentChat({
     const [input, setInput] = useState("");
     const [isStreaming, setIsStreaming] = useState(false);
     const [streamingContent, setStreamingContent] = useState("");
+    const [displayContent, setDisplayContent] = useState("");
+    const [detectedChanges, setDetectedChanges] = useState<DetectedFileChange[]>([]);
+    const [writingFile, setWritingFile] = useState<string | null>(null);
     const [activitySteps, setActivitySteps] = useState<ActivityStep[]>([]);
     const [streamingFileChanges, setStreamingFileChanges] = useState<FileChange[]>([]);
+
+    // Conversation history state
+    const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+    const [showHistory, setShowHistory] = useState(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const fullContentRef = useRef("");
+    const detectedChangesRef = useRef<DetectedFileChange[]>([]);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, streamingContent, activitySteps]);
+    }, [messages, streamingContent, displayContent, activitySteps]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(e.target.value);
@@ -261,6 +289,117 @@ export function CodingAgentChat({
     const addActivity = useCallback((step: ActivityStep) => {
         setActivitySteps((prev) => [...prev, step]);
     }, []);
+
+    // ─── Conversation history ─────────────────────────────────────
+
+    const fetchConversations = useCallback(async () => {
+        try {
+            const res = await fetch(
+                `${apiUrl}/agents/${agentId}/coding-agent/conversations`,
+                { headers: { "x-user-id": userId } }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                setConversations(data);
+            }
+        } catch {
+            // non-fatal
+        }
+    }, [apiUrl, agentId, userId]);
+
+    useEffect(() => {
+        fetchConversations();
+    }, [fetchConversations]);
+
+    const loadConversation = useCallback(async (convId: string) => {
+        try {
+            const res = await fetch(
+                `${apiUrl}/agents/${agentId}/coding-agent/conversations/${convId}`,
+                { headers: { "x-user-id": userId } }
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+            setActiveConversationId(convId);
+            setMessages(
+                data.messages.map((m: any) => ({
+                    id: m.id,
+                    role: m.role,
+                    content: m.content,
+                    file_changes: m.file_changes,
+                    timestamp: m.created_at,
+                }))
+            );
+            setShowHistory(false);
+        } catch {
+            // non-fatal
+        }
+    }, [apiUrl, agentId, userId]);
+
+    const deleteConversation = useCallback(async (convId: string) => {
+        try {
+            const res = await fetch(
+                `${apiUrl}/agents/${agentId}/coding-agent/conversations/${convId}`,
+                {
+                    method: "DELETE",
+                    headers: { "x-user-id": userId },
+                }
+            );
+            if (!res.ok) return;
+            if (activeConversationId === convId) {
+                setActiveConversationId(null);
+                setMessages([]);
+            }
+            await fetchConversations();
+        } catch {
+            // non-fatal
+        }
+    }, [apiUrl, agentId, userId, activeConversationId, fetchConversations]);
+
+    const handleNewChat = useCallback(() => {
+        setActiveConversationId(null);
+        setMessages([]);
+        setShowHistory(false);
+    }, []);
+
+    // ─── Real-time FILE_CHANGE detection ──────────────────────────
+
+    const processDisplayContent = useCallback((raw: string): {
+        display: string;
+        detected: DetectedFileChange[];
+        currentlyWriting: string | null;
+    } => {
+        const fileChangeRegex = /FILE_CHANGE:\s*(create|update|delete)\s+(\S+)\s*\n?\s*```[\s\S]*?```/g;
+        let display = raw;
+        const detected: DetectedFileChange[] = [];
+        let match;
+
+        while ((match = fileChangeRegex.exec(raw)) !== null) {
+            const existing = detectedChangesRef.current.find(
+                (d) => d.file_path === match![2] && d.action === match![1]
+            );
+            detected.push({
+                file_path: match[2],
+                action: match[1],
+                saved: existing?.saved ?? false,
+            });
+            display = display.replace(match[0], "");
+        }
+
+        // Handle partial (in-progress) FILE_CHANGE block
+        let currentlyWriting: string | null = null;
+        const partialMatch = display.match(/FILE_CHANGE:\s*(create|update|delete)\s+(\S+)[\s\S]*$/);
+        if (partialMatch) {
+            display = display.slice(0, partialMatch.index);
+            currentlyWriting = partialMatch[2];
+        }
+
+        // Clean up excessive blank lines
+        display = display.replace(/\n{3,}/g, "\n\n").trim();
+
+        return { display, detected, currentlyWriting };
+    }, []);
+
+    // ─── Send message ─────────────────────────────────────────────
 
     const handleSend = useCallback(async () => {
         if (!input.trim() || isStreaming) return;
@@ -275,8 +414,13 @@ export function CodingAgentChat({
         setInput("");
         setIsStreaming(true);
         setStreamingContent("");
+        setDisplayContent("");
+        setDetectedChanges([]);
+        setWritingFile(null);
         setActivitySteps([]);
         setStreamingFileChanges([]);
+        fullContentRef.current = "";
+        detectedChangesRef.current = [];
 
         if (inputRef.current) inputRef.current.style.height = "auto";
 
@@ -290,6 +434,7 @@ export function CodingAgentChat({
                         agent_id: agentId,
                         prompt: userMessage.content,
                         context_files: [],
+                        conversation_id: activeConversationId,
                     }),
                 }
             );
@@ -303,7 +448,6 @@ export function CodingAgentChat({
             if (!reader) throw new Error("No readable stream");
 
             const decoder = new TextDecoder();
-            let fullContent = "";
             let fileChanges: FileChange[] = [];
             let buffer = "";
 
@@ -342,10 +486,20 @@ export function CodingAgentChat({
                                 });
                                 break;
 
-                            case "chunk":
-                                fullContent += event.content;
-                                setStreamingContent(fullContent);
+                            case "chunk": {
+                                fullContentRef.current += event.content;
+                                setStreamingContent(fullContentRef.current);
+
+                                // Real-time FILE_CHANGE detection
+                                const { display, detected, currentlyWriting } =
+                                    processDisplayContent(fullContentRef.current);
+
+                                detectedChangesRef.current = detected;
+                                setDisplayContent(display);
+                                setDetectedChanges(detected);
+                                setWritingFile(currentlyWriting);
                                 break;
+                            }
 
                             case "file_write":
                                 addActivity({
@@ -355,6 +509,11 @@ export function CodingAgentChat({
                                     action: event.action,
                                     timestamp: Date.now(),
                                 });
+                                // Mark the corresponding detected change as saved
+                                detectedChangesRef.current = detectedChangesRef.current.map((d) =>
+                                    d.file_path === event.file_path ? { ...d, saved: true } : d
+                                );
+                                setDetectedChanges([...detectedChangesRef.current]);
                                 // Notify parent to refresh file tree & editor
                                 onFileChanged(
                                     event.file_path,
@@ -376,9 +535,15 @@ export function CodingAgentChat({
                                 setStreamingFileChanges(fileChanges);
                                 break;
 
+                            case "conversation":
+                                setActiveConversationId(event.id);
+                                fetchConversations();
+                                break;
+
                             case "error":
-                                fullContent += `\n\nError: ${event.content}`;
-                                setStreamingContent(fullContent);
+                                fullContentRef.current += `\n\nError: ${event.content}`;
+                                setStreamingContent(fullContentRef.current);
+                                setDisplayContent(fullContentRef.current);
                                 break;
 
                             case "done":
@@ -392,12 +557,21 @@ export function CodingAgentChat({
 
             const assistantMessage: CodingAgentMessage = {
                 role: "assistant",
-                content: fullContent,
-                file_changes: fileChanges.length > 0 ? fileChanges : undefined,
+                content: fullContentRef.current,
+                file_changes: fileChanges.length > 0
+                    ? fileChanges.map((fc) => ({
+                          file_path: fc.file_path,
+                          action: (fc.action === "update" ? "modify" : fc.action) as "create" | "modify" | "delete",
+                          content: fc.content ?? undefined,
+                      }))
+                    : undefined,
                 timestamp: new Date().toISOString(),
             };
             setMessages((prev) => [...prev, assistantMessage]);
             setStreamingContent("");
+            setDisplayContent("");
+            setDetectedChanges([]);
+            setWritingFile(null);
             setStreamingFileChanges([]);
         } catch (error) {
             console.error("Chat error:", error);
@@ -408,21 +582,88 @@ export function CodingAgentChat({
             };
             setMessages((prev) => [...prev, errorMessage]);
             setStreamingContent("");
+            setDisplayContent("");
+            setDetectedChanges([]);
+            setWritingFile(null);
         } finally {
             setIsStreaming(false);
             setActivitySteps([]);
+            fullContentRef.current = "";
+            detectedChangesRef.current = [];
         }
-    }, [input, isStreaming, apiUrl, agentId, userId, addActivity, onFileChanged]);
+    }, [input, isStreaming, apiUrl, agentId, userId, activeConversationId, addActivity, onFileChanged, processDisplayContent, fetchConversations]);
 
     return (
-        <div className="flex flex-col h-full bg-[#0a0a0f]">
+        <div className="flex flex-col h-full bg-[#0a0a0f] relative">
             {/* Header */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-                <div className="h-6 w-6 rounded-md bg-violet-500/15 flex items-center justify-center">
-                    <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-md bg-violet-500/15 flex items-center justify-center">
+                        <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+                    </div>
+                    <span className="text-[13px] font-semibold text-white/80">AI Assistant</span>
                 </div>
-                <span className="text-[13px] font-semibold text-white/80">AI Assistant</span>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => setShowHistory(!showHistory)}
+                        className="h-7 w-7 rounded-md hover:bg-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/60 transition-colors"
+                        title="Chat history"
+                    >
+                        <History className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        onClick={handleNewChat}
+                        className="h-7 w-7 rounded-md hover:bg-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/60 transition-colors"
+                        title="New chat"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                    </button>
+                </div>
             </div>
+
+            {/* Conversation history overlay */}
+            {showHistory && (
+                <div className="absolute inset-x-0 top-[41px] bottom-0 z-10 bg-[#0a0a0f]/95 backdrop-blur-sm overflow-y-auto">
+                    <div className="p-3 space-y-1">
+                        <button
+                            onClick={handleNewChat}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[13px] font-medium hover:bg-violet-500/15 transition-colors"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            New conversation
+                        </button>
+                        {conversations.length === 0 ? (
+                            <p className="text-[12px] text-white/30 text-center py-4">No conversations yet</p>
+                        ) : (
+                            conversations.map((conv) => (
+                                <button
+                                    key={conv.id}
+                                    onClick={() => loadConversation(conv.id)}
+                                    className={`group w-full text-left px-3 py-2 rounded-lg hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
+                                        activeConversationId === conv.id ? "bg-white/[0.06]" : ""
+                                    }`}
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[12px] text-white/70 truncate">{conv.title}</p>
+                                        <p className="text-[10px] text-white/30 mt-0.5">
+                                            {conv.message_count} messages · {new Date(conv.updated_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteConversation(conv.id);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 h-5 w-5 rounded hover:bg-red-500/20 flex items-center justify-center text-white/30 hover:text-red-400 transition-all"
+                                    >
+                                        <Trash2 className="h-3 w-3" />
+                                    </button>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
@@ -460,9 +701,14 @@ export function CodingAgentChat({
                                 <Bot className="h-3.5 w-3.5 text-violet-400" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                {streamingContent ? (
+                                {displayContent ? (
                                     <div className="text-[13px] leading-relaxed text-white/80">
-                                        {formatMarkdown(streamingContent)}
+                                        {formatMarkdown(displayContent)}
+                                        <span className="inline-block w-1.5 h-4 bg-violet-400/80 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
+                                    </div>
+                                ) : streamingContent ? (
+                                    /* We have streaming content but displayContent is empty (all content is FILE_CHANGE blocks) */
+                                    <div className="text-[13px] leading-relaxed text-white/80">
                                         <span className="inline-block w-1.5 h-4 bg-violet-400/80 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
                                     </div>
                                 ) : (
@@ -482,13 +728,40 @@ export function CodingAgentChat({
                             </div>
                         </div>
 
-                        {/* Streaming file changes (auto-applied) */}
+                        {/* Writing file indicator */}
+                        {writingFile && (
+                            <div className="ml-8 flex items-center gap-2 py-1 text-[12px]">
+                                <Loader2 className="h-3 w-3 text-amber-400/60 animate-spin" />
+                                <span className="text-amber-400/70 font-mono">Writing {writingFile}...</span>
+                            </div>
+                        )}
+
+                        {/* Detected file changes during streaming */}
+                        {detectedChanges.length > 0 && (
+                            <div className="ml-8 space-y-1.5">
+                                {detectedChanges.map((change, idx) => (
+                                    <FileChangeCard
+                                        key={`${change.file_path}-${idx}`}
+                                        change={change}
+                                        saved={change.saved}
+                                        onOpen={
+                                            onOpenFile && change.action !== "delete"
+                                                ? () => onOpenFile(change.file_path)
+                                                : undefined
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Streaming file changes from file_changes SSE event */}
                         {streamingFileChanges.length > 0 && (
                             <div className="ml-8 space-y-1.5">
                                 {streamingFileChanges.map((change, idx) => (
                                     <FileChangeCard
                                         key={idx}
                                         change={change}
+                                        saved={true}
                                         onOpen={
                                             onOpenFile && change.action !== "delete"
                                                 ? () => onOpenFile(change.file_path)
@@ -578,6 +851,7 @@ function MessageBubble({
                         <FileChangeCard
                             key={idx}
                             change={change}
+                            saved={true}
                             onOpen={
                                 onOpenFile && change.action !== "delete"
                                     ? () => onOpenFile(change.file_path)

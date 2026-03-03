@@ -148,6 +148,7 @@ export interface BuildStatus {
 }
 
 export interface CodingAgentMessage {
+  id?: string;
   role: "user" | "assistant";
   content: string;
   file_changes?: {
@@ -156,6 +157,22 @@ export interface CodingAgentMessage {
     content?: string;
   }[];
   timestamp: string;
+}
+
+export interface ConversationListItem {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export interface ConversationDetail {
+  id: string;
+  title: string;
+  messages: CodingAgentMessage[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface FileTreeNode {

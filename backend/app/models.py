@@ -290,3 +290,51 @@ class AgentContainer(Base):
     # Relationships
     agent: Mapped["Agent"] = relationship(back_populates="containers")
     session: Mapped["VoiceSession | None"] = relationship()
+
+
+class CodingAgentConversation(Base):
+    __tablename__ = "coding_agent_conversations"
+    __table_args__ = (
+        Index("ix_coding_agent_conversations_agent_id", "agent_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), default="New conversation")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # Foreign keys
+    agent_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[str] = mapped_column(String(255))  # Clerk user ID
+
+    # Relationships
+    agent: Mapped["Agent"] = relationship()
+    messages: Mapped[list["CodingAgentMessage"]] = relationship(
+        back_populates="conversation", cascade="all, delete-orphan",
+        order_by="CodingAgentMessage.created_at"
+    )
+
+
+class CodingAgentMessage(Base):
+    __tablename__ = "coding_agent_messages"
+    __table_args__ = (
+        Index("ix_coding_agent_messages_conversation_id", "conversation_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    role: Mapped[str] = mapped_column(String(20))  # "user" or "assistant"
+    content: Mapped[str] = mapped_column(Text)
+    file_changes: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Foreign keys
+    conversation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("coding_agent_conversations.id", ondelete="CASCADE")
+    )
+
+    # Relationships
+    conversation: Mapped["CodingAgentConversation"] = relationship(back_populates="messages")

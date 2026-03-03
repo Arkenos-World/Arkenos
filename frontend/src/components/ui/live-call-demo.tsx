@@ -11,9 +11,9 @@ const PROMPT =
 
 interface FileEntry {
   name: string;
-  indent: number;        // 0 = root, 1 = child, 2 = grandchild
+  indent: number;
   isDir?: boolean;
-  snippet?: string;      // optional code preview
+  snippet?: string;
 }
 
 const FILES: FileEntry[] = [
@@ -30,24 +30,20 @@ const FILES: FileEntry[] = [
   { name: "agent.py", indent: 1, snippet: "app = VoiceAgent(config, tools, memory)" },
 ];
 
-interface BootStep {
-  text: string;
-}
-
-const BOOT_STEPS: BootStep[] = [
-  { text: "Starting voice pipeline..." },
-  { text: "Connecting STT (Deepgram)" },
-  { text: "Connecting LLM (Gemini 3 Flash)" },
-  { text: "Connecting TTS (Resemble AI)" },
-  { text: "Registering 3 tools" },
-  { text: "Assigning phone number" },
+const BOOT_STEPS = [
+  "Starting voice pipeline...",
+  "Connecting STT (Deepgram)",
+  "Connecting LLM (Gemini 3 Flash)",
+  "Connecting TTS (Resemble AI)",
+  "Registering 3 tools",
+  "Assigning phone number",
 ];
 
 type Phase = "idle" | "typing" | "building" | "booting" | "live";
 
 // ─── Typing Effect ───────────────────────────────────────────────────────────────
 
-function useTypingEffect(text: string, active: boolean, speed = 22) {
+function useTypingEffect(text: string, active: boolean, speed = 20) {
   const [displayed, setDisplayed] = useState("");
   useEffect(() => {
     setDisplayed("");
@@ -63,7 +59,7 @@ function useTypingEffect(text: string, active: boolean, speed = 22) {
   return displayed;
 }
 
-// ─── Spinner ─────────────────────────────────────────────────────────────────────
+// ─── Icons ───────────────────────────────────────────────────────────────────────
 
 function MiniSpinner() {
   return (
@@ -82,13 +78,21 @@ function MiniCheck({ className }: { className?: string }) {
   );
 }
 
-// ─── File Tree Prefix ────────────────────────────────────────────────────────────
+// ─── Tree prefix ─────────────────────────────────────────────────────────────────
 
-function treePrefix(indent: number, isLast: boolean): string {
+function isLastAtIndent(idx: number): boolean {
+  const file = FILES[idx];
+  for (let j = idx + 1; j < FILES.length; j++) {
+    if (FILES[j].indent === file.indent) return false;
+    if (FILES[j].indent < file.indent) break;
+  }
+  return true;
+}
+
+function treePrefix(indent: number, last: boolean): string {
   if (indent === 0) return "";
-  const branch = isLast ? "└── " : "├── ";
+  const branch = last ? "└── " : "├── ";
   if (indent === 1) return branch;
-  // indent 2: parent prefix + branch
   return "│   " + branch;
 }
 
@@ -100,7 +104,6 @@ interface LiveCallDemoProps {
 
 export function LiveCallDemo({ className }: LiveCallDemoProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: false, amount: 0.3 });
 
   const [phase, setPhase] = useState<Phase>("idle");
@@ -114,13 +117,6 @@ export function LiveCallDemo({ className }: LiveCallDemoProps) {
   const typedText = useTypingEffect(PROMPT, phase === "typing", 20);
   const isTypeDone = typedText.length >= PROMPT.length;
 
-  // Auto-scroll
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [phase, visibleFiles, resolvedFiles, visibleBoot, resolvedBoot]);
-
   useEffect(() => {
     if (inView && !started) setStarted(true);
   }, [inView, started]);
@@ -131,34 +127,29 @@ export function LiveCallDemo({ className }: LiveCallDemoProps) {
 
     setPhase("typing");
 
-    const typeDone = PROMPT.length * 20 + 300;
+    const typeDone = PROMPT.length * 20 + 400;
 
-    // Building phase — files appear one by one
+    // Building — files appear
     t(() => setPhase("building"), typeDone);
 
     FILES.forEach((file, i) => {
-      const d = typeDone + 200 + i * 320;
+      const d = typeDone + 200 + i * 280;
       t(() => setVisibleFiles(i + 1), d);
-      // Dirs resolve instantly, files after a beat
-      if (file.isDir) {
-        t(() => setResolvedFiles(i + 1), d + 50);
-      } else {
-        t(() => setResolvedFiles(i + 1), d + 250);
-      }
+      t(() => setResolvedFiles(i + 1), file.isDir ? d + 50 : d + 220);
     });
 
-    const buildDone = typeDone + 200 + FILES.length * 320 + 300;
+    const buildDone = typeDone + 200 + FILES.length * 280 + 300;
 
-    // Booting phase
+    // Booting
     t(() => setPhase("booting"), buildDone);
 
     BOOT_STEPS.forEach((_, i) => {
-      const d = buildDone + 200 + i * 400;
+      const d = buildDone + 200 + i * 350;
       t(() => setVisibleBoot(i + 1), d);
-      t(() => setResolvedBoot(i + 1), d + 320);
+      t(() => setResolvedBoot(i + 1), d + 280);
     });
 
-    const bootDone = buildDone + 200 + BOOT_STEPS.length * 400 + 400;
+    const bootDone = buildDone + 200 + BOOT_STEPS.length * 350 + 400;
 
     // Live
     t(() => setPhase("live"), bootDone);
@@ -184,17 +175,7 @@ export function LiveCallDemo({ className }: LiveCallDemoProps) {
   }, [started, inView, loopCount]);
 
   const isLive = phase === "live";
-  const showResponse = phase === "building" || phase === "booting" || isLive;
-
-  // Determine if a file is the last at its indent level
-  function isLastAtIndent(idx: number): boolean {
-    const file = FILES[idx];
-    for (let j = idx + 1; j < FILES.length; j++) {
-      if (FILES[j].indent === file.indent) return false;
-      if (FILES[j].indent < file.indent) break;
-    }
-    return true;
-  }
+  const isWorking = phase === "building" || phase === "booting";
 
   return (
     <div ref={ref} className={cn("relative", className)}>
@@ -227,242 +208,283 @@ export function LiveCallDemo({ className }: LiveCallDemoProps) {
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            {(phase === "building" || phase === "booting") && (
+            {isWorking && (
               <span className="text-[10px] text-muted-foreground/50 animate-pulse">
                 {phase === "building" ? "Building..." : "Deploying..."}
               </span>
             )}
             <div className={cn(
               "h-2 w-2 rounded-full transition-all duration-500",
-              isLive ? "bg-chart-2" :
-              (phase === "building" || phase === "booting") ? "bg-amber-400 animate-pulse" :
-              "bg-muted-foreground/25",
+              isLive ? "bg-chart-2" : isWorking ? "bg-amber-400 animate-pulse" : "bg-muted-foreground/25",
             )} />
           </div>
         </div>
 
-        {/* ── Chat Body ───────────────────────────────────────── */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-3 min-h-[360px] sm:min-h-[400px] max-h-[500px]">
+        {/* ── Content — switches between phases ───────────────── */}
+        <div className="min-h-[380px] sm:min-h-[420px] relative overflow-hidden">
+          <AnimatePresence mode="wait">
 
-          {/* ── User message ──────────────────────────────────── */}
-          <AnimatePresence>
-            {phase !== "idle" && (
-              <motion.div
-                key={`user-${loopCount}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <span className="text-[10px] text-muted-foreground/50 mb-1 block">You</span>
-                <div className="bg-muted/50 rounded-xl rounded-tl-sm px-3.5 py-2.5 max-w-[95%]">
-                  <p className="text-[13px] leading-relaxed">
-                    {phase === "typing" ? (
-                      <>
-                        {typedText}
-                        {!isTypeDone && (
-                          <span
-                            className="inline-block w-[2px] h-3.5 bg-foreground/50 ml-0.5 align-middle rounded-full"
-                            style={{ animation: "core-glow 0.8s ease-in-out infinite" }}
-                          />
-                        )}
-                      </>
-                    ) : PROMPT}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ── Arkenos response ───────────────────────────────── */}
-          <AnimatePresence>
-            {showResponse && (
-              <motion.div
-                key={`response-${loopCount}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <span className="text-[10px] text-muted-foreground/50 mb-1 block">Arkenos</span>
-
-                <div className="space-y-3">
-                  {/* ── File Tree ────────────────────────────────── */}
-                  <div className="rounded-xl border border-border/60 bg-muted/20 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-border/40 flex items-center gap-2">
-                      <svg className="h-3 w-3 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                      </svg>
-                      <span className="text-[10px] text-muted-foreground/60 font-medium">Project Files</span>
-                    </div>
-                    <div className="px-3 py-2 font-mono text-[11px] leading-relaxed space-y-0">
-                      {FILES.slice(0, visibleFiles).map((file, i) => {
-                        const resolved = i < resolvedFiles;
-                        const prefix = treePrefix(file.indent, isLastAtIndent(i));
-
-                        return (
-                          <motion.div
-                            key={`${loopCount}-file-${i}`}
-                            initial={{ opacity: 0, x: -6 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            {/* File row */}
-                            <div className="flex items-center gap-1.5 py-[2px]">
-                              <span className="text-muted-foreground/30 select-none whitespace-pre">{prefix}</span>
-                              {file.isDir ? (
-                                <svg className="h-3 w-3 text-primary/50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                                </svg>
-                              ) : (
-                                <svg className="h-3 w-3 text-muted-foreground/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                </svg>
-                              )}
-                              <span className={cn(
-                                "transition-colors duration-300 flex-1",
-                                file.isDir ? "text-primary/80 font-medium" : "text-foreground/80",
-                                isLive && !file.isDir && "text-chart-2/80",
-                              )}>
-                                {file.name}
-                              </span>
-                              {!file.isDir && (
-                                <span className="shrink-0 ml-auto">
-                                  {resolved ? (
-                                    <MiniCheck className={cn(isLive ? "text-chart-2" : "text-chart-2/70")} />
-                                  ) : (
-                                    <MiniSpinner />
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                            {/* Code snippet */}
-                            {file.snippet && resolved && !file.isDir && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                transition={{ duration: 0.2 }}
-                                className="ml-6 sm:ml-7"
-                              >
-                                <span className={cn(
-                                  "text-[10px] transition-colors duration-500",
-                                  isLive ? "text-chart-2/40" : "text-muted-foreground/40",
-                                )}>
-                                  {file.snippet}
-                                </span>
-                              </motion.div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* ── Boot Log ─────────────────────────────────── */}
-                  <AnimatePresence>
-                    {(phase === "booting" || isLive) && (
-                      <motion.div
-                        key={`boot-${loopCount}`}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="rounded-xl border border-border/60 bg-muted/20 overflow-hidden"
-                      >
-                        <div className="px-3 py-2 border-b border-border/40 flex items-center gap-2">
-                          <svg className="h-3 w-3 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
-                          </svg>
-                          <span className="text-[10px] text-muted-foreground/60 font-medium font-mono">$ arkenos deploy</span>
-                        </div>
-                        <div className="px-3 py-2 font-mono text-[11px] space-y-1">
-                          {BOOT_STEPS.slice(0, visibleBoot).map((step, i) => {
-                            const resolved = i < resolvedBoot;
-                            return (
-                              <motion.div
-                                key={`${loopCount}-boot-${i}`}
-                                initial={{ opacity: 0, x: -4 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.15 }}
-                                className="flex items-center justify-between gap-2"
-                              >
-                                <span className={cn(
-                                  "transition-colors duration-300",
-                                  resolved
-                                    ? isLive ? "text-chart-2/70" : "text-foreground/60"
-                                    : "text-muted-foreground/60",
-                                )}>
-                                  {step.text}
-                                </span>
-                                <span className="shrink-0">
-                                  {resolved ? (
-                                    <MiniCheck className={cn(isLive ? "text-chart-2" : "text-chart-2/70")} />
-                                  ) : (
-                                    <MiniSpinner />
-                                  )}
-                                </span>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* ── Live Result ───────────────────────────────── */}
-                  <AnimatePresence>
-                    {isLive && (
-                      <motion.div
-                        key={`live-${loopCount}`}
-                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="rounded-xl border border-chart-2/25 bg-chart-2/[0.04] p-3.5"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="relative flex h-2 w-2">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-2/50" />
-                              <span className="relative inline-flex h-2 w-2 rounded-full bg-chart-2" />
-                            </span>
-                            <span className="text-xs font-semibold text-chart-2">Agent Live</span>
-                          </div>
-                          <span className="text-[11px] font-mono text-muted-foreground">+1 (555) 012-3456</span>
-                        </div>
-                        <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground">
-                          <span>Restaurant Receptionist</span>
-                          <span className="h-3 w-px bg-border" />
-                          <span>3 tools</span>
-                          <span className="h-3 w-px bg-border" />
-                          <span className="text-chart-2 font-medium">Ready</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ── Idle state ────────────────────────────────────── */}
-          <AnimatePresence>
+            {/* ── PHASE: Idle ─────────────────────────────────── */}
             {phase === "idle" && (
               <motion.div
                 key={`idle-${loopCount}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center py-20"
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 flex flex-col items-center justify-center px-8"
               >
-                <div className="h-12 w-12 rounded-2xl bg-primary/8 flex items-center justify-center mb-4">
-                  <svg className="h-6 w-6 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <div className="h-14 w-14 rounded-2xl bg-primary/8 flex items-center justify-center mb-5">
+                  <svg className="h-7 w-7 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <p className="text-sm text-muted-foreground/30">Describe your agent to get started</p>
+                <p className="text-sm text-muted-foreground/30 text-center">Describe your agent to get started</p>
               </motion.div>
             )}
+
+            {/* ── PHASE: Typing ───────────────────────────────── */}
+            {phase === "typing" && (
+              <motion.div
+                key={`typing-${loopCount}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -30 }}
+                transition={{ duration: 0.35 }}
+                className="absolute inset-0 flex flex-col items-center justify-center px-6 sm:px-8"
+              >
+                <div className="w-full max-w-sm">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-primary/60">U</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground/50">You</span>
+                  </div>
+                  <div className="bg-muted/40 rounded-2xl rounded-tl-sm px-4 py-3.5">
+                    <p className="text-[13px] sm:text-sm leading-relaxed">
+                      {typedText}
+                      {!isTypeDone && (
+                        <span
+                          className="inline-block w-[2px] h-3.5 bg-foreground/50 ml-0.5 align-middle rounded-full"
+                          style={{ animation: "core-glow 0.8s ease-in-out infinite" }}
+                        />
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── PHASE: Building (file tree) ─────────────────── */}
+            {phase === "building" && (
+              <motion.div
+                key={`build-${loopCount}`}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.35 }}
+                className="absolute inset-0 overflow-y-auto px-4 sm:px-5 py-4"
+              >
+                {/* Prompt summary — compact */}
+                <div className="flex items-start gap-2 mb-3 px-1">
+                  <svg className="h-3.5 w-3.5 text-primary/40 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                  </svg>
+                  <p className="text-[11px] text-muted-foreground/50 leading-relaxed line-clamp-2">{PROMPT}</p>
+                </div>
+
+                {/* File tree panel */}
+                <div className="rounded-xl border border-border/60 bg-muted/15 overflow-hidden">
+                  <div className="px-3.5 py-2 border-b border-border/40 flex items-center gap-2">
+                    <svg className="h-3.5 w-3.5 text-primary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                    </svg>
+                    <span className="text-[11px] text-muted-foreground/50 font-medium">Creating project files</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground/30 font-mono">
+                      {Math.min(resolvedFiles, FILES.filter(f => !f.isDir).length)}/{FILES.filter(f => !f.isDir).length}
+                    </span>
+                  </div>
+                  <div className="px-3.5 py-2.5 font-mono text-[11px] leading-[1.7]">
+                    {FILES.slice(0, visibleFiles).map((file, i) => {
+                      const resolved = i < resolvedFiles;
+                      const prefix = treePrefix(file.indent, isLastAtIndent(i));
+                      return (
+                        <motion.div
+                          key={`${loopCount}-f-${i}`}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground/25 select-none whitespace-pre">{prefix}</span>
+                            {file.isDir ? (
+                              <svg className="h-3 w-3 text-primary/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                              </svg>
+                            ) : (
+                              <svg className="h-3 w-3 text-muted-foreground/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                              </svg>
+                            )}
+                            <span className={cn(
+                              "flex-1 transition-colors duration-300",
+                              file.isDir ? "text-primary/70 font-medium" : "text-foreground/75",
+                            )}>
+                              {file.name}
+                            </span>
+                            {!file.isDir && (
+                              <span className="shrink-0">
+                                {resolved ? <MiniCheck className="text-chart-2/70" /> : <MiniSpinner />}
+                              </span>
+                            )}
+                          </div>
+                          {file.snippet && resolved && !file.isDir && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              transition={{ duration: 0.15 }}
+                              className="ml-7 sm:ml-8"
+                            >
+                              <span className="text-[10px] text-muted-foreground/30">{file.snippet}</span>
+                            </motion.div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── PHASE: Booting (terminal) ───────────────────── */}
+            {phase === "booting" && (
+              <motion.div
+                key={`boot-${loopCount}`}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.35 }}
+                className="absolute inset-0 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col"
+              >
+                {/* Files complete summary */}
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <MiniCheck className="text-chart-2/60" />
+                  <span className="text-[11px] text-muted-foreground/50">
+                    {FILES.filter(f => !f.isDir).length} files created
+                  </span>
+                </div>
+
+                {/* Terminal panel */}
+                <div className="rounded-xl border border-border/60 bg-muted/15 overflow-hidden flex-1">
+                  <div className="px-3.5 py-2 border-b border-border/40 flex items-center gap-2">
+                    <svg className="h-3.5 w-3.5 text-muted-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                    <span className="text-[11px] text-muted-foreground/50 font-mono">$ arkenos deploy</span>
+                  </div>
+                  <div className="px-3.5 py-3 font-mono text-[11px] space-y-2">
+                    {BOOT_STEPS.slice(0, visibleBoot).map((step, i) => {
+                      const resolved = i < resolvedBoot;
+                      return (
+                        <motion.div
+                          key={`${loopCount}-b-${i}`}
+                          initial={{ opacity: 0, x: -6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <span className={cn(
+                            "transition-colors duration-300",
+                            resolved ? "text-foreground/60" : "text-muted-foreground/50",
+                          )}>
+                            {step}
+                          </span>
+                          <span className="shrink-0">
+                            {resolved ? <MiniCheck className="text-chart-2/70" /> : <MiniSpinner />}
+                          </span>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── PHASE: Live ─────────────────────────────────── */}
+            {isLive && (
+              <motion.div
+                key={`live-${loopCount}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="absolute inset-0 flex flex-col items-center justify-center px-6 sm:px-8"
+              >
+                {/* Success icon */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.1 }}
+                  className="h-16 w-16 rounded-2xl bg-chart-2/10 border-2 border-chart-2/30 flex items-center justify-center mb-5"
+                >
+                  <svg className="h-8 w-8 text-chart-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                </motion.div>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-lg font-semibold text-chart-2 mb-1"
+                >
+                  Agent Live
+                </motion.p>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-sm text-muted-foreground mb-6"
+                >
+                  Restaurant Receptionist
+                </motion.p>
+
+                {/* Stats row */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="w-full max-w-xs rounded-xl border border-chart-2/20 bg-chart-2/[0.04] p-4"
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground/50 block mb-0.5">Phone</span>
+                      <span className="text-[12px] font-mono font-medium text-foreground/80">+1 (555) 012-3456</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground/50 block mb-0.5">Tools</span>
+                      <span className="text-[12px] font-medium text-foreground/80">3 connected</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground/50 block mb-0.5">Memory</span>
+                      <span className="text-[12px] font-medium text-chart-2">Enabled</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground/50 block mb-0.5">Status</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-2/50" />
+                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-chart-2" />
+                        </span>
+                        <span className="text-[12px] font-medium text-chart-2">Ready</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+
           </AnimatePresence>
         </div>
 

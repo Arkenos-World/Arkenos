@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     # Resemble AI
     resemble_api_key: str = ""
+    resemble_voice_uuid: str = ""
 
     # Twilio
     twilio_account_sid: str = ""
@@ -24,6 +25,27 @@ class Settings(BaseSettings):
 
     # LiveKit SIP
     livekit_sip_trunk_id: str = ""  # Outbound SIP trunk ID for call transfers
+
+    # MinIO
+    minio_endpoint: str = "localhost:9000"
+    minio_access_key: str = "minioadmin"
+    minio_secret_key: str = "minioadmin"
+    minio_bucket: str = "arkenos"
+    minio_use_ssl: bool = False
+
+    # Docker / Custom Agents
+    docker_socket: str = "unix:///var/run/docker.sock"
+    base_agent_image: str = "arkenos-agent-base:latest"
+    container_network: str = "arkenos_default"
+    container_timeout_seconds: int = 3600
+
+    # STT provider keys (passed to custom agent containers)
+    assemblyai_api_key: str = ""
+    deepgram_api_key: str = ""
+
+    # Coding Agent
+    coding_agent_provider: str = "gemini"
+    google_api_key: str = ""
 
     # Server
     port: int = 8000

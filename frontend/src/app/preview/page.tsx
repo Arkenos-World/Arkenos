@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -626,6 +626,7 @@ function SidebarContent({
 
 export default function PreviewPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { userId } = useAuth();
     const [connectionState, setConnectionState] = useState<ConnectionStateType>("idle");
     const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
@@ -636,12 +637,15 @@ export default function PreviewPage() {
     } | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Agent selection state
-    const [selectedAgent, setSelectedAgent] = useState<string>("default");
+    // Agent selection state — read agentId from URL params if present
+    const urlAgentId = searchParams.get("agentId");
+    const [selectedAgent, setSelectedAgent] = useState<string>(urlAgentId || "default");
     const [agents, setAgents] = useState<Agent[]>([defaultAgent]);
     const [isLoadingAgents, setIsLoadingAgents] = useState(true);
     const [selectedStt, setSelectedStt] = useState<string>("assemblyai");
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    const autoStarted = useRef(false);
 
     // Update STT when agent changes
     useEffect(() => {
@@ -715,6 +719,14 @@ export default function PreviewPage() {
             toast.error("Connection failed", { description: message });
         }
     }, [selectedAgent]);
+
+    // Auto-start when agentId is in URL (e.g. from "Test Call" button)
+    useEffect(() => {
+        if (urlAgentId && userId && !autoStarted.current && connectionState === "idle") {
+            autoStarted.current = true;
+            startSession();
+        }
+    }, [urlAgentId, userId, connectionState, startSession]);
 
     const handleDisconnect = useCallback(async () => {
         if (connectionData?.roomName) {

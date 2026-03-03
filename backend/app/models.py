@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, Text, Boolean, DateTime, Integer, Numeric, ForeignKey, Enum, Index, JSON
+from sqlalchemy import String, Text, Boolean, DateTime, Integer, Numeric, ForeignKey, Enum, Index, JSON, BigInteger, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from decimal import Decimal
 import enum
@@ -11,6 +11,26 @@ class AgentType(enum.Enum):
     LLM = "LLM"  # Language Model
     TTS = "TTS"  # Text to Speech
     PIPELINE = "PIPELINE"  # Full pipeline
+
+
+class AgentMode(enum.Enum):
+    STANDARD = "STANDARD"
+    CUSTOM = "CUSTOM"
+
+
+class AgentBuildStatus(enum.Enum):
+    NONE = "NONE"
+    PENDING = "PENDING"
+    BUILDING = "BUILDING"
+    READY = "READY"
+    FAILED = "FAILED"
+
+
+class ContainerStatus(enum.Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    STOPPED = "STOPPED"
+    FAILED = "FAILED"
 
 
 class SessionStatus(enum.Enum):
@@ -77,6 +97,21 @@ class Agent(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     phone_number: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Twilio/SIP number
     twilio_sid: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Twilio number SID
+
+    # Custom agent fields
+    agent_mode: Mapped[AgentMode] = mapped_column(
+        Enum(AgentMode), default=AgentMode.STANDARD, server_default="STANDARD"
+    )
+    storage_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    image_tag: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    build_status: Mapped[AgentBuildStatus] = mapped_column(
+        Enum(AgentBuildStatus), default=AgentBuildStatus.NONE, server_default="NONE"
+    )
+    build_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_build_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    current_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    deployed_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -88,6 +123,8 @@ class Agent(Base):
     # Relationships
     user: Mapped["User"] = relationship(back_populates="agents")
     sessions: Mapped[list["VoiceSession"]] = relationship(back_populates="agent")
+    files: Mapped[list["AgentFile"]] = relationship(back_populates="agent", cascade="all, delete-orphan")
+    containers: Mapped[list["AgentContainer"]] = relationship(back_populates="agent", cascade="all, delete-orphan")
 
 
 class VoiceSession(Base):
@@ -177,3 +214,79 @@ class UsageEvent(Base):
     session: Mapped["VoiceSession"] = relationship(back_populates="usage_events")
     user: Mapped["User"] = relationship()
     agent: Mapped["Agent | None"] = relationship()
+
+
+class AgentFile(Base):
+    __tablename__ = "agent_files"
+    __table_args__ = (
+        UniqueConstraint("agent_id", "file_path", name="uq_agent_files_agent_path"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    file_path: Mapped[str] = mapped_column(String(500))
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
+    mime_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # Foreign keys
+    agent_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id", ondelete="CASCADE")
+    )
+
+    # Relationships
+    agent: Mapped["Agent"] = relationship(back_populates="files")
+    versions: Mapped[list["AgentFileVersion"]] = relationship(
+        back_populates="agent_file", cascade="all, delete-orphan"
+    )
+
+
+class AgentFileVersion(Base):
+    __tablename__ = "agent_file_versions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer)
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    minio_key: Mapped[str] = mapped_column(String(500))
+    size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Foreign keys
+    agent_file_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agent_files.id", ondelete="CASCADE")
+    )
+
+    # Relationships
+    agent_file: Mapped["AgentFile"] = relationship(back_populates="versions")
+
+
+class AgentContainer(Base):
+    __tablename__ = "agent_containers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    container_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    container_type: Mapped[str] = mapped_column(String(50), default="agent")
+    status: Mapped[ContainerStatus] = mapped_column(
+        Enum(ContainerStatus), default=ContainerStatus.PENDING
+    )
+    image_tag: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    stopped_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Foreign keys
+    agent_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id", ondelete="CASCADE")
+    )
+    session_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("voice_sessions.id", ondelete="SET NULL"), nullable=True
+    )
+
+    # Relationships
+    agent: Mapped["Agent"] = relationship(back_populates="containers")
+    session: Mapped["VoiceSession | None"] = relationship()

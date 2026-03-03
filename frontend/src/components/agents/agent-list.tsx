@@ -66,6 +66,7 @@ interface Agent {
     type: "STT" | "LLM" | "TTS" | "PIPELINE";
     is_active: boolean;
     phone_number?: string | null;
+    agent_mode?: "STANDARD" | "CUSTOM";
     config?: {
         system_prompt?: string;
         first_message?: string;
@@ -91,6 +92,8 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
     const [selectedVoice, setSelectedVoice] = useState("");
     const [resembleVoices, setResembleVoices] = useState<ResembleVoice[]>([]);
     const [isLoadingVoices, setIsLoadingVoices] = useState(true);
+    const [creationStep, setCreationStep] = useState<"mode" | "template">("mode");
+    const [selectedMode, setSelectedMode] = useState<"STANDARD" | "CUSTOM" | null>(null);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -176,6 +179,47 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
         }
     };
 
+    const handleCreateCustom = async () => {
+        if (!agentName.trim()) return;
+        setIsLoading(true);
+        try {
+            const response = await fetch(
+                `${apiUrl}/agents/`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: agentName,
+                        description: "Custom code-driven agent",
+                        type: "PIPELINE",
+                        agent_mode: "CUSTOM",
+                        config: {},
+                        user_id: userId,
+                    }),
+                }
+            );
+            if (!response.ok) throw new Error('Failed to create agent');
+            const newAgent = await response.json();
+            setAgents([newAgent, ...agents]);
+            setIsOpen(false);
+            setSelectedTemplate(null);
+            setSelectedMode(null);
+            setCreationStep("mode");
+            setAgentName("New Assistant");
+            toast.success("Custom agent created!", {
+                description: `${newAgent.name} is ready for coding.`,
+            });
+            router.push(`/dashboard/agents/${newAgent.id}/code`);
+        } catch (error) {
+            console.error("Failed to create custom agent:", error);
+            toast.error("Failed to create agent", {
+                description: "Please try again later.",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleAgentClick = (agentId: string) => {
         router.push(`/dashboard/agents/${agentId}`);
     };
@@ -183,6 +227,8 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
     const handleCloseDialog = () => {
         setIsOpen(false);
         setSelectedTemplate(null);
+        setSelectedMode(null);
+        setCreationStep("mode");
         setAgentName("New Assistant");
     };
 
@@ -212,110 +258,198 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                     </DialogHeader>
 
                     <div className="space-y-6 py-4">
-                        {/* Template Selection */}
-                        <div>
-                            <h3 className="font-semibold mb-2">Choose a template</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Here's a few templates to get you started, or you can create your own template and use it to create a new assistant.
-                            </p>
-
-                            {/* Assistant Name */}
-                            <div className="mb-4">
-                                <Label htmlFor="name" className="text-sm">
-                                    Assistant Name <span className="text-muted-foreground text-xs">(This can be adjusted at any time after creation.)</span>
-                                </Label>
-                                <Input
-                                    id="name"
-                                    value={agentName}
-                                    onChange={(e) => setAgentName(e.target.value)}
-                                    placeholder="New Assistant"
-                                    className="mt-1"
-                                />
-                            </div>
-
-                            {/* Voice Selection */}
-                            <div className="mb-4">
-                                <Label className="text-sm">Voice</Label>
-                                <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={isLoadingVoices}>
-                                    <SelectTrigger className="mt-1">
-                                        <SelectValue placeholder={isLoadingVoices ? "Loading voices..." : "Select a voice"} />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-60 overflow-y-auto">
-                                        {resembleVoices.map((voice) => (
-                                            <SelectItem key={voice.id} value={voice.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">{voice.name}</span>
-                                                    <span className="text-xs text-muted-foreground">· {voice.language}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                        {!isLoadingVoices && resembleVoices.length === 0 && (
-                                            <div className="px-2 py-3 text-sm text-muted-foreground">
-                                                No voices found. Check your RESEMBLE_API_KEY.
-                                            </div>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Blank Template */}
-                            <div
-                                className={`p-4 rounded-lg border-2 cursor-pointer transition-all mb-4 ${selectedTemplate?.id === "blank"
-                                    ? "border-primary bg-primary/5"
-                                    : "border-border hover:border-primary/50"
-                                    }`}
-                                onClick={() => handleSelectTemplate(AGENT_TEMPLATES[0])}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div className="h-10 w-10 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
-                                        <PlusIcon className="h-5 w-5 text-muted-foreground" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold">Blank Template</h4>
+                        {/* Step 1: Mode Selection */}
+                        {creationStep === "mode" && (
+                            <div>
+                                <h3 className="font-semibold mb-2">Choose agent type</h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Select how you want to build your assistant.
+                                </p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div
+                                        className={`p-5 rounded-lg border-2 cursor-pointer transition-all ${selectedMode === "STANDARD"
+                                            ? "border-primary bg-primary/5"
+                                            : "border-border hover:border-primary/50"
+                                            }`}
+                                        onClick={() => setSelectedMode("STANDARD")}
+                                    >
+                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                                            <BotIcon className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <h4 className="font-semibold mb-1">Standard Agent</h4>
                                         <p className="text-sm text-muted-foreground">
-                                            This blank slate template with minimal configurations. It's a starting point for creating your custom assistant.
+                                            Config-driven setup. Choose a template, configure your prompts, voice, and tools through the UI.
+                                        </p>
+                                    </div>
+                                    <div
+                                        className={`p-5 rounded-lg border-2 cursor-pointer transition-all ${selectedMode === "CUSTOM"
+                                            ? "border-primary bg-primary/5"
+                                            : "border-border hover:border-primary/50"
+                                            }`}
+                                        onClick={() => setSelectedMode("CUSTOM")}
+                                    >
+                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                                            <svg className="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                                            </svg>
+                                        </div>
+                                        <h4 className="font-semibold mb-1">Custom Agent</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            Write Python code directly. Full control over agent logic with an in-browser IDE and AI coding assistant.
                                         </p>
                                     </div>
                                 </div>
                             </div>
+                        )}
 
-                            {/* Quickstart Templates */}
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quickstart</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                {AGENT_TEMPLATES.slice(1).map((template) => (
-                                    <div
-                                        key={template.id}
-                                        className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedTemplate?.id === template.id
-                                            ? "border-primary bg-primary/5"
-                                            : "border-border hover:border-primary/50"
-                                            }`}
-                                        onClick={() => handleSelectTemplate(template)}
-                                    >
-                                        <div className="mb-3">
-                                            {getTemplateIcon(template.icon, "h-6 w-6 text-muted-foreground")}
+                        {/* Step 2: Template Selection (Standard only) */}
+                        {creationStep === "template" && (
+                            <div>
+                                <h3 className="font-semibold mb-2">Choose a template</h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Here&apos;s a few templates to get you started, or you can create your own template and use it to create a new assistant.
+                                </p>
+
+                                {/* Assistant Name */}
+                                <div className="mb-4">
+                                    <Label htmlFor="name" className="text-sm">
+                                        Assistant Name <span className="text-muted-foreground text-xs">(This can be adjusted at any time after creation.)</span>
+                                    </Label>
+                                    <Input
+                                        id="name"
+                                        value={agentName}
+                                        onChange={(e) => setAgentName(e.target.value)}
+                                        placeholder="New Assistant"
+                                        className="mt-1"
+                                    />
+                                </div>
+
+                                {/* Voice Selection */}
+                                <div className="mb-4">
+                                    <Label className="text-sm">Voice</Label>
+                                    <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={isLoadingVoices}>
+                                        <SelectTrigger className="mt-1">
+                                            <SelectValue placeholder={isLoadingVoices ? "Loading voices..." : "Select a voice"} />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-60 overflow-y-auto">
+                                            {resembleVoices.map((voice) => (
+                                                <SelectItem key={voice.id} value={voice.id}>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium">{voice.name}</span>
+                                                        <span className="text-xs text-muted-foreground">· {voice.language}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                            {!isLoadingVoices && resembleVoices.length === 0 && (
+                                                <div className="px-2 py-3 text-sm text-muted-foreground">
+                                                    No voices found. Check your RESEMBLE_API_KEY.
+                                                </div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Blank Template */}
+                                <div
+                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all mb-4 ${selectedTemplate?.id === "blank"
+                                        ? "border-primary bg-primary/5"
+                                        : "border-border hover:border-primary/50"
+                                        }`}
+                                    onClick={() => handleSelectTemplate(AGENT_TEMPLATES[0])}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="h-10 w-10 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
+                                            <PlusIcon className="h-5 w-5 text-muted-foreground" />
                                         </div>
-                                        <h4 className="font-semibold text-sm mb-1">{template.name}</h4>
-                                        <p className="text-xs text-muted-foreground line-clamp-3">
-                                            {template.description}
-                                        </p>
+                                        <div>
+                                            <h4 className="font-semibold">Blank Template</h4>
+                                            <p className="text-sm text-muted-foreground">
+                                                This blank slate template with minimal configurations. It&apos;s a starting point for creating your custom assistant.
+                                            </p>
+                                        </div>
                                     </div>
-                                ))}
+                                </div>
+
+                                {/* Quickstart Templates */}
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quickstart</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {AGENT_TEMPLATES.slice(1).map((template) => (
+                                        <div
+                                            key={template.id}
+                                            className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedTemplate?.id === template.id
+                                                ? "border-primary bg-primary/5"
+                                                : "border-border hover:border-primary/50"
+                                                }`}
+                                            onClick={() => handleSelectTemplate(template)}
+                                        >
+                                            <div className="mb-3">
+                                                {getTemplateIcon(template.icon, "h-6 w-6 text-muted-foreground")}
+                                            </div>
+                                            <h4 className="font-semibold text-sm mb-1">{template.name}</h4>
+                                            <p className="text-xs text-muted-foreground line-clamp-3">
+                                                {template.description}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* Custom Agent Name (shown in mode step when CUSTOM selected) */}
+                        {creationStep === "mode" && selectedMode === "CUSTOM" && (
+                            <div>
+                                <Label htmlFor="custom-name" className="text-sm">
+                                    Agent Name
+                                </Label>
+                                <Input
+                                    id="custom-name"
+                                    value={agentName}
+                                    onChange={(e) => setAgentName(e.target.value)}
+                                    placeholder="My Custom Agent"
+                                    className="mt-1"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter className="gap-2">
+                        {creationStep === "template" && (
+                            <Button variant="ghost" onClick={() => { setCreationStep("mode"); setSelectedTemplate(null); }}>
+                                Back
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={handleCloseDialog}>
                             Close
                         </Button>
-                        <Button
-                            onClick={handleCreate}
-                            disabled={isLoading || !selectedTemplate || !agentName.trim()}
-                            variant="outline"
-                            className="bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                            {isLoading ? "Creating..." : "+ Create Assistant"}
-                        </Button>
+                        {creationStep === "mode" && selectedMode === "STANDARD" && (
+                            <Button
+                                onClick={() => setCreationStep("template")}
+                                variant="outline"
+                                className="border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                            >
+                                Next
+                            </Button>
+                        )}
+                        {creationStep === "mode" && selectedMode === "CUSTOM" && (
+                            <Button
+                                onClick={handleCreateCustom}
+                                disabled={isLoading || !agentName.trim()}
+                                variant="outline"
+                                className="border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                            >
+                                {isLoading ? "Creating..." : "Create Custom Agent"}
+                            </Button>
+                        )}
+                        {creationStep === "template" && (
+                            <Button
+                                onClick={handleCreate}
+                                disabled={isLoading || !selectedTemplate || !agentName.trim()}
+                                variant="outline"
+                                className="border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                            >
+                                {isLoading ? "Creating..." : "+ Create Assistant"}
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -355,6 +489,11 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {agent.agent_mode === "CUSTOM" && (
+                                            <Badge variant="outline" className="gap-1 text-violet-400 border-violet-400/30 bg-violet-400/10">
+                                                Code
+                                            </Badge>
+                                        )}
                                         {agent.phone_number && (
                                             <Badge variant="outline" className={`gap-1 ${STATUS_BG.positive}`}>
                                                 <PhoneIcon className="h-3 w-3" />

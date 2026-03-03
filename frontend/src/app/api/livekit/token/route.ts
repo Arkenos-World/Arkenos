@@ -35,22 +35,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if agent is custom to determine dispatch strategy
+    let agentMode = "STANDARD";
+    const backendApiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+    if (agentId && agentId !== "default") {
+      try {
+        const agentRes = await fetch(`${backendApiUrl}/agents/${agentId}`, {
+          headers: { "x-user-id": userId },
+        });
+        if (agentRes.ok) {
+          const agentData = await agentRes.json();
+          agentMode = agentData.agent_mode || "STANDARD";
+        }
+      } catch (err) {
+        console.log("Could not fetch agent mode:", err);
+      }
+    }
+
     // Create the room first (if needed) and dispatch agent
     const roomService = new RoomServiceClient(wsUrl, apiKey, apiSecret);
     const agentDispatch = new AgentDispatchClient(wsUrl, apiKey, apiSecret);
-    
+
     try {
       // Create room with agent config in metadata if it doesn't exist
       const roomMetadata = agentId ? JSON.stringify({ agentId }) : undefined;
-      await roomService.createRoom({ 
+      await roomService.createRoom({
         name: roomName,
         metadata: roomMetadata,
       });
-      
-      // Dispatch the agent to join this room with metadata
-      const dispatchMetadata = agentId ? JSON.stringify({ agentId }) : undefined;
-      await agentDispatch.createDispatch(roomName, "arkenos-agent", { metadata: dispatchMetadata });
-      console.log(`Dispatched agent to room: ${roomName} with agentId: ${agentId || 'none'}`);
+
+      if (agentMode === "CUSTOM") {
+        // Custom agents: spawn the container with the SAME room name
+        await fetch(`${backendApiUrl}/agents/${agentId}/containers/preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-user-id": userId },
+          body: JSON.stringify({ room_name: roomName }),
+        });
+        console.log(`Started custom container for agent: ${agentId} in room: ${roomName}`);
+      } else {
+        // Standard agents: dispatch via AgentDispatchClient
+        const dispatchMetadata = agentId ? JSON.stringify({ agentId }) : undefined;
+        await agentDispatch.createDispatch(roomName, "arkenos-agent", { metadata: dispatchMetadata });
+        console.log(`Dispatched agent to room: ${roomName} with agentId: ${agentId || 'none'}`);
+      }
     } catch (err) {
       // Room might already exist, that's okay
       console.log("Room/dispatch setup:", err);

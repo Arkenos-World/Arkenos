@@ -1,0 +1,33 @@
+# Arkenos Custom Agent — Fat Base Image
+# Pre-installs all common dependencies so custom agent containers start fast.
+# The standard agent uses agent/Dockerfile; this is only for custom agents.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System dependencies for audio processing and health checks
+RUN apt-get update && apt-get install -y \
+    libsndfile1 \
+    libglib2.0-0 \
+    libgstreamer1.0-0 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies from the base toml
+COPY pyproject.base.toml ./pyproject.toml
+RUN pip install --no-cache-dir .
+
+# Pre-download Silero VAD model so containers don't fetch it at runtime
+RUN python -c "from livekit.plugins import silero; silero.VAD.load()" || true
+
+# Copy shared library modules into /app/lib/
+COPY resemble_tts.py /app/lib/resemble_tts.py
+COPY usage_logger.py /app/lib/usage_logger.py
+
+# Copy the entrypoint loader
+COPY entrypoint_loader.py /app/entrypoint_loader.py
+
+# Workspace directory where custom agent code gets downloaded
+RUN mkdir -p /app/workspace
+
+ENTRYPOINT ["python", "/app/entrypoint_loader.py"]

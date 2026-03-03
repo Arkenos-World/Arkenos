@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 import { AgentComputerDiagram } from "@/components/ui/agent-computer-diagram";
+import { LiveCallDemo } from "@/components/ui/live-call-demo";
 import { ArkenosLogo, ArkenosLogoMark } from "@/components/ui/arkenos-logo";
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
@@ -303,7 +304,7 @@ export default function Home() {
           {/* Background glow — removed for cleaner diagram look */}
 
           <div className="container mx-auto px-4 pt-16 pb-8 lg:pt-20 lg:pb-12 relative flex-1 flex flex-col justify-center min-h-[calc(100vh-4rem)]">
-            <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-6 items-center">
+            <div className="grid lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-10 items-center">
               {/* Left: Content */}
               <motion.div
                 initial="hidden"
@@ -383,14 +384,14 @@ export default function Home() {
                 </motion.div>
               </motion.div>
 
-              {/* Right: Agent Computer Architecture Diagram */}
+              {/* Right: Live Call Demo */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                className="relative h-[380px] sm:h-[450px] lg:h-[580px] order-first lg:order-last flex items-center justify-center lg:-mr-8 xl:-mr-16"
+                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+                className="relative order-first lg:order-last flex items-center justify-center"
               >
-                <AgentComputerDiagram className="w-full h-full" />
+                <LiveCallDemo className="w-full max-w-[320px] sm:max-w-[360px] lg:max-w-[400px]" />
               </motion.div>
             </div>
           </div>
@@ -528,6 +529,38 @@ export default function Home() {
                 <SpeakerIcon className="h-4 w-4 text-primary" />
                 <span className="font-medium">Voice Out</span>
               </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ── Under the Hood (Developer Section) ────────────────────────── */}
+        <section className="border-t">
+          <div className="container mx-auto px-4 py-24">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-80px" }}
+              variants={stagger}
+              className="text-center mb-12"
+            >
+              <motion.div variants={fadeUp}>
+                <Badge variant="outline" className="mb-4">For Developers</Badge>
+              </motion.div>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+                Under the hood
+              </motion.h2>
+              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                Every agent is a modular computer — speech in, intelligence, speech out. Swap any piece to fit your stack.
+              </motion.p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="max-w-3xl mx-auto"
+            >
+              <AgentComputerDiagram className="w-full h-[300px] sm:h-[400px] lg:h-[480px]" />
             </motion.div>
           </div>
         </section>

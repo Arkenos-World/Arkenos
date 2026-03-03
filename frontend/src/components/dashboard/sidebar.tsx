@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils";
 import {
     HomeIcon, BotIcon, PlayIcon, KeyIcon, PhoneIcon,
     ChartIcon, CurrencyIcon, SettingsIcon, SearchIcon,
-    MicrophoneIcon, MenuIcon, XIcon,
+    MenuIcon, XIcon,
 } from "@/components/icons";
+import { ArkenosLogo } from "@/components/ui/arkenos-logo";
 
 interface SidebarProps {
     userEmail?: string;
@@ -52,10 +53,7 @@ function SidebarContent({ pathname, userEmail, userName }: SidebarProps & { path
             {/* Logo */}
             <div className="p-4 border-b">
                 <Link href="/" className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center bg-primary">
-                        <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                    <span className="font-bold text-lg">Arkenos</span>
+                    <ArkenosLogo className="h-6" />
                 </Link>
                 {userEmail && (
                     <p className="text-xs text-muted-foreground mt-1 truncate">{userEmail}</p>

@@ -27,6 +27,7 @@ import {
     MenuIcon,
     XIcon,
 } from "@/components/icons";
+import { ArkenosLogo } from "@/components/ui/arkenos-logo";
 import { PIPELINE_COLORS, STATUS_COLORS } from "@/lib/design-tokens";
 
 type ConnectionState = "idle" | "connecting" | "connected" | "error";
@@ -151,12 +152,7 @@ export default function VoicePage() {
 
             {/* Logo */}
             <div className="p-4 border-b">
-                <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                        <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                    <span className="font-bold text-lg">Voice Arena</span>
-                </div>
+                <ArkenosLogo className="h-6" />
             </div>
 
             {/* Agent Selection */}

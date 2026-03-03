@@ -125,6 +125,26 @@
   50% { background-position: 100% 50%; }
 }
 
+@keyframes orbit-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes flow-dash {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes pulse-node {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.6); opacity: 0.8; }
+}
+
+@keyframes core-glow {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.15; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

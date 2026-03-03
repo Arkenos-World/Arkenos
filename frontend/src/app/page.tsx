@@ -2,17 +2,14 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-const AbstractBall = dynamic(() => import("@/components/ui/abstract-ball"), {
-  ssr: false,
-  loading: () => <div className="w-full h-full animate-pulse bg-muted/20 rounded-full" />,
-});
+import { AgentComputerDiagram } from "@/components/ui/agent-computer-diagram";
+import { ArkenosLogo, ArkenosLogoMark } from "@/components/ui/arkenos-logo";
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -139,50 +136,31 @@ function AnimatedCounter({ target, prefix = "", suffix = "" }: { target: number;
 
 // ─── Typing Terminal ───────────────────────────────────────────────────────────
 
-const TERMINAL_LINES = [
-  { content: "git clone https://github.com/Arkenos-World/Arkenos.git", isCommand: true },
-  { content: "docker compose up -d", isCommand: true },
-  { content: "All services running on localhost:3000", isCommand: false },
+const SETUP_STEPS = [
+  { step: "1", label: "Sign up", desc: "Create your free account" },
+  { step: "2", label: "Describe your agent", desc: "Tell it what to do in plain English" },
+  { step: "3", label: "Go live", desc: "Your agent starts taking calls" },
 ];
 
-function TypingTerminal() {
+function SetupSteps() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
-  const [visibleLines, setVisibleLines] = useState(0);
-
-  useEffect(() => {
-    if (!isInView) return;
-    const timers = TERMINAL_LINES.map((_, i) =>
-      setTimeout(() => setVisibleLines(i + 1), 500 + i * 800)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [isInView]);
 
   return (
-    <div ref={ref} className="p-4 rounded-lg bg-zinc-950 text-zinc-300 font-mono text-sm border border-zinc-800 overflow-x-auto min-h-[100px]">
-      <div className="flex items-center gap-1.5 mb-3">
-        <div className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
-        <div className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
-        <div className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
-      </div>
-      {TERMINAL_LINES.slice(0, visibleLines).map((line, i) => (
-        <motion.p
-          key={i}
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-          className={!line.isCommand ? "text-zinc-500 mt-1" : ""}
+    <div ref={ref} className="flex items-center gap-3">
+      {SETUP_STEPS.map((s, i) => (
+        <motion.div
+          key={s.step}
+          initial={{ opacity: 0, y: 8 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.4, delay: 0.3 + i * 0.2 }}
+          className="flex-1 text-center p-3 rounded-lg bg-muted/50 border"
         >
-          <span className="text-emerald-400">{line.isCommand ? "$ " : ""}</span>
-          {line.content}
-        </motion.p>
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2 text-sm font-bold text-primary">{s.step}</div>
+          <p className="text-sm font-medium">{s.label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
+        </motion.div>
       ))}
-      {visibleLines < TERMINAL_LINES.length && (
-        <p>
-          <span className="text-emerald-400">$ </span>
-          <span className="inline-block w-2 h-4 bg-emerald-400 align-middle animate-pulse" />
-        </p>
-      )}
     </div>
   );
 }
@@ -218,38 +196,6 @@ function TiltCard({ children, className = "" }: { children: React.ReactNode; cla
   );
 }
 
-// ─── Orbit Dots (around Abstract Ball) ─────────────────────────────────────────
-
-function OrbitDots() {
-  return (
-    <div className="absolute inset-0 pointer-events-none">
-      {[
-        { size: "80%", duration: 20, dotSize: 6, opacity: 0.3 },
-        { size: "95%", duration: 28, dotSize: 4, opacity: 0.2 },
-        { size: "65%", duration: 35, dotSize: 5, opacity: 0.25 },
-      ].map((orbit, i) => (
-        <div
-          key={i}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ width: orbit.size, height: orbit.size }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              animation: `spin ${orbit.duration}s linear infinite`,
-              animationDelay: `${i * 3}s`,
-            }}
-          >
-            <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary"
-              style={{ width: orbit.dotSize, height: orbit.dotSize, opacity: orbit.opacity }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ─── Mini Waveform (for pipeline illustrations) ────────────────────────────────
 
@@ -327,11 +273,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">Arkenos</span>
-            {/* <Badge variant="secondary" className="ml-2">Open Source</Badge> */}
+            <ArkenosLogo className="h-6" />
           </div>
           <nav className="flex items-center gap-3">
             <ThemeToggle />
@@ -357,12 +299,11 @@ export default function Home() {
 
       <main>
         {/* ── Hero ───────────────────────────────────────────────────────── */}
-        <section className="relative overflow-x-clip overflow-y-visible">
-          {/* Background glow */}
-          <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] pointer-events-none bg-primary/5 blur-[120px] rounded-full" />
+        <section className="relative overflow-x-clip overflow-y-visible min-h-[calc(100vh-4rem)]">
+          {/* Background glow — removed for cleaner diagram look */}
 
-          <div className="container mx-auto px-4 pt-20 pb-16 lg:pt-28 lg:pb-24 relative">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+          <div className="container mx-auto px-4 pt-16 pb-8 lg:pt-20 lg:pb-12 relative flex-1 flex flex-col justify-center min-h-[calc(100vh-4rem)]">
+            <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-6 items-center">
               {/* Left: Content */}
               <motion.div
                 initial="hidden"
@@ -391,7 +332,7 @@ export default function Home() {
                   variants={fadeUp}
                   className="max-w-xl mx-auto lg:mx-0 text-lg sm:text-xl text-muted-foreground mb-10"
                 >
-                  The open-source platform to create, deploy, and manage production voice AI agents. Self-hosted. Model-agnostic. Ready in minutes.
+                  The open-source platform to create, deploy, and manage intelligent voice agents. Describe what you need, and your agent handles the rest.
                 </motion.p>
 
                 <motion.div
@@ -401,7 +342,7 @@ export default function Home() {
                   <SignedOut>
                     <SignInButton mode="modal">
                       <Button size="lg" className="gap-2 h-12 px-8 text-base">
-                        Start Building Free
+                        Get Started Free
                         <ArrowRightIcon className="h-4 w-4" />
                       </Button>
                     </SignInButton>
@@ -422,59 +363,40 @@ export default function Home() {
                   </Button>
                 </motion.div>
 
-                {/* Floating tech stack badges */}
+                {/* Trust signals */}
                 <motion.div
                   variants={fadeUp}
-                  className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-10"
+                  className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-10 text-xs text-muted-foreground"
                 >
-                  <span className="text-xs text-muted-foreground mr-1">Powered by</span>
-                  {["LiveKit", "Gemini", "AssemblyAI", "Resemble AI"].map((name, i) => (
-                    <motion.div
-                      key={name}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.6 + i * 0.1 }}
+                  {["No credit card needed", "Free forever", "Setup in 3 minutes"].map((text, i) => (
+                    <motion.span
+                      key={text}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.4, delay: 0.6 + i * 0.15 }}
+                      className="flex items-center gap-1.5"
                     >
-                      <Badge variant="secondary" className="text-xs font-normal">
-                        {name}
-                      </Badge>
-                    </motion.div>
+                      <span className="h-1 w-1 rounded-full bg-primary/60" />
+                      {text}
+                    </motion.span>
                   ))}
                 </motion.div>
               </motion.div>
 
-              {/* Right: Abstract Ball + Orbit Dots */}
+              {/* Right: Agent Computer Architecture Diagram */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-                className="relative h-[350px] sm:h-[400px] lg:h-[520px] order-first lg:order-last"
+                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                className="relative h-[380px] sm:h-[450px] lg:h-[580px] order-first lg:order-last flex items-center justify-center lg:-mr-8 xl:-mr-16"
               >
-                <OrbitDots />
-                <AbstractBall
-                  spherePoints={true}
-                  spherePsize={1.5}
-                  perlinTime={12}
-                  perlinMorph={8}
-                  perlinDNoise={2.0}
-                  chromaRGBr={6}
-                  chromaRGBg={6}
-                  chromaRGBb={7}
-                  chromaRGBn={1}
-                  chromaRGBm={1}
-                  cameraSpeedY={0.5}
-                  cameraSpeedX={0.2}
-                  cameraZoom={175}
-                  interactive={true}
-                />
-                {/* Subtle glow behind ball */}
-                <div className="absolute inset-0 -z-10 bg-primary/5 blur-[80px] rounded-full scale-75" />
+                <AgentComputerDiagram className="w-full h-full" />
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* ── Pipeline ───────────────────────────────────────────────────── */}
+        {/* ── What Happens Inside ──────────────────────────────────────── */}
         <section className="border-t bg-muted/30">
           <div className="container mx-auto px-4 py-24">
             <motion.div
@@ -485,17 +407,17 @@ export default function Home() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">How It Works</Badge>
+                <Badge variant="outline" className="mb-4">The Agent Computer</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                Three stages. One pipeline.
+                More than a pipeline.
               </motion.h2>
               <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Voice flows through three intelligent stages — each powered by the model of your choice.
+                Other platforms just convert speech to text and back. Arkenos gives every agent its own brain — it can think, take actions, and remember past conversations.
               </motion.p>
             </motion.div>
 
-            {/* Pipeline cards with mini-illustrations */}
+            {/* Three capability cards */}
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -503,84 +425,74 @@ export default function Home() {
               variants={stagger}
               className="grid md:grid-cols-3 gap-px max-w-5xl mx-auto bg-border rounded-lg overflow-hidden"
             >
-              {/* STT Card */}
-              <motion.div variants={fadeUpScale} className="bg-card p-8 lg:p-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <MicrophoneIcon className="h-7 w-7 text-primary" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-primary tracking-widest">STEP 01</span>
-                    <h3 className="text-xl font-bold">Speech to Text</h3>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Real-time audio capture with voice activity detection. Converts speech to text using AssemblyAI, Deepgram, or any STT provider.
-                </p>
-                {/* Mini illustration: waveform → text */}
-                <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border/50">
-                  <MiniWaveform seedOffset={200} />
-                  <motion.div
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <ArrowRightIcon className="h-3 w-3 text-primary/50" />
-                  </motion.div>
-                  <span className="text-xs font-mono text-primary/60 px-1.5 py-0.5 bg-primary/5 rounded">abc</span>
-                </div>
-              </motion.div>
-
-              {/* LLM Card */}
+              {/* Think */}
               <motion.div variants={fadeUpScale} className="bg-card p-8 lg:p-10">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <BrainIcon className="h-7 w-7 text-primary" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-primary tracking-widest">STEP 02</span>
-                    <h3 className="text-xl font-bold">LLM Processing</h3>
+                    <span className="text-xs font-bold text-primary tracking-widest">THINK</span>
+                    <h3 className="text-xl font-bold">Reason & Respond</h3>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Context-aware AI responses powered by Gemini, GPT, Claude, or any LLM. Function calling for real-world actions.
+                  Your agent truly understands what callers mean — not just what they say. Powered by the latest AI, always improving.
                 </p>
-                {/* Mini illustration: input → brain → output */}
                 <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border/50">
-                  <span className="text-xs font-mono text-primary/60 px-1.5 py-0.5 bg-primary/5 rounded">in</span>
+                  <span className="text-xs font-mono text-primary/60 px-1.5 py-0.5 bg-primary/5 rounded">&quot;Book me a table&quot;</span>
                   <ArrowRightIcon className="h-3 w-3 text-primary/30" />
                   <div className="relative">
                     <BrainIcon className="h-6 w-6 text-primary/40" />
                     <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary/60 animate-ping" />
                   </div>
-                  <ArrowRightIcon className="h-3 w-3 text-primary/30" />
-                  <span className="text-xs font-mono text-primary/60 px-1.5 py-0.5 bg-primary/5 rounded">out</span>
                 </div>
               </motion.div>
 
-              {/* TTS Card */}
+              {/* Act */}
               <motion.div variants={fadeUpScale} className="bg-card p-8 lg:p-10">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <SpeakerIcon className="h-7 w-7 text-primary" />
+                    <BoltIcon className="h-7 w-7 text-primary" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-primary tracking-widest">STEP 03</span>
-                    <h3 className="text-xl font-bold">Text to Speech</h3>
+                    <span className="text-xs font-bold text-primary tracking-widest">ACT</span>
+                    <h3 className="text-xl font-bold">Execute Mid-Call</h3>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Ultra-low latency voice synthesis with Resemble AI, ElevenLabs, or any TTS engine. Natural, human-like output.
+                  Your agent doesn&apos;t just talk — it does things. Book appointments, look up orders, send confirmations — all during the call.
                 </p>
-                {/* Mini illustration: text → waveform */}
+                <div className="mt-6 pt-4 border-t border-border/50">
+                  <div className="text-xs space-y-1.5">
+                    <p className="text-primary/50">Caller: &quot;Book me a table for tonight&quot;</p>
+                    <p className="text-chart-2/60">Agent checks availability... confirmed 7pm, 2 guests</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Remember */}
+              <motion.div variants={fadeUpScale} className="bg-card p-8 lg:p-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <CpuIcon className="h-7 w-7 text-primary" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-primary tracking-widest">REMEMBER</span>
+                    <h3 className="text-xl font-bold">Persistent Memory</h3>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Your agent remembers past conversations, caller preferences, and history — so every interaction feels personal.
+                </p>
                 <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border/50">
-                  <span className="text-xs font-mono text-primary/60 px-1.5 py-0.5 bg-primary/5 rounded">abc</span>
                   <motion.div
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                    animate={{ opacity: [0.3, 0.7, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <ArrowRightIcon className="h-3 w-3 text-primary/50" />
+                    <CpuIcon className="h-5 w-5 text-primary/40" />
                   </motion.div>
-                  <MiniWaveform seedOffset={300} />
+                  <span className="text-xs text-muted-foreground">&quot;Welcome back, Sarah — same order as last time?&quot;</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -596,7 +508,7 @@ export default function Home() {
               <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border bg-card text-sm shadow-sm">
                 <MicrophoneIcon className="h-4 w-4 text-primary" />
                 <span className="font-medium">Voice In</span>
-                {["STT", "LLM", "TTS"].map((label, i) => (
+                {["Think", "Act", "Remember"].map((label, i) => (
                   <span key={label} className="contents">
                     <motion.div
                       animate={{ opacity: [0.2, 1, 0.2] }}
@@ -637,7 +549,7 @@ export default function Home() {
                 Everything you need
               </motion.h2>
               <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                A complete platform for building production voice AI applications.
+                Everything you need to launch voice AI agents that delight your customers.
               </motion.p>
             </motion.div>
 
@@ -666,13 +578,13 @@ export default function Home() {
                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                           <CodeBracketIcon className="h-6 w-6 text-primary" />
                         </div>
-                        <Badge variant="secondary">MIT License</Badge>
+                        <Badge variant="secondary">AGPL-3.0</Badge>
                       </div>
-                      <h3 className="text-2xl font-bold mb-2">100% Open Source</h3>
+                      <h3 className="text-2xl font-bold mb-2">Open Source & Free</h3>
                       <p className="text-muted-foreground mb-6">
-                        Self-host on your own infrastructure. Full control over your data, models, and deployment.
+                        Own your data. Run it yourself or use our cloud — either way, it&apos;s transparent, auditable, and free to start.
                       </p>
-                      <TypingTerminal />
+                      <SetupSteps />
                     </div>
                   </div>
                 </TiltCard>
@@ -685,9 +597,9 @@ export default function Home() {
                     <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
                       <BoltIcon className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Real-time</h3>
+                    <h3 className="text-xl font-bold mb-2">Lightning Fast</h3>
                     <p className="text-sm text-muted-foreground mb-6">
-                      Sub-500ms voice-to-voice latency powered by LiveKit WebRTC.
+                      Your agent responds in under half a second — conversations feel natural, not robotic.
                     </p>
                     <div className="mt-auto">
                       <div className="text-5xl font-bold text-primary">
@@ -706,12 +618,12 @@ export default function Home() {
                     <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
                       <GlobeIcon className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Model Agnostic</h3>
+                    <h3 className="text-xl font-bold mb-2">Works with Any AI</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Swap any STT, LLM, or TTS provider. Zero vendor lock-in.
+                      Choose the best speech and AI providers for your needs. Switch anytime — no lock-in.
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-auto">
-                      {["Gemini", "AssemblyAI", "Resemble", "Deepgram", "ElevenLabs", "GPT-4o"].map((m, i) => (
+                      {["Speech Recognition", "AI Reasoning", "Voice Generation", "More coming soon"].map((m, i) => (
                         <motion.div
                           key={m}
                           initial={{ opacity: 0, scale: 0.8 }}
@@ -783,7 +695,7 @@ export default function Home() {
                     </div>
                     <h3 className="text-xl font-bold mb-2">Secure by Default</h3>
                     <p className="text-sm text-muted-foreground">
-                      Auth via Clerk, encrypted connections, no data leaves your servers. Your conversations stay private.
+                      All conversations are encrypted and private. No data leaves your servers. Your customers&apos; trust is built in.
                     </p>
                     {/* Lock animation */}
                     <div className="mt-6 pt-4 border-t border-border/50 flex items-center gap-2">
@@ -806,9 +718,9 @@ export default function Home() {
                     <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
                       <CpuIcon className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">SIP Telephony</h3>
+                    <h3 className="text-xl font-bold mb-2">Real Phone Calls</h3>
                     <p className="text-sm text-muted-foreground">
-                      Connect real phone numbers via Twilio SIP trunking. Your AI agents can answer actual phone calls.
+                      Connect a real phone number. Your AI agent answers actual calls — just like a human receptionist.
                     </p>
                     {/* Phone ring animation */}
                     <div className="mt-6 pt-4 border-t border-border/50 flex items-center gap-2">
@@ -824,14 +736,42 @@ export default function Home() {
                 </TiltCard>
               </motion.div>
 
+              {/* Function Calling */}
+              <motion.div variants={fadeUpScale}>
+                <TiltCard className="h-full">
+                  <div className="h-full p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors">
+                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                      <BoltIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">Takes Real Actions</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Your agent doesn&apos;t just answer questions — it books appointments, checks orders, sends emails, and more.
+                    </p>
+                    {/* Action animation */}
+                    <div className="mt-6 pt-4 border-t border-border/50">
+                      <div className="text-xs space-y-1.5">
+                        <p className="text-primary/50">Checking availability...</p>
+                        <motion.p
+                          animate={{ opacity: [0.3, 0.7, 0.3] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                          className="text-chart-2/60"
+                        >
+                          3 slots available today
+                        </motion.p>
+                      </div>
+                    </div>
+                  </div>
+                </TiltCard>
+              </motion.div>
+
               {/* Waveform card — full width */}
               <motion.div variants={fadeUpScale} className="sm:col-span-2 lg:col-span-3">
                 <div className="p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
                     <div className="flex-1 text-center sm:text-left">
-                      <h3 className="text-xl font-bold mb-2">Live Voice Pipeline</h3>
+                      <h3 className="text-xl font-bold mb-2">Natural Conversations</h3>
                       <p className="text-sm text-muted-foreground">
-                        Real-time audio streaming with voice activity detection, interrupt handling, and turn-taking — powered by LiveKit.
+                        Your agent listens naturally — it knows when to speak, when to wait, and handles interruptions gracefully.
                       </p>
                     </div>
                     <div className="flex-1 max-w-md w-full">
@@ -858,7 +798,7 @@ export default function Home() {
                 { value: 500, prefix: "<", suffix: "ms", label: "Voice Latency" },
                 { value: 100, prefix: "", suffix: "%", label: "Open Source" },
                 { value: 5, prefix: "", suffix: "+", label: "AI Providers" },
-                { value: 3, prefix: "", suffix: " min", label: "Setup Time" },
+                { value: 3, prefix: "", suffix: " min", label: "To First Agent" },
               ].map((stat) => (
                 <motion.div key={stat.label} variants={fadeUp}>
                   <div className="text-4xl sm:text-5xl font-extrabold text-primary mb-2">
@@ -895,10 +835,10 @@ export default function Home() {
 
               <div className="relative">
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                  Ready to build?
+                  Ready to get started?
                 </h2>
                 <p className="mx-auto max-w-xl text-lg text-muted-foreground mb-8">
-                  Deploy your first voice AI agent in minutes. Free forever. No credit card required.
+                  Create your first voice AI agent in minutes. Free forever. No credit card required.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <SignedOut>
@@ -934,10 +874,7 @@ export default function Home() {
       <footer className="border-t">
         <div className="container mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary">
-              <MicrophoneIcon className="h-3 w-3 text-primary-foreground" />
-            </div>
-            <span className="font-semibold">Arkenos</span>
+            <ArkenosLogo className="h-5" />
           </div>
           <p className="text-sm text-muted-foreground">
             Open source voice AI platform.

@@ -1,16 +1,16 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 import { AgentComputerDiagram } from "@/components/ui/agent-computer-diagram";
 import { LiveCallDemo } from "@/components/ui/live-call-demo";
-import { ArkenosLogo, ArkenosLogoMark } from "@/components/ui/arkenos-logo";
+import { PublicHeader } from "@/components/public-header";
+import { PublicFooter } from "@/components/public-footer";
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -270,33 +270,7 @@ const stagger = {
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <ArkenosLogo className="h-6" />
-          </div>
-          <nav className="flex items-center gap-3">
-            <ThemeToggle />
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="ghost" size="sm">Sign In</Button>
-              </SignInButton>
-              <SignInButton mode="modal">
-                <Button size="sm">Get Started</Button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
-              </Link>
-              <div suppressHydrationWarning>
-                <UserButton />
-              </div>
-            </SignedIn>
-          </nav>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main>
         {/* ── Hero ───────────────────────────────────────────────────────── */}
@@ -903,25 +877,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t">
-        <div className="container mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <ArkenosLogo className="h-5" />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Open source voice AI platform.
-          </p>
-          <a
-            href="https://github.com"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <GithubIcon className="h-5 w-5" />
-          </a>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

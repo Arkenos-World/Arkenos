@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-// ─── Data ────────────────────────────────────────────────────────────────────────
 
 const PROMPT =
   "Create a restaurant receptionist that books tables, checks availability, and sends SMS confirmations";

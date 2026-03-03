@@ -31,7 +31,7 @@ export default async function AgentsPage() {
     }
 
     return (
-        <DashboardLayout activeNav="Agents">
+        <DashboardLayout>
             <AgentList initialAgents={agents} userId={userId} />
         </DashboardLayout>
     );

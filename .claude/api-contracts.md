@@ -1,4 +1,4 @@
-# VoxArena API Contracts
+# Arkenos API Contracts
 
 ## Auth
 All /api/* endpoints require Clerk JWT in Authorization header

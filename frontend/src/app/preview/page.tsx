@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     LiveKitRoom,
     RoomAudioRenderer,
@@ -26,48 +27,18 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import AbstractBall from "@/components/ui/abstract-ball";
+import {
+    MicrophoneIcon,
+    MicrophoneOffIcon,
+    ArrowLeftIcon,
+    PhoneOffIcon,
+    SparklesIcon,
+    MenuIcon,
+    XIcon,
+} from "@/components/icons";
+import { ArkenosLogo } from "@/components/ui/arkenos-logo";
+import { PIPELINE_COLORS } from "@/lib/design-tokens";
 import "./preview.css";
-
-// Icons
-function MicrophoneIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-        </svg>
-    );
-}
-
-function MicrophoneOffIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3zM2.25 2.25l19.5 19.5" />
-        </svg>
-    );
-}
-
-function ArrowLeftIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-        </svg>
-    );
-}
-
-function PhoneOffIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 3.75L18 6m0 0l2.25 2.25M18 6l2.25-2.25M18 6l-2.25 2.25m1.5 13.5c-8.31 0-15-6.69-15-15 0-.966.09-1.91.264-2.824A3.75 3.75 0 016.264 2.25l2.235.001a2.25 2.25 0 012.159 1.636l1.05 3.674a2.25 2.25 0 01-.514 2.25l-.993.993a.75.75 0 00-.17.79c.33.87.79 1.685 1.365 2.42a.75.75 0 00.79.17l.993-.993a2.25 2.25 0 012.25-.514l3.674 1.05a2.25 2.25 0 011.636 2.159v2.235a3.75 3.75 0 01-2.5 3.535 16.41 16.41 0 01-2.824.264z" />
-        </svg>
-    );
-}
-
-function SparklesIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-        </svg>
-    );
-}
 
 // Models configuration
 const sttModels = [
@@ -481,6 +452,178 @@ function PreviewContent({
     );
 }
 
+// Sidebar content extracted for desktop + mobile reuse
+function SidebarContent({
+    selectedAgent,
+    setSelectedAgent,
+    isLoadingAgents,
+    agents,
+    selectedStt,
+    selectedModel,
+    setSelectedModel,
+    connectionState,
+    error,
+    startSession,
+    handleDisconnect,
+}: {
+    selectedAgent: string;
+    setSelectedAgent: (v: string) => void;
+    isLoadingAgents: boolean;
+    agents: Agent[];
+    selectedStt: string;
+    selectedModel: string;
+    setSelectedModel: (v: string) => void;
+    connectionState: ConnectionStateType;
+    error: string | null;
+    startSession: () => void;
+    handleDisconnect: () => void;
+}) {
+    return (
+        <>
+            {/* Header */}
+            <div className="p-4 border-b">
+                <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                    <ArrowLeftIcon className="h-4 w-4" />
+                    <span className="text-sm">Back to Dashboard</span>
+                </Link>
+            </div>
+
+            {/* Logo */}
+            <div className="p-4 border-b">
+                <ArkenosLogo className="h-6" />
+            </div>
+
+            {/* Model Selection */}
+            <div className="p-4 space-y-6 flex-1 overflow-y-auto">
+                {/* Agent Selection */}
+                <div className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Select Agent
+                    </Label>
+                    <Select value={selectedAgent} onValueChange={setSelectedAgent} disabled={isLoadingAgents}>
+                        <SelectTrigger className="w-full">
+                            <span className="truncate block text-left">
+                                <SelectValue placeholder={isLoadingAgents ? "Loading..." : "Select agent"} />
+                            </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                            {agents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                    <div className="flex items-center gap-2">
+                                        <span>{agent.name}</span>
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Speech-to-Text
+                    </Label>
+                    <Select value={selectedStt} disabled>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {sttModels.map((m) => (
+                                <SelectItem key={m.id} value={m.id}>
+                                    {m.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                        Configured in agent settings
+                    </p>
+                </div>
+
+                <div className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Language Model
+                    </Label>
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {llmModels.map((m) => (
+                                <SelectItem key={m.id} value={m.id}>
+                                    {m.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Text-to-Speech
+                    </Label>
+                    <Select defaultValue="resemble-custom" disabled>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {ttsModels.map((m) => (
+                                <SelectItem key={m.id} value={m.id}>
+                                    {m.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="pt-4">
+                    <div className="rounded-lg border bg-muted/50 p-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Current Pipeline</p>
+                        <div className="flex items-center gap-1 text-xs">
+                            <Badge variant="outline" className={`text-[10px] ${PIPELINE_COLORS.stt}`}>
+                                {selectedStt === 'assemblyai' ? 'AssemblyAI' : selectedStt === 'elevenlabs' ? 'ElevenLabs' : 'Deepgram'}
+                            </Badge>
+                            <span className="text-muted-foreground/30">&rarr;</span>
+                            <Badge variant="outline" className={`text-[10px] ${PIPELINE_COLORS.llm}`}>Gemini</Badge>
+                            <span className="text-muted-foreground/30">&rarr;</span>
+                            <Badge variant="outline" className={`text-[10px] ${PIPELINE_COLORS.tts}`}>Resemble</Badge>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Start/Stop Button */}
+            <div className="p-4 border-t">
+                {connectionState === "idle" && (
+                    <Button className="w-full gap-2" onClick={startSession}>
+                        <MicrophoneIcon className="h-4 w-4" />
+                        Start Preview
+                    </Button>
+                )}
+                {connectionState === "connecting" && (
+                    <Button className="w-full" disabled>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        Connecting...
+                    </Button>
+                )}
+                {connectionState === "connected" && (
+                    <Button className="w-full gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleDisconnect}>
+                        <PhoneOffIcon className="h-4 w-4" />
+                        Stop Preview
+                    </Button>
+                )}
+                {connectionState === "error" && (
+                    <div className="space-y-2">
+                        <p className="text-xs text-red-400">{error}</p>
+                        <Button className="w-full" variant="outline" onClick={startSession}>
+                            Try Again
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+}
+
 export default function PreviewPage() {
     const router = useRouter();
     const { userId } = useAuth();
@@ -498,6 +641,7 @@ export default function PreviewPage() {
     const [agents, setAgents] = useState<Agent[]>([defaultAgent]);
     const [isLoadingAgents, setIsLoadingAgents] = useState(true);
     const [selectedStt, setSelectedStt] = useState<string>("assemblyai");
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     // Update STT when agent changes
     useEffect(() => {
@@ -591,153 +735,75 @@ export default function PreviewPage() {
 
     return (
         <div className="flex h-screen bg-background">
-            {/* Sidebar */}
-            <aside className="w-72 border-r bg-card flex flex-col">
-                {/* Header */}
-                <div className="p-4 border-b">
-                    <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-                        <ArrowLeftIcon className="h-4 w-4" />
-                        <span className="text-sm">Back to Dashboard</span>
-                    </Link>
-                </div>
+            {/* Mobile hamburger */}
+            <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden fixed top-3 left-3 z-50"
+                onClick={() => setMobileOpen(true)}
+            >
+                <MenuIcon className="h-5 w-5" />
+            </Button>
 
-                {/* Logo */}
-                <div className="p-4 border-b">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                            <MicrophoneIcon className="h-4 w-4 text-primary-foreground" />
-                        </div>
-                        <span className="font-bold text-lg">Model Preview</span>
-                    </div>
-                </div>
-
-                {/* Model Selection */}
-                <div className="p-4 space-y-6 flex-1">
-                    {/* Agent Selection */}
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Select Agent
-                        </Label>
-                        <Select value={selectedAgent} onValueChange={setSelectedAgent} disabled={isLoadingAgents}>
-                            <SelectTrigger className="w-full">
-                                <span className="truncate block w-[260px] text-left">
-                                    <SelectValue placeholder={isLoadingAgents ? "Loading..." : "Select agent"} />
-                                </span>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {agents.map((agent) => (
-                                    <SelectItem key={agent.id} value={agent.id}>
-                                        <div className="flex items-center gap-2">
-                                            <span>{agent.name}</span>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Speech-to-Text
-                        </Label>
-                        <Select value={selectedStt} disabled>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {sttModels.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>
-                                        {m.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                            Configured in agent settings
-                        </p>
-                    </div>
-
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Language Model
-                        </Label>
-                        <Select value={selectedModel} onValueChange={setSelectedModel}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {llmModels.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>
-                                        {m.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Text-to-Speech
-                        </Label>
-                        <Select defaultValue="resemble-custom" disabled>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {ttsModels.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>
-                                        {m.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="pt-4">
-                        <div className="rounded-lg border bg-muted/50 p-3">
-                            <p className="text-xs font-medium text-muted-foreground mb-2">Current Pipeline</p>
-                            <div className="flex items-center gap-1 text-xs">
-                                <Badge variant="outline" className={`text-[10px] ${selectedStt === 'assemblyai' ? 'border-blue-500/50 text-blue-400' : selectedStt === 'elevenlabs' ? 'border-purple-500/50 text-purple-400' : 'border-orange-500/50 text-orange-400'}`}>
-                                    {selectedStt === 'assemblyai' ? 'AssemblyAI' : selectedStt === 'elevenlabs' ? 'ElevenLabs' : 'Deepgram'}
-                                </Badge>
-                                <span className="text-white/30">→</span>
-                                <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-400">Gemini</Badge>
-                                <span className="text-white/30">→</span>
-                                <Badge variant="outline" className="text-[10px] border-green-500/50 text-green-400">Resemble</Badge>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Start/Stop Button */}
-                <div className="p-4 border-t">
-                    {connectionState === "idle" && (
-                        <Button className="w-full gap-2" onClick={startSession}>
-                            <MicrophoneIcon className="h-4 w-4" />
-                            Start Preview
-                        </Button>
-                    )}
-                    {connectionState === "connecting" && (
-                        <Button className="w-full" disabled>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                            Connecting...
-                        </Button>
-                    )}
-                    {connectionState === "connected" && (
-                        <Button className="w-full gap-2 bg-red-500 hover:bg-red-600" onClick={handleDisconnect}>
-                            <PhoneOffIcon className="h-4 w-4" />
-                            Stop Preview
-                        </Button>
-                    )}
-                    {connectionState === "error" && (
-                        <div className="space-y-2">
-                            <p className="text-xs text-red-400">{error}</p>
-                            <Button className="w-full" variant="outline" onClick={startSession}>
-                                Try Again
+            {/* Mobile sidebar overlay */}
+            <AnimatePresence>
+                {mobileOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                            onClick={() => setMobileOpen(false)}
+                        />
+                        <motion.aside
+                            initial={{ x: -280 }}
+                            animate={{ x: 0 }}
+                            exit={{ x: -280 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="fixed left-0 top-0 z-50 h-screen w-64 border-r bg-card flex flex-col lg:hidden"
+                        >
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-3 right-3"
+                                onClick={() => setMobileOpen(false)}
+                            >
+                                <XIcon className="h-5 w-5" />
                             </Button>
-                        </div>
-                    )}
-                </div>
+                            <SidebarContent
+                                selectedAgent={selectedAgent}
+                                setSelectedAgent={setSelectedAgent}
+                                isLoadingAgents={isLoadingAgents}
+                                agents={agents}
+                                selectedStt={selectedStt}
+                                selectedModel={selectedModel}
+                                setSelectedModel={setSelectedModel}
+                                connectionState={connectionState}
+                                error={error}
+                                startSession={startSession}
+                                handleDisconnect={handleDisconnect}
+                            />
+                        </motion.aside>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Desktop Sidebar */}
+            <aside className="hidden lg:flex w-64 border-r bg-card flex-col">
+                <SidebarContent
+                    selectedAgent={selectedAgent}
+                    setSelectedAgent={setSelectedAgent}
+                    isLoadingAgents={isLoadingAgents}
+                    agents={agents}
+                    selectedStt={selectedStt}
+                    selectedModel={selectedModel}
+                    setSelectedModel={setSelectedModel}
+                    connectionState={connectionState}
+                    error={error}
+                    startSession={startSession}
+                    handleDisconnect={handleDisconnect}
+                />
             </aside>
 
             {/* Main Content */}

@@ -1,4 +1,4 @@
-You are the Lead Agent for VoxArena.
+You are the Lead Agent for Arkenos.
 
 Read CLAUDE.md for full project context.
 Read .claude/run-state.json — if status is not idle, resume 

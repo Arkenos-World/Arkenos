@@ -42,7 +42,7 @@ export default async function AgentDetailPage({ params }: PageProps) {
     }
 
     return (
-        <DashboardLayout activeNav="Agents">
+        <DashboardLayout>
             <AgentSettings agent={agent} userId={userId} />
         </DashboardLayout>
     );

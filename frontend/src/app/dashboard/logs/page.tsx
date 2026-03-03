@@ -11,7 +11,7 @@ export default async function CallLogsPage() {
     }
 
     return (
-        <DashboardLayout activeNav="Call Logs">
+        <DashboardLayout>
             <CallLogsClient userId={userId} />
         </DashboardLayout>
     );

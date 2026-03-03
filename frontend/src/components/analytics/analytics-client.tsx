@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { deltaColor } from "@/lib/design-tokens"
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 const C = {
@@ -317,7 +318,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
                         <div className="flex items-end justify-between gap-2">
                             <CardTitle className="text-3xl">{totalCalls}</CardTitle>
                             {callsDelta !== null && (
-                                <span className={`text-xs font-semibold mb-1 ${callsDelta >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                                <span className={`text-xs font-semibold mb-1 ${deltaColor(callsDelta)}`}>
                                     {fmtDelta(callsDelta)}
                                 </span>
                             )}
@@ -345,7 +346,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
                         <div className="flex items-end justify-between gap-2">
                             <CardTitle className="text-3xl">{formatDuration(avgDuration)}</CardTitle>
                             {durationDelta !== null && (
-                                <span className={`text-xs font-semibold mb-1 ${durationDelta >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                                <span className={`text-xs font-semibold mb-1 ${deltaColor(durationDelta)}`}>
                                     {fmtDelta(durationDelta)}
                                 </span>
                             )}
@@ -373,7 +374,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
                         <div className="flex items-end justify-between gap-2">
                             <CardTitle className="text-3xl">{successRate}%</CardTitle>
                             {successDelta !== null && (
-                                <span className={`text-xs font-semibold mb-1 ${successDelta >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                                <span className={`text-xs font-semibold mb-1 ${deltaColor(successDelta)}`}>
                                     {fmtDelta(successDelta, "pp")}
                                 </span>
                             )}

@@ -5,6 +5,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CallsAreaChart } from "@/components/dashboard/calls-area-chart"
+import { SkeletonStatRow, SkeletonChart } from "@/components/ui/skeleton"
+import { deltaColor } from "@/lib/design-tokens"
 import type { VoiceSession, Agent, SessionsPage } from "@/lib/api"
 
 type Period = "7d" | "30d" | "90d"
@@ -35,11 +37,11 @@ function StatCell({
     noData?: boolean
 }) {
     return (
-        <div className="flex-1 px-6 py-5">
+        <div className="px-6 py-5">
             <p className="text-xs text-muted-foreground mb-1.5">{label}</p>
             <p className="text-2xl font-semibold tracking-tight">{value}</p>
             {delta !== null ? (
-                <p className={`text-xs mt-1 ${positive ? "text-emerald-500" : "text-red-500"}`}>
+                <p className={`text-xs mt-1 ${deltaColor(positive ? 1 : -1)}`}>
                     {delta} vs prior period
                 </p>
             ) : noData ? (
@@ -212,8 +214,11 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
             </div>
 
             {/* Stat Row */}
+            {isLoading ? (
+                <SkeletonStatRow />
+            ) : (
             <Card className="overflow-hidden">
-                <div className="flex divide-x">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y lg:divide-y-0">
                     <StatCell
                         label={`Total Calls`}
                         value={isLoading ? "—" : String(currTotal)}
@@ -257,6 +262,7 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
                     />
                 </div>
             </Card>
+            )}
 
             {/* Call Volume Chart */}
             <Card>

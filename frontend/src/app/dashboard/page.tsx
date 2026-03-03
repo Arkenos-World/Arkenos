@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
+import { MicrophoneIcon, PhoneIcon } from "@/components/icons";
+import { sentimentDotColor } from "@/lib/design-tokens";
 import type { VoiceSession, SessionsPage } from "@/lib/api";
 
 // ─── Session label resolver ──────────────────────────────────────────────────
@@ -23,22 +25,6 @@ function resolveSessionLabel(session: { agent_name?: string | null; room_name: s
     if (sipMatch) return { primary: 'SIP Call', secondary: `via ${sipMatch[1]}` }
     if (room.startsWith('preview-')) return { primary: 'Preview', secondary: room.replace('preview-', '').slice(0, 18) }
     return { primary: 'Unassigned Call', secondary: room.replace(/^arkenos-/, '').slice(0, 18) }
-}
-
-function MicrophoneIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-        </svg>
-    );
-}
-
-function PhoneIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-        </svg>
-    );
 }
 
 export default async function DashboardPage() {
@@ -65,7 +51,7 @@ export default async function DashboardPage() {
     };
 
     return (
-        <DashboardLayout activeNav="Dashboard">
+        <DashboardLayout>
             <div className="space-y-6">
                 {/* Welcome */}
                 <div>
@@ -103,13 +89,7 @@ export default async function DashboardPage() {
                                                     <MicrophoneIcon className="h-5 w-5" />
                                                     {session.analysis?.sentiment && (
                                                         <span
-                                                            className={`absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
-                                                                    session.analysis.sentiment === "positive"
-                                                                        ? "bg-emerald-500"
-                                                                        : session.analysis.sentiment === "negative"
-                                                                            ? "bg-red-500"
-                                                                            : "bg-yellow-500"
-                                                            }`}
+                                                            className={`absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${sentimentDotColor(session.analysis.sentiment_score)}`}
                                                         />
                                                     )}
                                                 </div>

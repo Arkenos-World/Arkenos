@@ -103,6 +103,64 @@ export interface Agent {
   user_id: string;
   phone_number: string | null;
   twilio_sid: string | null;
+  agent_mode: "STANDARD" | "CUSTOM";
+  storage_path: string | null;
+  image_tag: string | null;
+  build_status: "NONE" | "PENDING" | "BUILDING" | "READY" | "FAILED";
+  current_version: number;
+  deployed_version: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface AgentFile {
+  id: string;
+  agent_id: string;
+  file_path: string;
+  content_hash: string;
+  size_bytes: number;
+  mime_type: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContainerInfo {
+  id: string;
+  agent_id: string;
+  session_id: string | null;
+  container_id: string | null;
+  container_type: string;
+  status: "PENDING" | "RUNNING" | "STOPPED" | "FAILED";
+  image_tag: string | null;
+  started_at: string | null;
+  stopped_at: string | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface BuildStatus {
+  status: "NONE" | "PENDING" | "BUILDING" | "READY" | "FAILED";
+  image_tag: string | null;
+  build_log: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface CodingAgentMessage {
+  role: "user" | "assistant";
+  content: string;
+  file_changes?: {
+    file_path: string;
+    action: "create" | "modify" | "delete";
+    content?: string;
+  }[];
+  timestamp: string;
+}
+
+export interface FileTreeNode {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  children?: FileTreeNode[];
 }

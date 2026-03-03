@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import Base
-from app.models import User, Agent, VoiceSession, Transcript  # noqa: F401
+from app.models import User, Agent, VoiceSession, Transcript, AgentFile, AgentFileVersion, AgentContainer  # noqa: F401
 from app.config import get_settings
 
 # this is the Alembic Config object, which provides

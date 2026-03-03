@@ -4,8 +4,10 @@ from typing import Optional
 import uuid
 
 from app.database import get_db
-from app.models import Agent, User
+from app.models import Agent, AgentMode, User
 from app.schemas import AgentCreate, AgentUpdate, AgentResponse
+from app.services.scaffold_templates import scaffold_agent
+from app.dependencies import verify_agent_ownership
 
 router = APIRouter()
 
@@ -56,17 +58,33 @@ async def create_agent(agent_data: AgentCreate, db: Session = Depends(get_db)):
     """Create a new agent."""
     user = get_or_create_user(db, agent_data.user_id)
     
+    agent_id = str(uuid.uuid4())
+    mode = AgentMode(agent_data.agent_mode) if agent_data.agent_mode else AgentMode.STANDARD
+
     agent = Agent(
-        id=str(uuid.uuid4()),
+        id=agent_id,
         name=agent_data.name,
         description=agent_data.description,
         type=agent_data.type,
         config=agent_data.config,
         user_id=user.id,
+        agent_mode=mode,
     )
+
+    if mode == AgentMode.CUSTOM:
+        agent.storage_path = f"agents/{agent_id}"
+
     db.add(agent)
     db.commit()
     db.refresh(agent)
+
+    # Scaffold default files for custom agents
+    if mode == AgentMode.CUSTOM:
+        try:
+            scaffold_agent(agent_id, db)
+        except Exception:
+            pass  # Non-fatal — user can scaffold manually
+
     return agent
 
 
@@ -75,11 +93,9 @@ async def update_agent(
     agent_id: str,
     agent_data: AgentUpdate,
     db: Session = Depends(get_db),
+    agent: Agent = Depends(verify_agent_ownership),
 ):
     """Update an agent."""
-    agent = db.query(Agent).filter(Agent.id == agent_id).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
     
     update_data = agent_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -91,11 +107,12 @@ async def update_agent(
 
 
 @router.delete("/{agent_id}", status_code=204)
-async def delete_agent(agent_id: str, db: Session = Depends(get_db)):
+async def delete_agent(
+    agent_id: str,
+    db: Session = Depends(get_db),
+    agent: Agent = Depends(verify_agent_ownership),
+):
     """Soft delete an agent (sets is_active to False)."""
-    agent = db.query(Agent).filter(Agent.id == agent_id).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
     
     # Soft delete: mark as inactive instead of removing
     agent.is_active = False

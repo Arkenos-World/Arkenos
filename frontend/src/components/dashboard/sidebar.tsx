@@ -10,13 +10,15 @@ import { cn } from "@/lib/utils";
 import {
     HomeIcon, BotIcon, PlayIcon, KeyIcon, PhoneIcon,
     ChartIcon, CurrencyIcon, SettingsIcon, SearchIcon,
-    MenuIcon, XIcon,
+    MenuIcon, XIcon, ChevronLeftIcon, ChevronRightIcon,
 } from "@/components/icons";
-import { ArkenosLogo } from "@/components/ui/arkenos-logo";
+import { ArkenosLogo, ArkenosLogoMark } from "@/components/ui/arkenos-logo";
 
 interface SidebarProps {
     userEmail?: string;
     userName?: string;
+    collapsed?: boolean;
+    onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 const navSections = [
@@ -47,33 +49,39 @@ function isActive(pathname: string, href: string): boolean {
     return pathname.startsWith(href);
 }
 
-function SidebarContent({ pathname, userEmail, userName }: SidebarProps & { pathname: string }) {
+function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedChange }: SidebarProps & { pathname: string }) {
     return (
         <>
             {/* Logo */}
-            <div className="p-4 border-b">
+            <div className={cn("border-b", collapsed ? "p-3 flex justify-center" : "p-4")}>
                 <Link href="/" className="flex items-center gap-2">
-                    <ArkenosLogo className="h-6" />
+                    {collapsed ? (
+                        <ArkenosLogoMark className="h-6 w-6" />
+                    ) : (
+                        <ArkenosLogo className="h-6" />
+                    )}
                 </Link>
-                {userEmail && (
+                {!collapsed && userEmail && (
                     <p className="text-xs text-muted-foreground mt-1 truncate">{userEmail}</p>
                 )}
             </div>
 
             {/* Search */}
-            <div className="p-3">
-                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 text-muted-foreground text-sm">
-                    <SearchIcon className="h-4 w-4" />
-                    <span>Search</span>
-                    <kbd className="ml-auto text-xs bg-background px-1.5 py-0.5">Ctrl+K</kbd>
+            {!collapsed && (
+                <div className="p-3">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 text-muted-foreground text-sm">
+                        <SearchIcon className="h-4 w-4" />
+                        <span>Search</span>
+                        <kbd className="ml-auto text-xs bg-background px-1.5 py-0.5">Ctrl+K</kbd>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Navigation */}
-            <nav className="flex-1 px-3 py-2 space-y-6 overflow-y-auto">
+            <nav className={cn("flex-1 py-2 space-y-6 overflow-y-auto", collapsed ? "px-1" : "px-3")}>
                 {navSections.map((section, idx) => (
                     <div key={idx}>
-                        {section.label && (
+                        {!collapsed && section.label && (
                             <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                                 {section.label}
                             </p>
@@ -83,15 +91,17 @@ function SidebarContent({ pathname, userEmail, userName }: SidebarProps & { path
                                 <Link
                                     key={item.label}
                                     href={item.href}
+                                    title={collapsed ? item.label : undefined}
                                     className={cn(
-                                        "flex items-center gap-3 px-3 py-2 text-sm transition-colors",
+                                        "flex items-center py-2 text-sm transition-colors",
+                                        collapsed ? "justify-center px-2" : "gap-3 px-3",
                                         isActive(pathname, item.href)
                                             ? "bg-primary/10 text-primary font-medium"
                                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                     )}
                                 >
-                                    <item.icon className="h-4 w-4" />
-                                    {item.label}
+                                    <item.icon className="h-4 w-4 shrink-0" />
+                                    {!collapsed && item.label}
                                 </Link>
                             ))}
                         </div>
@@ -100,31 +110,53 @@ function SidebarContent({ pathname, userEmail, userName }: SidebarProps & { path
             </nav>
 
             {/* Bottom */}
-            <div className="p-3 border-t space-y-2">
+            <div className={cn("border-t space-y-1", collapsed ? "p-1" : "p-3")}>
+                {onCollapsedChange && (
+                    <button
+                        onClick={() => onCollapsedChange(!collapsed)}
+                        className={cn(
+                            "flex items-center py-2 text-sm transition-colors w-full text-muted-foreground hover:bg-muted hover:text-foreground",
+                            collapsed ? "justify-center px-2" : "gap-3 px-3"
+                        )}
+                        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    >
+                        {collapsed ? (
+                            <ChevronRightIcon className="h-4 w-4 shrink-0" />
+                        ) : (
+                            <>
+                                <ChevronLeftIcon className="h-4 w-4 shrink-0" />
+                                <span>Collapse</span>
+                            </>
+                        )}
+                    </button>
+                )}
                 <Link
                     href="/dashboard/settings"
+                    title={collapsed ? "Settings" : undefined}
                     className={cn(
-                        "flex items-center gap-3 px-3 py-2 text-sm transition-colors",
+                        "flex items-center py-2 text-sm transition-colors",
+                        collapsed ? "justify-center px-2" : "gap-3 px-3",
                         isActive(pathname, "/dashboard/settings")
                             ? "bg-primary/10 text-primary font-medium"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                 >
-                    <SettingsIcon className="h-4 w-4" />
-                    Settings
+                    <SettingsIcon className="h-4 w-4 shrink-0" />
+                    {!collapsed && "Settings"}
                 </Link>
-                <div className="flex items-center gap-3 px-3 py-2">
+                <div className={cn("flex items-center py-2", collapsed ? "justify-center px-2" : "gap-3 px-3")}>
                     <UserButton />
-                    <span className="text-sm truncate">{userName || "User"}</span>
+                    {!collapsed && <span className="text-sm truncate">{userName || "User"}</span>}
                 </div>
             </div>
         </>
     );
 }
 
-export function Sidebar({ userEmail, userName }: SidebarProps) {
+export function Sidebar({ userEmail, userName, collapsed: collapsedProp }: SidebarProps) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(collapsedProp ?? false);
 
     // Close on route change
     useEffect(() => {
@@ -143,8 +175,17 @@ export function Sidebar({ userEmail, userName }: SidebarProps) {
     return (
         <>
             {/* Desktop sidebar */}
-            <aside className="hidden lg:flex w-64 border-r bg-card flex-col h-screen sticky top-0">
-                <SidebarContent pathname={pathname} userEmail={userEmail} userName={userName} />
+            <aside className={cn(
+                "hidden lg:flex border-r bg-card flex-col h-screen sticky top-0 transition-all duration-200",
+                isCollapsed ? "w-14 overflow-hidden" : "w-64"
+            )}>
+                <SidebarContent
+                    pathname={pathname}
+                    userEmail={userEmail}
+                    userName={userName}
+                    collapsed={isCollapsed}
+                    onCollapsedChange={setIsCollapsed}
+                />
             </aside>
 
             {/* Mobile hamburger */}

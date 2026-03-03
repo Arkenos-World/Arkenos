@@ -21,6 +21,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WebhookConfig, WebhookConfigState } from "./webhook-config";
 import { FunctionConfig, FunctionDefinition } from "./function-config";
 import { OutboundCallModal } from "./outbound-call-modal";
+import {
+    BrainCircuit,
+    AudioLines,
+    Mic,
+    Wrench,
+    Webhook,
+    Phone as PhoneLucide,
+    BarChart3,
+    ShieldCheck,
+    Settings2,
+} from "lucide-react";
 
 function ArrowLeftIcon({ className }: { className?: string }) {
     return (
@@ -457,22 +468,51 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="model" className="w-full">
-                <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
-                    <TabsTrigger value="model">Model</TabsTrigger>
-                    <TabsTrigger value="voice">Voice</TabsTrigger>
-                    <TabsTrigger value="transcriber">Transcriber</TabsTrigger>
-                    <TabsTrigger value="tools">Functions</TabsTrigger>
-                    <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
-                    <TabsTrigger value="phone">Phone</TabsTrigger>
-                    <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                    <TabsTrigger value="compliance">Compliance</TabsTrigger>
-                    <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            {/* Tabs as sidebar layout */}
+            <Tabs defaultValue="model" orientation="vertical" className="flex flex-row gap-6 w-full min-h-[600px]">
+                <TabsList className="flex flex-col h-fit w-48 shrink-0 bg-transparent p-0 gap-1 sticky top-20">
+                    <TabsTrigger value="model" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <BrainCircuit className="h-4 w-4 shrink-0" />
+                        Model
+                    </TabsTrigger>
+                    <TabsTrigger value="voice" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <AudioLines className="h-4 w-4 shrink-0" />
+                        Voice
+                    </TabsTrigger>
+                    <TabsTrigger value="transcriber" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <Mic className="h-4 w-4 shrink-0" />
+                        Transcriber
+                    </TabsTrigger>
+                    <TabsTrigger value="tools" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <Wrench className="h-4 w-4 shrink-0" />
+                        Functions
+                    </TabsTrigger>
+                    <TabsTrigger value="webhooks" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <Webhook className="h-4 w-4 shrink-0" />
+                        Webhooks
+                    </TabsTrigger>
+                    <TabsTrigger value="phone" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <PhoneLucide className="h-4 w-4 shrink-0" />
+                        Phone
+                    </TabsTrigger>
+                    <TabsTrigger value="analysis" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <BarChart3 className="h-4 w-4 shrink-0" />
+                        Analysis
+                    </TabsTrigger>
+                    <TabsTrigger value="compliance" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <ShieldCheck className="h-4 w-4 shrink-0" />
+                        Compliance
+                    </TabsTrigger>
+                    <TabsTrigger value="advanced" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                        <Settings2 className="h-4 w-4 shrink-0" />
+                        Advanced
+                    </TabsTrigger>
                 </TabsList>
 
+                <div className="flex-1 min-w-0">
+
                 {/* Model Tab */}
-                <TabsContent value="model" className="mt-6">
+                <TabsContent value="model">
                     <Card>
                         <CardHeader>
                             <CardTitle>Model</CardTitle>
@@ -557,7 +597,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </TabsContent>
 
                 {/* Voice Tab */}
-                <TabsContent value="voice" className="mt-6">
+                <TabsContent value="voice">
                     <Card>
                         <CardHeader>
                             <CardTitle>Voice</CardTitle>
@@ -695,7 +735,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </TabsContent>
 
                 {/* Transcriber Tab */}
-                <TabsContent value="transcriber" className="mt-6">
+                <TabsContent value="transcriber">
                     <Card>
                         <CardHeader>
                             <CardTitle>Transcriber</CardTitle>
@@ -727,17 +767,17 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </TabsContent>
 
                 {/* Functions Tab */}
-                <TabsContent value="tools" className="mt-6">
+                <TabsContent value="tools">
                     <FunctionConfig functions={functions} onChange={setFunctions} />
                 </TabsContent>
 
                 {/* Webhooks Tab */}
-                <TabsContent value="webhooks" className="mt-6">
+                <TabsContent value="webhooks">
                     <WebhookConfig config={webhookConfig} onChange={setWebhookConfig} />
                 </TabsContent>
 
                 {/* Phone Number Tab */}
-                <TabsContent value="phone" className="mt-6">
+                <TabsContent value="phone">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -840,7 +880,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </TabsContent>
 
                 {/* Analysis Tab */}
-                <TabsContent value="analysis" className="mt-6">
+                <TabsContent value="analysis">
                     <Card>
                         <CardHeader>
                             <CardTitle>Analysis</CardTitle>
@@ -855,7 +895,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </TabsContent>
 
                 {/* Compliance Tab */}
-                <TabsContent value="compliance" className="mt-6">
+                <TabsContent value="compliance">
                     <Card>
                         <CardHeader>
                             <CardTitle>Compliance</CardTitle>
@@ -870,7 +910,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </TabsContent>
 
                 {/* Advanced Tab */}
-                <TabsContent value="advanced" className="mt-6">
+                <TabsContent value="advanced">
                     <Card>
                         <CardHeader>
                             <CardTitle>Advanced</CardTitle>
@@ -883,6 +923,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
+                </div>
             </Tabs>
 
             {/* Outbound Call Modal */}

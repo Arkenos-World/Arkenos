@@ -331,9 +331,42 @@ class CodingAgentRequest(BaseModel):
     agent_id: str
     prompt: str
     context_files: list[str] = []
+    conversation_id: Optional[str] = None
 
 
 class CodingAgentResponse(BaseModel):
     message: str
     file_changes: list[FileChange] = []
     applied: bool = False
+
+
+# ---- Coding Agent Chat History Schemas ----
+
+class ConversationListItem(BaseModel):
+    id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    message_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class MessageResponse(BaseModel):
+    id: str
+    role: str
+    content: str
+    file_changes: Optional[list[FileChange]] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationDetailResponse(BaseModel):
+    id: str
+    title: str
+    messages: list[MessageResponse]
+    created_at: datetime
+    updated_at: datetime

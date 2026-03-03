@@ -41,6 +41,10 @@ export default async function AgentDetailPage({ params }: PageProps) {
         notFound();
     }
 
+    if (agent.agent_mode === "CUSTOM") {
+        redirect(`/dashboard/agents/${resolvedParams.id}/code`);
+    }
+
     return (
         <DashboardLayout>
             <AgentSettings agent={agent} userId={userId} />

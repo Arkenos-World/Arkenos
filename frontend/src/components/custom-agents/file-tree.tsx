@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
     File,
+    FileCode,
     Folder,
     FolderOpen,
     ChevronRight,
@@ -113,7 +114,7 @@ function TreeNode({
         return (
             <div>
                 <div
-                    className="flex items-center gap-1 px-2 py-1 rounded-sm cursor-pointer text-sm hover:bg-muted/50 text-muted-foreground"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer text-[13px] hover:bg-muted/50 text-muted-foreground mx-1"
                     style={{ paddingLeft: `${depth * 12 + 8}px` }}
                     onClick={() => setExpanded(!expanded)}
                 >
@@ -149,7 +150,7 @@ function TreeNode({
 
     return (
         <div
-            className={`flex items-center gap-1 px-2 py-1 rounded-sm cursor-pointer text-sm group ${
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer text-[13px] group mx-1 ${
                 isActive
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -163,7 +164,7 @@ function TreeNode({
             <span className="truncate flex-1">{node.name}</span>
             {hovering && (
                 <button
-                    className="h-4 w-4 shrink-0 text-muted-foreground hover:text-destructive"
+                    className="h-5 w-5 shrink-0 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                     onClick={(e) => {
                         e.stopPropagation();
                         onDeleteFile(node.path);
@@ -197,21 +198,23 @@ export function FileTree({
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between px-3 py-2 border-b">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Files
+            <div className="flex items-center justify-between px-3 h-9 border-b bg-muted/20">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                    Explorer
                 </span>
                 <Button
                     variant="ghost"
                     size="icon-sm"
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
                     onClick={() => setIsCreating(!isCreating)}
+                    title="New file"
                 >
                     <Plus className="h-3.5 w-3.5" />
                 </Button>
             </div>
 
             {isCreating && (
-                <div className="px-2 py-2 border-b">
+                <div className="px-2 py-2 border-b bg-muted/10">
                     <Input
                         value={newFileName}
                         onChange={(e) => setNewFileName(e.target.value)}
@@ -223,7 +226,7 @@ export function FileTree({
                             }
                         }}
                         placeholder="path/to/file.py"
-                        className="h-7 text-xs"
+                        className="h-7 text-xs font-mono"
                         autoFocus
                     />
                 </div>
@@ -240,9 +243,17 @@ export function FileTree({
                     />
                 ))}
                 {tree.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-8 px-4">
-                        No files yet. Click + to create one.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center mb-3">
+                            <FileCode className="h-5 w-5 text-muted-foreground/40" />
+                        </div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                            No files yet
+                        </p>
+                        <p className="text-[11px] text-muted-foreground/60">
+                            Click <span className="font-mono bg-muted px-1 rounded">+</span> to create your first file
+                        </p>
+                    </div>
                 )}
             </div>
         </div>

@@ -28,8 +28,22 @@ The same LiveKit credentials must match across all three services. Mismatched cr
 ## How It Works
 
 - **Browser sessions**: The frontend generates a LiveKit access token and connects via WebRTC
-- **Agent dispatch**: When a room is created, LiveKit dispatches the Arkenos agent worker
-- **Phone calls**: Twilio SIP trunks route calls through LiveKit's SIP bridge
+- **Agent dispatch**: When a room is created, LiveKit dispatches the `arkenos-agent` worker
+- **Phone calls**: Twilio SIP trunks route calls through LiveKit's SIP bridge (see [Telephony Setup](/configuration/telephony))
+
+## Verify Your Setup
+
+After adding credentials, verify everything works:
+
+1. Start all three services (frontend, backend, agent)
+2. Go to the **Preview** page in the dashboard
+3. Select an agent and click **Start Preview**
+4. You should hear the agent greet you within a few seconds
+
+If the call immediately disconnects, check:
+- All three `.env` files have **identical** `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET`
+- The `LIVEKIT_URL` format is correct (`wss://` prefix)
+- The agent terminal shows `Worker registered` on startup
 
 ## Documentation
 

@@ -306,13 +306,15 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     }, [apiUrl, agent.id]);
 
     const handleAssignNumber = useCallback(async () => {
-        if (!assignPhone.trim()) return;
+        const digits = assignPhone.replace(/\D/g, "");
+        if (digits.length < 11) return;
+        const e164 = "+" + digits;
         setIsAssigning(true);
         try {
             const res = await fetch(`${apiUrl}/telephony/numbers/assign`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ agent_id: agent.id, phone_number: assignPhone }),
+                body: JSON.stringify({ agent_id: agent.id, phone_number: e164 }),
             });
             if (!res.ok) {
                 const err = await res.json();
@@ -426,43 +428,43 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/agents")}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                    <Button variant="ghost" size="icon" className="shrink-0" onClick={() => router.push("/dashboard/agents")}>
                         <ArrowLeftIcon className="h-5 w-5" />
                     </Button>
-                    <div>
+                    <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-3">
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="text-xl font-bold border-none p-0 h-auto focus-visible:ring-0 bg-transparent"
+                                className="text-xl font-bold border-none shadow-none p-0 h-auto focus-visible:ring-0 bg-transparent max-w-xs"
                             />
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs shrink-0">
                                 {agent.config?.template || "custom"}
                             </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{agent.id}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{agent.id}</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" className="gap-2" onClick={() => setIsOutboundCallOpen(true)}>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsOutboundCallOpen(true)}>
                         <PhoneOutgoingIcon className="h-4 w-4" />
                         Make a Call
                     </Button>
-                    <Button variant="outline" className="gap-2" onClick={() => { }}>
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => { }}>
                         <CodeIcon className="h-4 w-4" />
                         Code
                     </Button>
-                    <Button variant="outline" className="gap-2" onClick={handleTestCall}>
+                    <Button variant="outline" size="sm" className="gap-2" onClick={handleTestCall}>
                         <PlayIcon className="h-4 w-4" />
                         Test
                     </Button>
-                    <Button onClick={handleSave} disabled={isSaving}>
+                    <Button size="sm" onClick={handleSave} disabled={isSaving}>
                         {isSaving ? "Saving..." : "Save Changes"}
                     </Button>
-                    <Button variant="destructive" size="icon" onClick={handleDelete} title="Delete Agent">
+                    <Button variant="destructive" size="icon-sm" onClick={handleDelete} title="Delete Agent">
                         <TrashIcon className="h-4 w-4" />
                     </Button>
                 </div>
@@ -470,40 +472,40 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
             {/* Tabs as sidebar layout */}
             <Tabs defaultValue="model" orientation="vertical" className="flex flex-row gap-6 w-full min-h-[600px]">
-                <TabsList className="flex flex-col h-fit w-48 shrink-0 bg-transparent p-0 gap-1 sticky top-20">
-                    <TabsTrigger value="model" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                <TabsList className="flex flex-col items-stretch h-fit w-48 shrink-0 bg-transparent p-0 gap-0.5 sticky top-20 rounded-none">
+                    <TabsTrigger value="model" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <BrainCircuit className="h-4 w-4 shrink-0" />
                         Model
                     </TabsTrigger>
-                    <TabsTrigger value="voice" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="voice" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <AudioLines className="h-4 w-4 shrink-0" />
                         Voice
                     </TabsTrigger>
-                    <TabsTrigger value="transcriber" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="transcriber" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <Mic className="h-4 w-4 shrink-0" />
                         Transcriber
                     </TabsTrigger>
-                    <TabsTrigger value="tools" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="tools" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <Wrench className="h-4 w-4 shrink-0" />
                         Functions
                     </TabsTrigger>
-                    <TabsTrigger value="webhooks" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="webhooks" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <Webhook className="h-4 w-4 shrink-0" />
                         Webhooks
                     </TabsTrigger>
-                    <TabsTrigger value="phone" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="phone" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <PhoneLucide className="h-4 w-4 shrink-0" />
                         Phone
                     </TabsTrigger>
-                    <TabsTrigger value="analysis" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="analysis" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <BarChart3 className="h-4 w-4 shrink-0" />
                         Analysis
                     </TabsTrigger>
-                    <TabsTrigger value="compliance" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="compliance" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <ShieldCheck className="h-4 w-4 shrink-0" />
                         Compliance
                     </TabsTrigger>
-                    <TabsTrigger value="advanced" className="justify-start gap-2.5 w-full px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none rounded-lg">
+                    <TabsTrigger value="advanced" className="justify-start gap-2.5 w-full h-9 px-3 py-2 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors">
                         <Settings2 className="h-4 w-4 shrink-0" />
                         Advanced
                     </TabsTrigger>
@@ -580,7 +582,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <Label>System Prompt</Label>
-                                    <Button variant="outline" size="sm" className="gap-1">
+                                    <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
                                         <SparklesIcon className="h-3 w-3" />
                                         Generate
                                     </Button>
@@ -589,7 +591,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                     value={systemPrompt}
                                     onChange={(e) => setSystemPrompt(e.target.value)}
                                     placeholder="Enter the system prompt that defines how the assistant should behave..."
-                                    className="min-h-[300px] font-mono text-sm"
+                                    className="min-h-[300px] font-mono text-sm leading-relaxed resize-y"
                                 />
                             </div>
                         </CardContent>
@@ -620,9 +622,9 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
                                 {/* Currently selected voice */}
                                 {selectedVoiceName && (
-                                    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/30 text-sm">
-                                        <span className="text-primary font-medium">Selected:</span>
-                                        <span>{selectedVoiceName}</span>
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-accent border border-border text-sm">
+                                        <span className="font-medium">Selected:</span>
+                                        <span className="text-muted-foreground">{selectedVoiceName}</span>
                                     </div>
                                 )}
 
@@ -631,28 +633,26 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                     <div className="space-y-2">
                                         <Label className="text-xs text-muted-foreground">Filter by language</Label>
                                         <div className="flex flex-wrap gap-1.5">
-                                            <button
+                                            <Button
                                                 type="button"
+                                                variant={voiceLanguage === "" ? "default" : "outline"}
+                                                size="sm"
                                                 onClick={() => handleLanguageFilter("")}
-                                                className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${voiceLanguage === ""
-                                                    ? "bg-primary text-primary-foreground border-primary"
-                                                    : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-                                                    }`}
+                                                className="h-7 px-2.5 text-xs rounded-full"
                                             >
                                                 All
-                                            </button>
+                                            </Button>
                                             {allLanguages.map(lang => (
-                                                <button
+                                                <Button
                                                     key={lang}
                                                     type="button"
+                                                    variant={voiceLanguage === lang ? "default" : "outline"}
+                                                    size="sm"
                                                     onClick={() => handleLanguageFilter(lang)}
-                                                    className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${voiceLanguage === lang
-                                                        ? "bg-primary text-primary-foreground border-primary"
-                                                        : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-                                                        }`}
+                                                    className="h-7 px-2.5 text-xs rounded-full"
                                                 >
                                                     {lang}
-                                                </button>
+                                                </Button>
                                             ))}
                                         </div>
                                     </div>
@@ -667,30 +667,30 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                             No voices available. Check your <strong>RESEMBLE_API_KEY</strong>.
                                         </p>
                                     ) : (
-                                        <div className="grid grid-cols-2 gap-2 p-2">
+                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 p-2">
                                             {resembleVoices.map((voice) => (
                                                 <button
                                                     key={voice.id}
                                                     type="button"
                                                     onClick={() => { setVoiceId(voice.id); setSelectedVoiceName(voice.name); }}
-                                                    className={`text-left p-3 rounded-lg border transition-colors ${voiceId === voice.id
-                                                        ? "border-primary bg-primary/10"
-                                                        : "border-border hover:bg-muted/50"
+                                                    className={`text-left p-3 rounded-md border transition-colors ${voiceId === voice.id
+                                                        ? "border-primary bg-accent ring-1 ring-primary"
+                                                        : "border-border hover:bg-accent/50"
                                                         }`}
                                                 >
-                                                    <div className="flex items-start gap-2">
-                                                        <span className="text-lg mt-0.5">🧁</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <AudioLines className="h-4 w-4 shrink-0 text-muted-foreground" />
                                                         <div className="min-w-0 flex-1">
                                                             <p className="font-medium text-sm truncate">
                                                                 {voice.name}
-                                                                {voiceId === voice.id && (
-                                                                    <span className="ml-1 text-xs font-semibold text-primary">✓</span>
-                                                                )}
                                                             </p>
                                                             <p className="text-xs text-muted-foreground truncate">
                                                                 {voice.language}
                                                             </p>
                                                         </div>
+                                                        {voiceId === voice.id && (
+                                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">Active</Badge>
+                                                        )}
                                                     </div>
                                                 </button>
                                             ))}
@@ -699,27 +699,29 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
                                     {/* Pagination controls */}
                                     {voiceTotalPages > 1 && (
-                                        <div className="flex items-center justify-between px-3 py-2 border-t bg-muted/30">
+                                        <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-muted/30">
                                             <span className="text-xs text-muted-foreground">
                                                 Page {voicePage} of {voiceTotalPages} &middot; {voiceTotalCount} voices
                                             </span>
                                             <div className="flex items-center gap-1">
-                                                <button
-                                                    type="button"
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
                                                     onClick={() => setVoicePage(p => Math.max(1, p - 1))}
                                                     disabled={voicePage <= 1 || isLoadingVoices}
-                                                    className="px-2 py-1 text-xs rounded border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                    className="h-7 px-2 text-xs"
                                                 >
-                                                    ← Prev
-                                                </button>
-                                                <button
-                                                    type="button"
+                                                    Prev
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
                                                     onClick={() => setVoicePage(p => Math.min(voiceTotalPages, p + 1))}
                                                     disabled={voicePage >= voiceTotalPages || isLoadingVoices}
-                                                    className="px-2 py-1 text-xs rounded border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                    className="h-7 px-2 text-xs"
                                                 >
-                                                    Next →
-                                                </button>
+                                                    Next
+                                                </Button>
                                             </div>
                                         </div>
                                     )}
@@ -791,10 +793,14 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                         <CardContent className="space-y-6">
                             {/* Current Number */}
                             {phoneNumber ? (
-                                <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+                                <div className="flex items-center justify-between p-4 rounded-md border border-border bg-accent/50">
                                     <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Assigned Number</p>
-                                        <p className="text-2xl font-bold tracking-wide">{phoneNumber}</p>
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Assigned Number</p>
+                                        <p className="text-xl font-semibold tracking-wide mt-1 font-mono">
+                                            {phoneNumber.replace(/^\+?1?(\d{3})(\d{3})(\d{4})$/, "+1 ($1) $2-$3") !== phoneNumber
+                                                ? phoneNumber.replace(/^\+?1?(\d{3})(\d{3})(\d{4})$/, "+1 ($1) $2-$3")
+                                                : phoneNumber}
+                                        </p>
                                     </div>
                                     <Button
                                         variant="destructive"
@@ -806,7 +812,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="p-4 rounded-lg border border-dashed text-center text-muted-foreground">
+                                <div className="p-4 rounded-md border border-dashed border-border text-center text-sm text-muted-foreground">
                                     No phone number assigned. Assign an existing Twilio number or search for a new one below.
                                 </div>
                             )}
@@ -814,19 +820,38 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             {/* Assign Existing Number */}
                             {!phoneNumber && (
                                 <div className="space-y-3">
-                                    <Label className="text-base font-semibold">Assign Existing Number</Label>
+                                    <Label className="text-sm font-medium">Assign Existing Number</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        Enter a Twilio number you already own (E.164 format, e.g. +12125551234).
+                                        Enter a Twilio number you already own.
                                     </p>
                                     <div className="flex gap-2">
                                         <Input
-                                            placeholder="+12125551234"
+                                            placeholder="+1 (212) 555-1234"
                                             value={assignPhone}
-                                            onChange={(e) => setAssignPhone(e.target.value)}
+                                            onChange={(e) => {
+                                                const raw = e.target.value;
+                                                // If user just typed "+", show it
+                                                if (raw === "+" || raw === "") {
+                                                    setAssignPhone(raw);
+                                                    return;
+                                                }
+                                                // Extract only digits
+                                                let digits = raw.replace(/\D/g, "");
+                                                if (digits.length === 0) { setAssignPhone("+"); return; }
+                                                // Auto-prepend 1 for US if needed
+                                                if (!digits.startsWith("1")) digits = "1" + digits;
+                                                digits = digits.slice(0, 11);
+                                                // Format progressively
+                                                if (digits.length <= 1) setAssignPhone(`+${digits}`);
+                                                else if (digits.length <= 4) setAssignPhone(`+1 (${digits.slice(1)}`);
+                                                else if (digits.length <= 7) setAssignPhone(`+1 (${digits.slice(1, 4)}) ${digits.slice(4)}`);
+                                                else setAssignPhone(`+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`);
+                                            }}
+                                            className="flex-1 font-mono"
                                         />
                                         <Button
                                             onClick={handleAssignNumber}
-                                            disabled={isAssigning || !assignPhone.trim()}
+                                            disabled={isAssigning || assignPhone.replace(/\D/g, "").length < 11}
                                         >
                                             {isAssigning ? "Assigning..." : "Assign"}
                                         </Button>
@@ -837,7 +862,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             {/* Search & Buy */}
                             {!phoneNumber && (
                                 <div className="space-y-3">
-                                    <Label className="text-base font-semibold">Search &amp; Buy a New Number</Label>
+                                    <Label className="text-sm font-medium">Search &amp; Buy a New Number</Label>
                                     <div className="flex gap-2">
                                         <Input
                                             placeholder="Area code (e.g. 212)"
@@ -850,14 +875,14 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                         </Button>
                                     </div>
                                     {searchResults.length > 0 && (
-                                        <div className="space-y-2">
+                                        <div className="rounded-md border border-border overflow-hidden divide-y divide-border">
                                             {searchResults.map((num) => (
                                                 <div
                                                     key={num.phone_number}
-                                                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                                                    className="flex items-center justify-between p-3 hover:bg-accent/50 transition-colors"
                                                 >
                                                     <div>
-                                                        <p className="font-mono font-medium">{num.phone_number}</p>
+                                                        <p className="font-mono text-sm font-medium">{num.phone_number}</p>
                                                         <p className="text-xs text-muted-foreground">
                                                             {[num.locality, num.region].filter(Boolean).join(", ")}
                                                         </p>
@@ -887,9 +912,12 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             <CardDescription>Configure call analysis and insights.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground">
-                                Call analysis configuration coming soon. This will include sentiment analysis, summary generation, and more.
-                            </p>
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <BarChart3 className="h-8 w-8 text-muted-foreground/50 mb-3" />
+                                <p className="text-sm text-muted-foreground">
+                                    Call analysis configuration coming soon. This will include sentiment analysis, summary generation, and more.
+                                </p>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -902,9 +930,12 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             <CardDescription>Configure compliance and regulatory settings.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground">
-                                Compliance settings coming soon. This will include HIPAA compliance, call recording consent, and more.
-                            </p>
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <ShieldCheck className="h-8 w-8 text-muted-foreground/50 mb-3" />
+                                <p className="text-sm text-muted-foreground">
+                                    Compliance settings coming soon. This will include HIPAA compliance, call recording consent, and more.
+                                </p>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -917,9 +948,12 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             <CardDescription>Advanced configuration options.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground">
-                                Advanced settings coming soon. This will include timeout settings, retry logic, and webhook configurations.
-                            </p>
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <Settings2 className="h-8 w-8 text-muted-foreground/50 mb-3" />
+                                <p className="text-sm text-muted-foreground">
+                                    Advanced settings coming soon. This will include timeout settings, retry logic, and webhook configurations.
+                                </p>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

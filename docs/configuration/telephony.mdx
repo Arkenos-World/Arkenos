@@ -1,47 +1,233 @@
 ---
 title: Telephony Setup
-description: Configure Twilio SIP trunks for inbound and outbound phone calls.
+description: Step-by-step guide to connect Twilio phone numbers to Arkenos via LiveKit SIP.
 ---
 
-# Telephony Setup (Optional)
+# Telephony Setup
 
-Twilio telephony is required only for inbound/outbound phone calls. Browser-based voice testing works without it.
+Connect real phone numbers to your Arkenos voice agents using Twilio and LiveKit SIP. This lets people call a phone number and talk to your AI agent.
 
-## Setup Steps
+<Note>
+Telephony is **optional**. Browser-based voice testing via the Preview page works without any Twilio or SIP setup.
+</Note>
 
-1. Create a [Twilio account](https://www.twilio.com) and buy a phone number
-2. Set up an Elastic SIP Trunk and connect it to LiveKit
-3. Create LiveKit inbound/outbound SIP trunks and dispatch rules
-4. Add credentials to `backend/.env`:
+## How It Works
+
+```
+Caller → Twilio Phone Number → TwiML Bin → LiveKit SIP → Arkenos Agent
+```
+
+1. Someone dials your Twilio number
+2. Twilio routes the call to LiveKit using a TwiML Bin (SIP)
+3. LiveKit creates a room and dispatches your agent worker
+4. The agent detects the called number, looks up the assigned agent config, and starts the conversation
+
+This means **one agent worker handles all your phone numbers** — it dynamically loads the right personality, voice, and instructions based on which number was called.
+
+---
+
+## Prerequisites
+
+- A [Twilio account](https://www.twilio.com) (free trial works)
+- A [LiveKit Cloud account](https://cloud.livekit.io) with a project created
+- Arkenos backend and agent running locally or deployed
+
+---
+
+## Step 1: Buy a Twilio Phone Number
+
+1. Go to **Twilio Console** → **Phone Numbers** → **[Buy a number](https://console.twilio.com/us1/develop/phone-numbers/manage/search)**
+2. Search for a number with **Voice** capability
+3. Buy it — note down the number (e.g. `+12545664820`)
+
+---
+
+## Step 2: Create a TwiML Bin
+
+A TwiML Bin tells Twilio to forward calls to LiveKit via SIP.
+
+1. Go to **Twilio Console** → **TwiML Bins** → **[Create new](https://console.twilio.com/us1/develop/twiml-bins)**
+2. Set **Friendly Name** to `LiveKit-SIP`
+3. Paste this TwiML:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial>
+    <Sip>sip:{{To}}@YOUR_LIVEKIT_SIP_URI</Sip>
+  </Dial>
+</Response>
+```
+
+<Warning>
+Replace `YOUR_LIVEKIT_SIP_URI` with your actual LiveKit SIP URI. You'll get this in Step 3.
+</Warning>
+
+4. Click **Create**
+
+---
+
+## Step 3: Create a LiveKit Inbound SIP Trunk
+
+1. Go to **LiveKit Cloud** → **Telephony** → **[SIP Trunks](https://cloud.livekit.io/projects/p_/telephony/sip-trunks)**
+2. Click **Create new trunk** → **Inbound**
+3. Configure:
+   - **Trunk Name**: `Twilio Inbound`
+   - **Numbers**: Add your Twilio number in E.164 format (e.g. `+12545664820`)
+4. Click **Create**
+5. Copy the **SIP URI** shown at the top (e.g. `2w0eusjtqsa.sip.livekit.cloud`)
+
+Now go back to your **TwiML Bin** (Step 2) and replace `YOUR_LIVEKIT_SIP_URI` with this value:
+
+```xml
+<Sip>sip:{{To}}@2w0eusjtqsa.sip.livekit.cloud</Sip>
+```
+
+---
+
+## Step 4: Configure Your Twilio Number
+
+1. Go to **Twilio Console** → **Phone Numbers** → **[Active Numbers](https://console.twilio.com/us1/develop/phone-numbers/manage/active)**
+2. Click on your number
+3. Under **Voice Configuration**:
+   - **A call comes in**: Select `TwiML Bin` → `LiveKit-SIP`
+4. Click **Save configuration**
+
+---
+
+## Step 5: Create a LiveKit Dispatch Rule
+
+This tells LiveKit which agent to wake up when a SIP call arrives.
+
+1. Go to **LiveKit Cloud** → **Telephony** → **[Dispatch Rules](https://cloud.livekit.io/projects/p_/telephony/sip-dispatch)**
+2. Click **Create new dispatch rule**
+3. Configure:
+   - **Rule Name**: `Arkenos SIP Dispatch`
+   - **Rule Type**: `Individual`
+   - **Agent Name**: `arkenos-agent`
+   - **Inbound Routing**: Select your Twilio trunk
+4. Click **Create**
+
+<Info>
+You only need **one dispatch rule** for all your phone numbers. The `arkenos-agent` worker dynamically loads the correct agent configuration based on which number was called. It looks up the phone number in the Arkenos database and applies the matching agent's system prompt, voice, greeting, and tools.
+</Info>
+
+Alternatively, you can set this via the **JSON Editor**:
+
+```json
+{
+  "rule": {
+    "dispatchRuleIndividual": {}
+  },
+  "trunkIds": ["ST_YOUR_TRUNK_ID"],
+  "name": "Arkenos SIP Dispatch",
+  "roomConfig": {
+    "agents": [
+      {
+        "agentName": "arkenos-agent"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Step 6: Add Environment Variables
+
+Add the following to your `backend/.env`:
 
 ```bash
-TWILIO_ACCOUNT_SID=your_account_sid
+# Twilio credentials (required for buying/releasing numbers via dashboard)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_SIP_DOMAIN=your-domain.pstn.twilio.com
+
+# LiveKit SIP Trunk ID (required for outbound calls)
 LIVEKIT_SIP_TRUNK_ID=ST_xxxxxxxxxxxx
 ```
+
+<Note>
+The agent service does **not** need Twilio credentials. It connects to LiveKit, not Twilio directly. Make sure your `agent/.env` has the LiveKit credentials (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`).
+</Note>
+
+---
+
+## Step 7: Assign the Number to an Agent
+
+1. Open the **Arkenos Dashboard** → **Agents** → select your agent
+2. Go to the **Phone** tab
+3. Enter the Twilio number and click **Assign**
+4. The number is now linked — incoming calls to this number will use this agent's configuration
+
+You can assign different numbers to different agents. Each number maps to one agent.
+
+---
+
+## Test It
+
+1. Make sure the **backend** and **agent** services are running
+2. Call your Twilio number from any phone
+3. You should hear the agent's greeting within a few seconds
+4. Check the agent terminal for logs like:
+   ```
+   SIP participant detected — trunk phone number: +12545664820
+   Resolved SIP call to agent: <agent-id>
+   Starting session with system_prompt...
+   ```
+
+---
 
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="Inbound calls don't reach the agent">
-    - Verify the Twilio trunk has LiveKit's SIP URI as the origination URL
-    - Check `lk sip inbound list` — the phone number must match exactly (with country code)
-    - Check `lk sip dispatch list` — a dispatch rule must exist
-    - Verify LiveKit credentials match between backend and agent
+  <Accordion title="Call rings but agent doesn't pick up">
+    **Most common cause:** The dispatch rule doesn't have `arkenos-agent` set as the agent name.
+
+    1. Go to LiveKit → Telephony → Dispatch Rules
+    2. Click your rule → JSON Editor
+    3. Verify `"agents": [{"agentName": "arkenos-agent"}]` (not `[{}]`)
+    4. Also verify the agent service is running (`python agent.py dev`)
   </Accordion>
+
+  <Accordion title="Call immediately disconnects">
+    The agent is crashing on startup. Check the agent terminal for errors:
+
+    - **Missing API keys**: AssemblyAI, Google (Gemini), or Resemble AI key not set in `agent/.env`
+    - **Agent name mismatch**: `agent.py` must have `@server.rtc_session(agent_name="arkenos-agent")` matching the dispatch rule
+    - **LiveKit credentials mismatch**: `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` must be identical across all services
+  </Accordion>
+
+  <Accordion title="Call goes to voicemail / doesn't ring">
+    Twilio isn't routing to LiveKit:
+
+    - Check the phone number's voice config is set to **TwiML Bin** → **LiveKit-SIP**
+    - Check the TwiML Bin has the correct LiveKit SIP URI
+    - Go to Twilio → **Calls Log** to see if the call attempt was received
+  </Accordion>
+
+  <Accordion title="Agent picks up but uses default config">
+    The phone number isn't assigned to an agent in the database:
+
+    - Go to **Dashboard** → **Agents** → **Phone** tab → assign the number
+    - Check the backend logs for `"No agent found for phone +1234..."` messages
+    - Verify the number is in E.164 format (e.g. `+12545664820`)
+  </Accordion>
+
   <Accordion title="Outbound calls fail">
-    - Check `LIVEKIT_SIP_TRUNK_ID` in backend `.env` matches the outbound trunk ID
-    - Verify Twilio credential list is attached to the trunk's termination settings
-    - Phone numbers must be in E.164 format (e.g., `+15105550100`)
-    - Check `lk sip outbound list` to verify the outbound trunk exists
+    - Verify `LIVEKIT_SIP_TRUNK_ID` in `backend/.env` matches your **outbound** trunk ID
+    - You need a separate outbound SIP trunk in LiveKit with Twilio credentials
+    - Phone numbers must be in E.164 format
   </Accordion>
 </AccordionGroup>
 
-## Documentation
+---
+
+## Reference Links
 
 - [LiveKit SIP Trunking](https://docs.livekit.io/sip/)
+- [LiveKit + Twilio Setup](https://docs.livekit.io/sip/trunk/twilio/)
 - [LiveKit Inbound Trunk](https://docs.livekit.io/sip/trunk/inbound/)
 - [LiveKit Outbound Trunk](https://docs.livekit.io/sip/trunk/outbound/)
-- [LiveKit + Twilio Setup Guide](https://docs.livekit.io/sip/trunk/twilio/)
+- [LiveKit Dispatch Rules](https://docs.livekit.io/sip/dispatch-rules/)
 - [Twilio Elastic SIP Trunking](https://www.twilio.com/docs/sip-trunking)
+- [TwiML Bins](https://www.twilio.com/docs/serverless/twiml-bins)

@@ -7,10 +7,8 @@ import { Button } from "@/components/ui/button";
 import {
     ArrowLeft,
     Rocket,
-    PanelRightOpen,
-    PanelRightClose,
-    PanelBottomOpen,
-    PanelBottomClose,
+    MessageSquare,
+    Terminal,
 } from "lucide-react";
 import { FileTree } from "./file-tree";
 import { CodeEditor } from "./code-editor";
@@ -229,47 +227,47 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
     return (
         <div className="flex flex-col h-full bg-background">
             {/* Top bar */}
-            <div className="flex items-center justify-between h-12 px-3 border-b bg-background shrink-0">
-                <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between h-11 px-2 border-b bg-muted/20 shrink-0">
+                {/* Left: navigation + agent identity */}
+                <div className="flex items-center gap-2 min-w-0">
                     <Button
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => router.push("/dashboard/agents")}
+                        className="shrink-0"
                     >
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    <span className="font-semibold text-sm">{agent.name}</span>
+                    <div className="h-4 w-px bg-border" />
+                    <span className="font-semibold text-sm truncate">{agent.name}</span>
                     <BuildStatusBadge status={buildStatus} />
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Right: panel toggles + actions */}
+                <div className="flex items-center gap-1">
+                    {/* Panel toggles */}
                     <Button
-                        variant="ghost"
-                        size="icon-sm"
+                        variant={showLogs ? "secondary" : "ghost"}
+                        size="sm"
+                        className="gap-1.5 h-7 px-2.5 text-xs"
                         onClick={() => setShowLogs(!showLogs)}
-                        title={showLogs ? "Hide logs" : "Show logs"}
                     >
-                        {showLogs ? (
-                            <PanelBottomClose className="h-4 w-4" />
-                        ) : (
-                            <PanelBottomOpen className="h-4 w-4" />
-                        )}
+                        <Terminal className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Logs</span>
                     </Button>
                     <Button
-                        variant="ghost"
-                        size="icon-sm"
+                        variant={showChat ? "secondary" : "ghost"}
+                        size="sm"
+                        className="gap-1.5 h-7 px-2.5 text-xs"
                         onClick={() => setShowChat(!showChat)}
-                        title={showChat ? "Hide AI chat" : "Show AI chat"}
                     >
-                        {showChat ? (
-                            <PanelRightClose className="h-4 w-4" />
-                        ) : (
-                            <PanelRightOpen className="h-4 w-4" />
-                        )}
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">AI Chat</span>
                     </Button>
 
-                    <div className="h-5 w-px bg-border mx-1" />
+                    <div className="h-4 w-px bg-border mx-1" />
 
+                    {/* Actions */}
                     <PreviewPanel
                         agentId={agent.id}
                         userId={userId}
@@ -280,9 +278,8 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                     />
 
                     <Button
-                        variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 h-7"
                         onClick={() => setDeployOpen(true)}
                     >
                         <Rocket className="h-3.5 w-3.5" />
@@ -294,7 +291,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
             {/* Main content */}
             <div className="flex flex-1 min-h-0">
                 {/* File tree sidebar */}
-                <div className="w-60 border-r shrink-0">
+                <div className="w-56 border-r shrink-0 bg-muted/10">
                     <FileTree
                         files={files}
                         activeFile={activeFilePath}
@@ -332,7 +329,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
 
                 {/* Right sidebar: AI chat */}
                 {showChat && (
-                    <div className="w-[360px] border-l shrink-0">
+                    <div className="w-[380px] border-l shrink-0">
                         <CodingAgentChat
                             agentId={agent.id}
                             userId={userId}

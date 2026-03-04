@@ -46,26 +46,32 @@ export function ContainerLogs({ agentId, userId, containerRunning }: ContainerLo
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/30">
-                <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Container Logs
+            <div className="flex items-center gap-2 px-3 h-8 border-b bg-muted/20 shrink-0">
+                <Terminal className="h-3 w-3 text-muted-foreground" />
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                    Terminal
                 </span>
                 {containerRunning && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="flex items-center gap-1.5 ml-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[10px] text-emerald-400/70 font-medium">Running</span>
+                    </span>
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-[#1e1e1e] p-3 font-mono text-xs leading-5 text-[#cccccc]">
+            <div className="flex-1 overflow-y-auto bg-[#1a1a1a] p-3 font-mono text-xs leading-5 text-[#d4d4d4]">
                 {logs.length === 0 && (
-                    <span className="text-[#666666]">
-                        {containerRunning
-                            ? "Waiting for logs..."
-                            : "No container running. Start a preview to see logs."}
-                    </span>
+                    <div className="flex items-center gap-2 text-[#555]">
+                        <Terminal className="h-3.5 w-3.5" />
+                        <span>
+                            {containerRunning
+                                ? "Waiting for output..."
+                                : "No container running. Click Preview to start."}
+                        </span>
+                    </div>
                 )}
                 {logs.map((line, i) => (
-                    <div key={i} className="whitespace-pre-wrap break-all">
+                    <div key={i} className="whitespace-pre-wrap break-all hover:bg-white/[0.02]">
                         {line}
                     </div>
                 ))}

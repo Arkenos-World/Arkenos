@@ -16,7 +16,7 @@ function FlowDot({
   size?: number;
 }) {
   return (
-    <circle r={size} fill="currentColor" opacity="0.6">
+    <circle r={size} fill="currentColor" opacity="0.7">
       <animateMotion
         dur={`${duration}s`}
         repeatCount="indefinite"
@@ -58,7 +58,7 @@ function WaveBars({
             height={h}
             rx="1"
             fill="currentColor"
-            opacity="0.35"
+            opacity="0.4"
             style={{
               transformOrigin: `${bx + 1}px ${y}px`,
               animation: `waveform-bar ${1 + (i % 3) * 0.2}s ease-in-out infinite`,
@@ -80,46 +80,46 @@ function STTModule({ x, y }: { x: number; y: number }) {
     <g>
       {/* Module container — rounded rect with subtle fill */}
       <rect x={x} y={y} width="90" height="70" rx="6"
-        stroke="currentColor" strokeWidth="1" opacity="0.3"
-        fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="1" opacity="0.35"
+        fill="currentColor" fillOpacity="0.06"
       />
 
       {/* Microphone icon */}
       <rect x={x + 12} y={y + 14} width="14" height="20" rx="7"
-        stroke="currentColor" strokeWidth="1" opacity="0.5" fill="currentColor" fillOpacity="0.06"
+        stroke="currentColor" strokeWidth="1.2" opacity="0.55" fill="currentColor" fillOpacity="0.08"
       />
       <path d={`M ${x + 9},${y + 37} C ${x + 9},${y + 43} ${x + 14},${y + 47} ${x + 19},${y + 47} C ${x + 24},${y + 47} ${x + 29},${y + 43} ${x + 29},${y + 37}`}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4" fill="none"
       />
       <line x1={x + 19} y1={y + 47} x2={x + 19} y2={y + 52}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4"
       />
 
       {/* Arrow → */}
       <path d={`M ${x + 35},${y + 30} L ${x + 44},${y + 30}`}
-        stroke="currentColor" strokeWidth="0.6" opacity="0.3" markerEnd="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.35" markerEnd="none"
       />
       <path d={`M ${x + 42},${y + 27} L ${x + 46},${y + 30} L ${x + 42},${y + 33}`}
-        stroke="currentColor" strokeWidth="0.6" opacity="0.3" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.35" fill="none"
       />
 
       {/* Text lines output (representing transcribed text) */}
       <rect x={x + 50} y={y + 18} width="28" height="2.5" rx="1"
-        fill="currentColor" opacity="0.3"
+        fill="currentColor" opacity="0.35"
       />
       <rect x={x + 50} y={y + 24} width="22" height="2.5" rx="1"
-        fill="currentColor" opacity="0.2"
-      />
-      <rect x={x + 50} y={y + 30} width="26" height="2.5" rx="1"
         fill="currentColor" opacity="0.25"
       />
+      <rect x={x + 50} y={y + 30} width="26" height="2.5" rx="1"
+        fill="currentColor" opacity="0.3"
+      />
       <rect x={x + 50} y={y + 36} width="18" height="2.5" rx="1"
-        fill="currentColor" opacity="0.15"
+        fill="currentColor" opacity="0.2"
       />
       {/* Blinking cursor */}
       <rect x={x + 50} y={y + 42} width="2" height="8" rx="0.5"
-        fill="currentColor" opacity="0.4"
-        style={{ animation: "core-glow 1.2s ease-in-out infinite" }}
+        fill="currentColor" opacity="0.5"
+        style={{ animation: "cursor-blink 1.2s step-end infinite" }}
       />
 
       {/* Label */}
@@ -135,45 +135,45 @@ function TTSModule({ x, y }: { x: number; y: number }) {
     <g>
       {/* Module container */}
       <rect x={x} y={y} width="90" height="70" rx="6"
-        stroke="currentColor" strokeWidth="1" opacity="0.3"
-        fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="1" opacity="0.35"
+        fill="currentColor" fillOpacity="0.06"
       />
 
       {/* Text lines input */}
       <rect x={x + 10} y={y + 18} width="22" height="2.5" rx="1"
-        fill="currentColor" opacity="0.3"
+        fill="currentColor" opacity="0.35"
       />
       <rect x={x + 10} y={y + 24} width="18" height="2.5" rx="1"
-        fill="currentColor" opacity="0.2"
-      />
-      <rect x={x + 10} y={y + 30} width="24" height="2.5" rx="1"
         fill="currentColor" opacity="0.25"
       />
+      <rect x={x + 10} y={y + 30} width="24" height="2.5" rx="1"
+        fill="currentColor" opacity="0.3"
+      />
       <rect x={x + 10} y={y + 36} width="16" height="2.5" rx="1"
-        fill="currentColor" opacity="0.15"
+        fill="currentColor" opacity="0.2"
       />
 
       {/* Arrow → */}
       <path d={`M ${x + 38},${y + 30} L ${x + 47},${y + 30}`}
-        stroke="currentColor" strokeWidth="0.6" opacity="0.3"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.35"
       />
       <path d={`M ${x + 45},${y + 27} L ${x + 49},${y + 30} L ${x + 45},${y + 33}`}
-        stroke="currentColor" strokeWidth="0.6" opacity="0.3" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.35" fill="none"
       />
 
       {/* Speaker icon */}
       <path d={`M ${x + 54},${y + 22} L ${x + 54},${y + 38} L ${x + 60},${y + 34} L ${x + 66},${y + 34} L ${x + 66},${y + 26} L ${x + 60},${y + 26} Z`}
-        stroke="currentColor" strokeWidth="0.8" opacity="0.5" fill="currentColor" fillOpacity="0.06"
+        stroke="currentColor" strokeWidth="1" opacity="0.55" fill="currentColor" fillOpacity="0.08"
       />
       {/* Sound waves */}
       <path d={`M ${x + 70},${y + 27} C ${x + 73},${y + 29} ${x + 73},${y + 31} ${x + 70},${y + 33}`}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4" fill="none"
       />
       <path d={`M ${x + 73},${y + 23} C ${x + 78},${y + 27} ${x + 78},${y + 33} ${x + 73},${y + 37}`}
-        stroke="currentColor" strokeWidth="0.6" opacity="0.25" fill="none"
+        stroke="currentColor" strokeWidth="0.7" opacity="0.3" fill="none"
       />
       <path d={`M ${x + 76},${y + 19} C ${x + 82},${y + 25} ${x + 82},${y + 35} ${x + 76},${y + 41}`}
-        stroke="currentColor" strokeWidth="0.5" opacity="0.15" fill="none"
+        stroke="currentColor" strokeWidth="0.6" opacity="0.2" fill="none"
       />
 
       {/* Label */}
@@ -189,16 +189,16 @@ function ToolsModule({ x, y }: { x: number; y: number }) {
     <g>
       {/* Module container */}
       <rect x={x} y={y} width="90" height="74" rx="6"
-        stroke="currentColor" strokeWidth="1" opacity="0.3"
-        fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="1" opacity="0.35"
+        fill="currentColor" fillOpacity="0.06"
       />
 
       {/* Gear icon */}
       <circle cx={x + 22} cy={y + 22} r="8"
-        stroke="currentColor" strokeWidth="0.7" opacity="0.4" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.45" fill="none"
       />
       <circle cx={x + 22} cy={y + 22} r="3.5"
-        stroke="currentColor" strokeWidth="0.5" opacity="0.3" fill="currentColor" fillOpacity="0.05"
+        stroke="currentColor" strokeWidth="0.6" opacity="0.35" fill="currentColor" fillOpacity="0.06"
       />
       {/* Gear teeth */}
       {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => {
@@ -209,35 +209,35 @@ function ToolsModule({ x, y }: { x: number; y: number }) {
         const oy = y + 22 + Math.sin(rad) * 11;
         return (
           <line key={angle} x1={ix} y1={iy} x2={ox} y2={oy}
-            stroke="currentColor" strokeWidth="1.2" opacity="0.25"
+            stroke="currentColor" strokeWidth="1.2" opacity="0.3"
           />
         );
       })}
 
       {/* Webhook icon — curved arrow */}
       <path d={`M ${x + 48},${y + 14} C ${x + 56},${y + 14} ${x + 56},${y + 24} ${x + 48},${y + 24} L ${x + 56},${y + 24}`}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4" fill="none"
       />
       <circle cx={x + 48} cy={y + 14} r="2"
-        fill="currentColor" opacity="0.3"
+        fill="currentColor" opacity="0.35"
       />
 
       {/* Code brackets { } */}
       <text x={x + 70} y={y + 24} textAnchor="middle"
-        fill="currentColor" opacity="0.35" fontSize="14" fontFamily="monospace"
+        fill="currentColor" opacity="0.4" fontSize="14" fontFamily="monospace"
       >{`{ }`}</text>
 
       {/* Divider */}
       <line x1={x + 10} y1={y + 40} x2={x + 80} y2={y + 40}
-        stroke="currentColor" strokeWidth="0.3" opacity="0.12"
+        stroke="currentColor" strokeWidth="0.4" opacity="0.15"
       />
 
       {/* Sub-labels */}
       <text x={x + 45} y={y + 53} textAnchor="middle"
-        fill="currentColor" opacity="0.3" fontSize="7.5" letterSpacing="0.05em"
+        fill="currentColor" opacity="0.35" fontSize="7.5" letterSpacing="0.05em"
       >Book · Send</text>
       <text x={x + 45} y={y + 63} textAnchor="middle"
-        fill="currentColor" opacity="0.25" fontSize="7" letterSpacing="0.05em"
+        fill="currentColor" opacity="0.3" fontSize="7" letterSpacing="0.05em"
       >Check · Update</text>
 
       {/* Label */}
@@ -253,70 +253,70 @@ function MemoryModule({ x, y }: { x: number; y: number }) {
     <g>
       {/* Module container */}
       <rect x={x} y={y} width="90" height="74" rx="6"
-        stroke="currentColor" strokeWidth="1" opacity="0.3"
-        fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="1" opacity="0.35"
+        fill="currentColor" fillOpacity="0.06"
       />
 
       {/* Database cylinder */}
       <ellipse cx={x + 28} cy={y + 14} rx="16" ry="5"
-        stroke="currentColor" strokeWidth="0.7" opacity="0.4" fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.45" fill="currentColor" fillOpacity="0.06"
       />
       <line x1={x + 12} y1={y + 14} x2={x + 12} y2={y + 34}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4"
       />
       <line x1={x + 44} y1={y + 14} x2={x + 44} y2={y + 34}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4"
       />
       <ellipse cx={x + 28} cy={y + 34} rx="16" ry="5"
-        stroke="currentColor" strokeWidth="0.7" opacity="0.3" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.35" fill="none"
       />
       {/* Middle ring */}
       <ellipse cx={x + 28} cy={y + 24} rx="16" ry="5"
-        stroke="currentColor" strokeWidth="0.4" opacity="0.15" fill="none"
+        stroke="currentColor" strokeWidth="0.5" opacity="0.2" fill="none"
       />
 
       {/* Data rows */}
       <rect x={x + 52} y={y + 12} width="30" height="5" rx="1"
-        stroke="currentColor" strokeWidth="0.4" opacity="0.2" fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="0.5" opacity="0.25" fill="currentColor" fillOpacity="0.06"
       />
       <rect x={x + 54} y={y + 13.5} width="10" height="2" rx="0.5"
-        fill="currentColor" opacity="0.25"
+        fill="currentColor" opacity="0.3"
       />
       <rect x={x + 67} y={y + 13.5} width="12" height="2" rx="0.5"
-        fill="currentColor" opacity="0.15"
+        fill="currentColor" opacity="0.2"
       />
 
       <rect x={x + 52} y={y + 20} width="30" height="5" rx="1"
-        stroke="currentColor" strokeWidth="0.4" opacity="0.2" fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="0.5" opacity="0.25" fill="currentColor" fillOpacity="0.06"
       />
       <rect x={x + 54} y={y + 21.5} width="14" height="2" rx="0.5"
-        fill="currentColor" opacity="0.2"
+        fill="currentColor" opacity="0.25"
       />
       <rect x={x + 71} y={y + 21.5} width="8" height="2" rx="0.5"
-        fill="currentColor" opacity="0.15"
+        fill="currentColor" opacity="0.2"
       />
 
       <rect x={x + 52} y={y + 28} width="30" height="5" rx="1"
-        stroke="currentColor" strokeWidth="0.4" opacity="0.2" fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="0.5" opacity="0.25" fill="currentColor" fillOpacity="0.06"
       />
       <rect x={x + 54} y={y + 29.5} width="8" height="2" rx="0.5"
-        fill="currentColor" opacity="0.2"
+        fill="currentColor" opacity="0.25"
       />
       <rect x={x + 65} y={y + 29.5} width="14" height="2" rx="0.5"
-        fill="currentColor" opacity="0.15"
+        fill="currentColor" opacity="0.2"
       />
 
       {/* Divider */}
       <line x1={x + 10} y1={y + 42} x2={x + 80} y2={y + 42}
-        stroke="currentColor" strokeWidth="0.3" opacity="0.12"
+        stroke="currentColor" strokeWidth="0.4" opacity="0.15"
       />
 
       {/* Sub-labels */}
       <text x={x + 45} y={y + 55} textAnchor="middle"
-        fill="currentColor" opacity="0.3" fontSize="7.5" letterSpacing="0.05em"
+        fill="currentColor" opacity="0.35" fontSize="7.5" letterSpacing="0.05em"
       >Past Conversations</text>
       <text x={x + 45} y={y + 65} textAnchor="middle"
-        fill="currentColor" opacity="0.25" fontSize="7" letterSpacing="0.05em"
+        fill="currentColor" opacity="0.3" fontSize="7" letterSpacing="0.05em"
       >Preferences</text>
 
       {/* Label */}
@@ -435,30 +435,30 @@ function LLMCore({ cx, cy }: { cx: number; cy: number }) {
     <g>
       {/* Outer glow */}
       <ellipse cx={cx} cy={cy} rx="80" ry="80"
-        fill="currentColor" opacity="0.03"
+        fill="currentColor" opacity="0.04"
         style={{ animation: "core-glow 4s ease-in-out infinite" }}
       />
       <ellipse cx={cx} cy={cy} rx="55" ry="55"
-        fill="currentColor" opacity="0.04"
+        fill="currentColor" opacity="0.05"
         style={{ animation: "core-glow 4s ease-in-out infinite", animationDelay: "1s" }}
       />
 
       {/* Cylinder body — filled side walls */}
       <path
         d={`M ${cx - w},${cy - h / 2 + ry * 0.3} L ${cx - w},${cy + h / 2 - ry * 0.3} A ${w} ${ry} 0 0 0 ${cx + w},${cy + h / 2 - ry * 0.3} L ${cx + w},${cy - h / 2 + ry * 0.3}`}
-        stroke="currentColor" strokeWidth="1" opacity="0.3"
-        fill="currentColor" fillOpacity="0.04"
+        stroke="currentColor" strokeWidth="1.2" opacity="0.35"
+        fill="currentColor" fillOpacity="0.05"
       />
 
       {/* Bottom cap */}
       <ellipse cx={cx} cy={cy + h / 2 - ry * 0.3} rx={w} ry={ry}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.2" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.25" fill="none"
       />
 
       {/* Middle ring details — the "disc platters" inside the cylinder */}
       {[-18, 0, 18].map((offset, i) => (
         <ellipse key={i} cx={cx} cy={cy + offset} rx={w - 4} ry={ry - 3}
-          stroke="currentColor" strokeWidth="0.4" opacity={0.12 - i * 0.02}
+          stroke="currentColor" strokeWidth="0.5" opacity={0.15 - i * 0.02}
           fill="none"
           strokeDasharray={i === 1 ? "none" : "3 3"}
         />
@@ -466,17 +466,17 @@ function LLMCore({ cx, cy }: { cx: number; cy: number }) {
 
       {/* Top cap — slightly brighter, filled */}
       <ellipse cx={cx} cy={cy - h / 2 + ry * 0.3} rx={w} ry={ry}
-        stroke="currentColor" strokeWidth="1.2" opacity="0.4"
-        fill="currentColor" fillOpacity="0.06"
+        stroke="currentColor" strokeWidth="1.4" opacity="0.45"
+        fill="currentColor" fillOpacity="0.08"
       />
 
       {/* Inner ring on top (processor detail) */}
       <ellipse cx={cx} cy={cy - h / 2 + ry * 0.3} rx={w * 0.55} ry={ry * 0.55}
-        stroke="currentColor" strokeWidth="0.6" opacity="0.25" fill="currentColor" fillOpacity="0.03"
+        stroke="currentColor" strokeWidth="0.7" opacity="0.3" fill="currentColor" fillOpacity="0.04"
       />
       {/* Center dot on top */}
       <circle cx={cx} cy={cy - h / 2 + ry * 0.3} r="4"
-        fill="currentColor" opacity="0.15"
+        fill="currentColor" opacity="0.2"
         style={{ animation: "core-glow 2s ease-in-out infinite" }}
       />
 
@@ -486,7 +486,7 @@ function LLMCore({ cx, cy }: { cx: number; cy: number }) {
           key={i}
           x1={cx + w * frac} y1={cy - h / 2 + ry + 2}
           x2={cx + w * frac} y2={cy + h / 2 - ry - 2}
-          stroke="currentColor" strokeWidth="0.3" opacity="0.08"
+          stroke="currentColor" strokeWidth="0.3" opacity="0.1"
         />
       ))}
 
@@ -495,7 +495,7 @@ function LLMCore({ cx, cy }: { cx: number; cy: number }) {
         <line key={i}
           x1={cx - w + 3} y1={cy + offset}
           x2={cx + w - 3} y2={cy + offset}
-          stroke="currentColor" strokeWidth="0.3" opacity="0.06"
+          stroke="currentColor" strokeWidth="0.3" opacity="0.08"
           strokeDasharray="2 4"
         />
       ))}
@@ -505,7 +505,7 @@ function LLMCore({ cx, cy }: { cx: number; cy: number }) {
         AI
       </text>
       <text x={cx} y={cy + 20} textAnchor="middle"
-        fill="currentColor" opacity="0.25" fontSize="7.5" letterSpacing="0.08em"
+        fill="currentColor" opacity="0.3" fontSize="7.5" letterSpacing="0.08em"
       >BRAIN</text>
     </g>
   );
@@ -518,26 +518,26 @@ function VoiceInIndicator({ x, y }: { x: number; y: number }) {
     <g>
       {/* Background circle */}
       <circle cx={x} cy={y} r="22"
-        stroke="currentColor" strokeWidth="0.5" opacity="0.12" fill="currentColor" fillOpacity="0.02"
+        stroke="currentColor" strokeWidth="0.6" opacity="0.15" fill="currentColor" fillOpacity="0.03"
       />
 
       {/* Microphone icon (detailed) */}
       <rect x={x - 5} y={y - 12} width="10" height="16" rx="5"
-        stroke="currentColor" strokeWidth="0.9" opacity="0.5" fill="currentColor" fillOpacity="0.06"
+        stroke="currentColor" strokeWidth="1" opacity="0.55" fill="currentColor" fillOpacity="0.08"
       />
       {/* Mic grille lines */}
       <line x1={x - 3} y1={y - 7} x2={x + 3} y2={y - 7}
-        stroke="currentColor" strokeWidth="0.3" opacity="0.2"
+        stroke="currentColor" strokeWidth="0.4" opacity="0.25"
       />
       <line x1={x - 3} y1={y - 4} x2={x + 3} y2={y - 4}
-        stroke="currentColor" strokeWidth="0.3" opacity="0.2"
+        stroke="currentColor" strokeWidth="0.4" opacity="0.25"
       />
       {/* Mic arm */}
       <path d={`M ${x - 9},${y + 7} C ${x - 9},${y + 14} ${x - 3},${y + 18} ${x},${y + 18} C ${x + 3},${y + 18} ${x + 9},${y + 14} ${x + 9},${y + 7}`}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4" fill="none"
       />
       <line x1={x} y1={y + 18} x2={x} y2={y + 22}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4"
       />
 
       {/* Animated waveform coming out */}
@@ -548,7 +548,7 @@ function VoiceInIndicator({ x, y }: { x: number; y: number }) {
         CALLER
       </text>
       <text x={x} y={y + 48} textAnchor="middle"
-        fill="currentColor" opacity="0.2" fontSize="6.5"
+        fill="currentColor" opacity="0.25" fontSize="6.5"
       >Speaks</text>
     </g>
   );
@@ -561,23 +561,23 @@ function VoiceOutIndicator({ x, y }: { x: number; y: number }) {
     <g>
       {/* Background circle */}
       <circle cx={x} cy={y} r="22"
-        stroke="currentColor" strokeWidth="0.5" opacity="0.12" fill="currentColor" fillOpacity="0.02"
+        stroke="currentColor" strokeWidth="0.6" opacity="0.15" fill="currentColor" fillOpacity="0.03"
       />
 
       {/* Speaker icon (detailed) */}
       <path
         d={`M ${x - 6},${y - 5} L ${x - 6},${y + 5} L ${x - 1},${y + 3} L ${x + 5},${y + 8} L ${x + 5},${y - 8} L ${x - 1},${y - 3} Z`}
-        stroke="currentColor" strokeWidth="0.9" opacity="0.5" fill="currentColor" fillOpacity="0.06"
+        stroke="currentColor" strokeWidth="1" opacity="0.55" fill="currentColor" fillOpacity="0.08"
       />
       {/* Sound waves (animated opacity) */}
       <path d={`M ${x + 8},${y - 4} C ${x + 11},${y - 1} ${x + 11},${y + 1} ${x + 8},${y + 4}`}
-        stroke="currentColor" strokeWidth="0.7" opacity="0.35" fill="none"
+        stroke="currentColor" strokeWidth="0.8" opacity="0.4" fill="none"
       />
       <path d={`M ${x + 11},${y - 7} C ${x + 15},${y - 3} ${x + 15},${y + 3} ${x + 11},${y + 7}`}
-        stroke="currentColor" strokeWidth="0.6" opacity="0.25" fill="none"
+        stroke="currentColor" strokeWidth="0.7" opacity="0.3" fill="none"
       />
       <path d={`M ${x + 14},${y - 10} C ${x + 19},${y - 5} ${x + 19},${y + 5} ${x + 14},${y + 10}`}
-        stroke="currentColor" strokeWidth="0.5" opacity="0.15" fill="none"
+        stroke="currentColor" strokeWidth="0.6" opacity="0.2" fill="none"
       />
 
       {/* Waveform going into speaker */}
@@ -588,7 +588,7 @@ function VoiceOutIndicator({ x, y }: { x: number; y: number }) {
         AGENT
       </text>
       <text x={x} y={y + 48} textAnchor="middle"
-        fill="currentColor" opacity="0.2" fontSize="6.5"
+        fill="currentColor" opacity="0.25" fontSize="6.5"
       >Responds</text>
     </g>
   );
@@ -623,10 +623,14 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
 
         {/* ── Styles ────────────────────────────────────────────────── */}
         <style>{`
+          svg text {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          }
           .diagram-label-text {
             font-size: 12px;
             font-weight: 700;
             fill: currentColor;
+            opacity: 0.65;
             letter-spacing: 0.14em;
           }
           .diagram-label-sub {
@@ -638,14 +642,19 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
             font-size: 20px;
             font-weight: 800;
             fill: currentColor;
+            opacity: 0.7;
             letter-spacing: 0.25em;
           }
           .diagram-voice-label {
             font-size: 11px;
             font-weight: 600;
             fill: currentColor;
-            opacity: 0.6;
+            opacity: 0.65;
             letter-spacing: 0.1em;
+          }
+          @keyframes cursor-blink {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0; }
           }
           @media (max-width: 640px) {
             .diagram-label-sub { display: none; }
@@ -659,15 +668,15 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
 
         {/* ── Layer 1: Base Platform (disc with grid) ──────────────── */}
         <ellipse cx="310" cy="420" rx="260" ry="68"
-          stroke="currentColor" strokeWidth="0.6" opacity="0.12"
-          fill="currentColor" fillOpacity="0.015"
+          stroke="currentColor" strokeWidth="0.6" opacity="0.15"
+          fill="currentColor" fillOpacity="0.02"
         />
         <ellipse cx="310" cy="420" rx="220" ry="58"
-          stroke="currentColor" strokeWidth="0.4" opacity="0.08"
+          stroke="currentColor" strokeWidth="0.4" opacity="0.1"
           strokeDasharray="4 3"
         />
         <ellipse cx="310" cy="420" rx="175" ry="46"
-          stroke="currentColor" strokeWidth="0.3" opacity="0.06"
+          stroke="currentColor" strokeWidth="0.3" opacity="0.08"
           strokeDasharray="2 4"
         />
         {/* Grid lines on platform */}
@@ -675,13 +684,13 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
           <line key={`vgrid-${offset}`}
             x1={310 + offset} y1={420 - 40}
             x2={310 + offset} y2={420 + 40}
-            stroke="currentColor" strokeWidth="0.2" opacity="0.04"
+            stroke="currentColor" strokeWidth="0.2" opacity="0.06"
           />
         ))}
         {[-25, 0, 25].map((offset) => (
           <ellipse key={`hgrid-${offset}`}
             cx="310" cy={420 + offset} rx={200 - Math.abs(offset) * 2} ry={50 - Math.abs(offset)}
-            stroke="currentColor" strokeWidth="0.2" opacity="0.03"
+            stroke="currentColor" strokeWidth="0.2" opacity="0.05"
             fill="none"
           />
         ))}
@@ -689,21 +698,21 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
         {/* ── Layer 2: Orbital Rings ──────────────────────────────── */}
         <g className="diagram-orbit-1">
           <ellipse cx="310" cy="290" rx="195" ry="58"
-            stroke="currentColor" strokeWidth="0.5" opacity="0.1"
+            stroke="currentColor" strokeWidth="0.5" opacity="0.12"
             strokeDasharray="6 4"
             style={{ transformOrigin: "310px 290px", animation: "orbit-rotate 80s linear infinite" }}
           />
         </g>
         <g className="diagram-orbit-2">
           <ellipse cx="310" cy="300" rx="235" ry="72"
-            stroke="currentColor" strokeWidth="0.4" opacity="0.06"
+            stroke="currentColor" strokeWidth="0.4" opacity="0.08"
             strokeDasharray="8 6"
             style={{ transformOrigin: "310px 300px", animation: "orbit-rotate 120s linear infinite reverse" }}
           />
         </g>
         <g className="diagram-orbit-3">
           <ellipse cx="310" cy="280" rx="160" ry="44"
-            stroke="currentColor" strokeWidth="0.3" opacity="0.05"
+            stroke="currentColor" strokeWidth="0.3" opacity="0.07"
             strokeDasharray="3 5"
             style={{ transformOrigin: "310px 280px", animation: "orbit-rotate 100s linear infinite" }}
           />
@@ -729,34 +738,34 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
         {/* ── Layer 5: Connection Paths ────────────────────────────── */}
         {/* Main pipeline: Voice In → STT → LLM → TTS → Voice Out */}
         <path d="M 75,265 C 100,265 120,250 155,235"
-          stroke="currentColor" strokeWidth="1" opacity="0.22"
+          stroke="currentColor" strokeWidth="1.2" opacity="0.28"
           strokeDasharray="4 3"
           style={{ animation: "flow-dash 2s linear infinite" }}
         />
         <path d="M 245,235 C 260,245 275,255 290,268"
-          stroke="currentColor" strokeWidth="1" opacity="0.22"
+          stroke="currentColor" strokeWidth="1.2" opacity="0.28"
           strokeDasharray="4 3"
           style={{ animation: "flow-dash 2s linear infinite", animationDelay: "0.3s" }}
         />
         <path d="M 330,268 C 345,255 360,245 375,235"
-          stroke="currentColor" strokeWidth="1" opacity="0.22"
+          stroke="currentColor" strokeWidth="1.2" opacity="0.28"
           strokeDasharray="4 3"
           style={{ animation: "flow-dash 2s linear infinite", animationDelay: "0.6s" }}
         />
         <path d="M 465,235 C 500,250 520,265 545,265"
-          stroke="currentColor" strokeWidth="1" opacity="0.22"
+          stroke="currentColor" strokeWidth="1.2" opacity="0.28"
           strokeDasharray="4 3"
           style={{ animation: "flow-dash 2s linear infinite", animationDelay: "0.9s" }}
         />
 
         {/* Side connections: LLM ↔ Tools, LLM ↔ Memory */}
         <path d="M 270,300 C 240,310 200,320 165,330"
-          stroke="currentColor" strokeWidth="0.8" opacity="0.18"
+          stroke="currentColor" strokeWidth="1" opacity="0.22"
           strokeDasharray="3 4"
           style={{ animation: "flow-dash 2.5s linear infinite" }}
         />
         <path d="M 350,300 C 380,310 420,320 455,330"
-          stroke="currentColor" strokeWidth="0.8" opacity="0.18"
+          stroke="currentColor" strokeWidth="1" opacity="0.22"
           strokeDasharray="3 4"
           style={{ animation: "flow-dash 2.5s linear infinite", animationDelay: "0.5s" }}
         />
@@ -764,11 +773,11 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
         {/* Peripheral connections */}
         <g className="diagram-peripheral">
           <path d="M 165,385 C 165,405 155,415 150,420"
-            stroke="currentColor" strokeWidth="0.4" opacity="0.08"
+            stroke="currentColor" strokeWidth="0.5" opacity="0.12"
             strokeDasharray="2 3"
           />
           <path d="M 455,385 C 455,405 465,415 470,420"
-            stroke="currentColor" strokeWidth="0.4" opacity="0.08"
+            stroke="currentColor" strokeWidth="0.5" opacity="0.12"
             strokeDasharray="2 3"
           />
         </g>
@@ -789,7 +798,7 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
           { cx: 465, cy: 235 },
         ].map((node, i) => (
           <circle key={i} cx={node.cx} cy={node.cy} r="3"
-            fill="currentColor" opacity="0.3"
+            fill="currentColor" opacity="0.4"
             style={{
               transformOrigin: `${node.cx}px ${node.cy}px`,
               animation: "pulse-node 2.5s ease-in-out infinite",
@@ -814,7 +823,7 @@ export function AgentComputerDiagram({ className }: AgentComputerDiagramProps) {
 
         {/* ── Bottom Title ──────────────────────────────────────────── */}
         <text x="310" y="498" textAnchor="middle"
-          fill="currentColor" opacity="0.2" fontSize="9" letterSpacing="0.35em" fontWeight="600"
+          fill="currentColor" opacity="0.3" fontSize="9" letterSpacing="0.35em" fontWeight="600"
         >YOUR AI AGENT</text>
       </svg>
     </div>

@@ -439,7 +439,7 @@ class VoiceAssistant(Agent):
 server = AgentServer()
 
 
-@server.rtc_session()
+@server.rtc_session(agent_name="arkenos-agent")
 async def entrypoint(ctx: agents.JobContext):
     """Main entrypoint for the voice agent session."""
     

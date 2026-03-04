@@ -156,7 +156,18 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
 export function Sidebar({ userEmail, userName, collapsed: collapsedProp }: SidebarProps) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(collapsedProp ?? false);
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        if (collapsedProp !== undefined) return collapsedProp;
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("sidebar-collapsed") === "true";
+        }
+        return false;
+    });
+
+    // Persist collapse state
+    useEffect(() => {
+        localStorage.setItem("sidebar-collapsed", String(isCollapsed));
+    }, [isCollapsed]);
 
     // Close on route change
     useEffect(() => {

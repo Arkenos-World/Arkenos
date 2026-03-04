@@ -32,6 +32,7 @@ import {
     DocumentIcon,
     PhoneIcon,
 } from "@/components/icons";
+import { Code2 } from "lucide-react";
 import { STATUS_BG } from "@/lib/design-tokens";
 
 interface ResembleVoice {
@@ -56,6 +57,45 @@ function getTemplateIcon(icon: AgentTemplate["icon"], className?: string) {
             return <DocumentIcon className={className} />;
         default:
             return <BotIcon className={className} />;
+    }
+}
+
+function getAgentCardIcon(agent: Agent) {
+    // Custom/code agents get a code icon with violet theme
+    if (agent.agent_mode === "CUSTOM") {
+        return {
+            icon: <Code2 className="h-5 w-5 text-violet-500" />,
+            bg: "bg-violet-500/10",
+        };
+    }
+    // Map template to icon + color
+    const template = agent.config?.template;
+    switch (template) {
+        case "customer-support":
+            return {
+                icon: <HeartIcon className="h-5 w-5 text-rose-500" />,
+                bg: "bg-rose-500/10",
+            };
+        case "lead-qualification":
+            return {
+                icon: <UserIcon className="h-5 w-5 text-blue-500" />,
+                bg: "bg-blue-500/10",
+            };
+        case "appointment-scheduler":
+            return {
+                icon: <CalendarIcon className="h-5 w-5 text-amber-500" />,
+                bg: "bg-amber-500/10",
+            };
+        case "info-collector":
+            return {
+                icon: <DocumentIcon className="h-5 w-5 text-emerald-500" />,
+                bg: "bg-emerald-500/10",
+            };
+        default:
+            return {
+                icon: <BotIcon className="h-5 w-5 text-primary" />,
+                bg: "bg-primary/10",
+            };
     }
 }
 
@@ -424,8 +464,6 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                         {creationStep === "mode" && selectedMode === "STANDARD" && (
                             <Button
                                 onClick={() => setCreationStep("template")}
-                                variant="outline"
-                                className="border-white/20 bg-white/10 hover:bg-white/20 text-white"
                             >
                                 Next
                             </Button>
@@ -434,8 +472,6 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                             <Button
                                 onClick={handleCreateCustom}
                                 disabled={isLoading || !agentName.trim()}
-                                variant="outline"
-                                className="border-white/20 bg-white/10 hover:bg-white/20 text-white"
                             >
                                 {isLoading ? "Creating..." : "Create Custom Agent"}
                             </Button>
@@ -444,8 +480,6 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                             <Button
                                 onClick={handleCreate}
                                 disabled={isLoading || !selectedTemplate || !agentName.trim()}
-                                variant="outline"
-                                className="border-white/20 bg-white/10 hover:bg-white/20 text-white"
                             >
                                 {isLoading ? "Creating..." : "+ Create Assistant"}
                             </Button>
@@ -469,7 +503,9 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                 </Card>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {agents.map((agent) => (
+                    {agents.map((agent) => {
+                        const { icon: agentIcon, bg: agentBg } = getAgentCardIcon(agent);
+                        return (
                         <Card
                             key={agent.id}
                             className="hover:border-primary/50 transition-colors cursor-pointer"
@@ -478,8 +514,8 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                             <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                            <BotIcon className="h-5 w-5 text-primary" />
+                                        <div className={`h-10 w-10 rounded-lg ${agentBg} flex items-center justify-center`}>
+                                            {agentIcon}
                                         </div>
                                         <div>
                                             <CardTitle className="text-base">{agent.name}</CardTitle>
@@ -490,7 +526,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {agent.agent_mode === "CUSTOM" && (
-                                            <Badge variant="outline" className="gap-1 text-violet-400 border-violet-400/30 bg-violet-400/10">
+                                            <Badge variant="outline" className="gap-1 text-violet-600 dark:text-violet-400 border-violet-500/30 bg-violet-500/10">
                                                 Code
                                             </Badge>
                                         )}
@@ -524,7 +560,8 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                                 </div>
                             </CardContent>
                         </Card>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

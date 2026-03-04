@@ -113,47 +113,64 @@ async def buy_number(
         from twilio.rest import Client
         client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
 
-        # Build SIP URI for LiveKit routing
-        sip_uri = (
-            f"sip:{request.phone_number}@{settings.twilio_sip_domain}"
-            if settings.twilio_sip_domain
-            else None
-        )
-
-        purchase_params = {"phone_number": request.phone_number}
-
-        # If we have a SIP domain, configure SIP routing
-        if sip_uri:
-            purchase_params["sip_domain_sid"] = None  # Configured separately
-            purchase_params["voice_url"] = ""  # Will be set to SIP trunk
-
-        incoming = client.incoming_phone_numbers.create(**purchase_params)
-
-        # Configure number to forward to LiveKit SIP
-        if settings.twilio_sip_domain:
-            incoming = client.incoming_phone_numbers(incoming.sid).update(
-                voice_url=f"https://{settings.twilio_sip_domain}",
-            )
-
-        # Update agent record
-        agent.phone_number = incoming.phone_number
-        agent.twilio_sid = incoming.sid
-        db.commit()
-        db.refresh(agent)
-
-        logger.info(f"Purchased number {incoming.phone_number} for agent {agent.name}")
-
-        return BuyNumberResponse(
-            phone_number=incoming.phone_number,
-            twilio_sid=incoming.sid,
-            agent_id=agent.id,
-        )
-
+        incoming = client.incoming_phone_numbers.create(phone_number=request.phone_number)
     except ImportError:
         raise HTTPException(status_code=500, detail="Twilio SDK not installed. Run: pip install twilio")
     except Exception as e:
         logger.error(f"Error buying number: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to buy number: {str(e)}")
+
+    # Number purchased — save to DB immediately so we never lose track of it.
+    # If DB save fails, release the Twilio number to avoid orphaned charges.
+    try:
+        agent.phone_number = incoming.phone_number
+        agent.twilio_sid = incoming.sid
+        db.commit()
+        db.refresh(agent)
+    except Exception as e:
+        logger.error(f"DB save failed after purchase, releasing number: {e}")
+        try:
+            client.incoming_phone_numbers(incoming.sid).delete()
+        except Exception:
+            logger.error(f"CRITICAL: Failed to release orphaned number {incoming.phone_number} (SID: {incoming.sid})")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save number: {str(e)}")
+
+    # Non-critical steps — number is safely saved, so failures here are warnings only
+    warnings = []
+
+    # Provision LiveKit SIP infrastructure
+    from app.services.telephony_provisioning import (
+        add_number_to_inbound_trunk,
+        associate_number_with_twilio_trunk,
+        ensure_dispatch_rule,
+        ensure_inbound_trunk,
+    )
+
+    try:
+        await ensure_inbound_trunk(incoming.phone_number)
+        await ensure_dispatch_rule()
+        await add_number_to_inbound_trunk(incoming.phone_number)
+    except Exception as e:
+        msg = f"LiveKit SIP provisioning failed: {e}"
+        logger.warning(msg)
+        warnings.append(msg)
+
+    # Associate number with Twilio Elastic SIP Trunk → routes directly to LiveKit (no webhook needed)
+    try:
+        await associate_number_with_twilio_trunk(incoming.sid)
+    except Exception as e:
+        msg = f"Twilio SIP trunk association failed: {e}"
+        logger.warning(msg)
+        warnings.append(msg)
+
+    logger.info(f"Purchased number {incoming.phone_number} for agent {agent.name}")
+
+    return BuyNumberResponse(
+        phone_number=incoming.phone_number,
+        twilio_sid=incoming.sid,
+        agent_id=agent.id,
+    )
 
 
 @router.post("/numbers/release")
@@ -172,6 +189,24 @@ async def release_number(
         raise HTTPException(status_code=400, detail="Agent has no assigned phone number")
 
     try:
+        # Remove number from LiveKit inbound trunk + Twilio Elastic SIP Trunk
+        if agent.phone_number:
+            from app.services.telephony_provisioning import (
+                disassociate_number_from_twilio_trunk,
+                remove_number_from_inbound_trunk,
+            )
+
+            try:
+                await remove_number_from_inbound_trunk(agent.phone_number)
+            except Exception as e:
+                logger.warning(f"Could not remove number from LiveKit trunk: {e}")
+
+            if agent.twilio_sid:
+                try:
+                    await disassociate_number_from_twilio_trunk(agent.twilio_sid)
+                except Exception as e:
+                    logger.warning(f"Could not disassociate from Twilio trunk: {e}")
+
         # Only call Twilio API if we have a SID (numbers assigned manually may not have one)
         if agent.twilio_sid:
             from twilio.rest import Client
@@ -235,6 +270,28 @@ async def assign_existing_number(
     db.commit()
     db.refresh(agent)
 
+    # Provision LiveKit SIP infrastructure
+    from app.services.telephony_provisioning import (
+        add_number_to_inbound_trunk,
+        associate_number_with_twilio_trunk,
+        ensure_dispatch_rule,
+        ensure_inbound_trunk,
+    )
+
+    try:
+        await ensure_inbound_trunk(phone)
+        await ensure_dispatch_rule()
+        await add_number_to_inbound_trunk(phone)
+    except Exception as e:
+        logger.warning(f"LiveKit SIP provisioning failed (non-fatal): {e}")
+
+    # Associate with Twilio Elastic SIP Trunk → routes directly to LiveKit
+    if twilio_sid:
+        try:
+            await associate_number_with_twilio_trunk(twilio_sid)
+        except Exception as e:
+            logger.warning(f"Twilio SIP trunk association failed: {e}")
+
     logger.info(f"Assigned existing number {phone} to agent {agent.name}")
     return {
         "status": "assigned",
@@ -242,6 +299,49 @@ async def assign_existing_number(
         "twilio_sid": twilio_sid,
         "agent_id": agent.id,
     }
+
+
+@router.post("/numbers/provision")
+async def retry_provisioning(
+    request: ReleaseNumberRequest,  # reuse schema — just needs agent_id
+    db: Session = Depends(get_db),
+):
+    """Retry LiveKit provisioning + Twilio webhook for an agent's existing number.
+    Use this if buy/assign succeeded but provisioning failed."""
+    settings = get_settings()
+
+    agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    if not agent.phone_number:
+        raise HTTPException(status_code=400, detail="Agent has no phone number to provision")
+
+    from app.services.telephony_provisioning import (
+        add_number_to_inbound_trunk,
+        associate_number_with_twilio_trunk,
+        ensure_dispatch_rule,
+        ensure_inbound_trunk,
+    )
+
+    errors = []
+
+    try:
+        await ensure_inbound_trunk(agent.phone_number)
+        await ensure_dispatch_rule()
+        await add_number_to_inbound_trunk(agent.phone_number)
+    except Exception as e:
+        errors.append(f"LiveKit provisioning: {e}")
+
+    if agent.twilio_sid and settings.twilio_account_sid:
+        try:
+            await associate_number_with_twilio_trunk(agent.twilio_sid)
+        except Exception as e:
+            errors.append(f"Twilio SIP trunk: {e}")
+
+    if errors:
+        raise HTTPException(status_code=500, detail=f"Provisioning partially failed: {'; '.join(errors)}")
+
+    return {"status": "provisioned", "phone_number": agent.phone_number, "agent_id": agent.id}
 
 
 # --- Utility ---

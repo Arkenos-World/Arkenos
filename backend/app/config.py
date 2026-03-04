@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     twilio_auth_token: str = ""
     twilio_sip_domain: str = ""  # e.g. arkenos.sip.livekit.cloud
 
+
     # LiveKit SIP
     livekit_sip_trunk_id: str = ""  # Outbound SIP trunk ID for call transfers
 

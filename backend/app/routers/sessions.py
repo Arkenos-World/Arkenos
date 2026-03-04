@@ -287,9 +287,15 @@ async def transfer_call(
     if session.transferred_to:
         raise HTTPException(status_code=400, detail="Session has already been transferred")
 
-    # Get SIP trunk ID from settings
+    # Get outbound SIP trunk ID (auto-provisioned or fallback)
     settings = get_settings()
-    sip_trunk_id = settings.livekit_sip_trunk_id
+    from app.services.telephony_provisioning import ensure_outbound_trunk
+
+    try:
+        sip_trunk_id = await ensure_outbound_trunk()
+    except Exception:
+        sip_trunk_id = settings.livekit_sip_trunk_id
+
     if not sip_trunk_id:
         raise HTTPException(status_code=500, detail="SIP trunk not configured")
 

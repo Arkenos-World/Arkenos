@@ -17,9 +17,10 @@ Arkenos uses three `.env` files, one per service.
 | `LIVEKIT_API_SECRET` | Yes | From [LiveKit Cloud](https://cloud.livekit.io) |
 | `LIVEKIT_URL` | Yes | LiveKit server URL (e.g., `wss://your-project.livekit.cloud`) |
 | `RESEMBLE_API_KEY` | Yes | From [Resemble AI](https://app.resemble.ai/account/api) |
-| `TWILIO_ACCOUNT_SID` | For telephony | From [Twilio Console](https://console.twilio.com) |
+| `TWILIO_ACCOUNT_SID` | For telephony | From [Twilio Console](https://console.twilio.com) — required for buying/releasing numbers and auto-provisioning SIP trunks |
 | `TWILIO_AUTH_TOKEN` | For telephony | From [Twilio Console](https://console.twilio.com) |
-| `TWILIO_SIP_DOMAIN` | For telephony | Your SIP domain (e.g., `your-domain.sip.livekit.cloud`) |
+| `TWILIO_SIP_DOMAIN` | No | SIP domain override (auto-derived from `LIVEKIT_URL` if not set, e.g. `xyz.sip.livekit.cloud`) |
+| `LIVEKIT_SIP_TRUNK_ID` | No | Outbound SIP trunk ID fallback (auto-provisioned on first outbound call if not set) |
 | `FRONTEND_URL` | No | CORS origin (default: `http://localhost:3000`) |
 | `PORT` | No | Server port (default: `8000`) |
 | `DEBUG` | No | Debug mode (default: `true`) |

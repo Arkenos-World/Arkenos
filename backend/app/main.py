@@ -35,6 +35,7 @@ app.include_router(containers.router, prefix="/api/agents/{agent_id}/containers"
 app.include_router(coding_agent.router, prefix="/api/agents/{agent_id}/coding-agent", tags=["Coding Agent"])
 
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "arkenos-api"}

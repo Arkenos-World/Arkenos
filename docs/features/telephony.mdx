@@ -1,55 +1,71 @@
 ---
 title: Telephony
-description: Inbound and outbound phone calls via Twilio.
+description: Inbound and outbound phone calls via Twilio with auto-provisioned SIP infrastructure.
 ---
 
 # Telephony
 
-Arkenos supports real phone calls through Twilio SIP trunks routed via LiveKit.
+Arkenos supports real phone calls through Twilio and LiveKit SIP. The SIP infrastructure (trunks, dispatch rules, credentials) is **auto-provisioned** — you just need Twilio and LiveKit account credentials.
 
 ## Phone Number Management
 
 Manage phone numbers directly from the dashboard or API:
 
 - **Search**: Find available numbers by area code or country
-- **Buy**: Purchase a number and assign it to an agent
-- **Assign**: Assign an existing Twilio number to an agent
-- **Release**: Release a number from an agent
+- **Buy**: Purchase a number — automatically provisions all SIP infrastructure and assigns to an agent
+- **Assign**: Assign an already-owned Twilio number to an agent (also auto-provisions)
+- **Release**: Release a number — cleans up Twilio billing, trunk associations, and database
+- **Retry**: Re-run provisioning if it partially failed during buy/assign
 
 ```bash
 # Search available numbers
 curl "http://localhost:8000/api/telephony/numbers/search?country=US&area_code=510"
 
-# Buy and assign to agent
+# Buy and assign to agent (auto-provisions everything)
 curl -X POST http://localhost:8000/api/telephony/numbers/buy \
   -H "Content-Type: application/json" \
+  -H "x-user-id: your-clerk-id" \
   -d '{"phone_number": "+15105550100", "agent_id": "uuid"}'
+
+# Release a number
+curl -X POST http://localhost:8000/api/telephony/numbers/release \
+  -H "Content-Type: application/json" \
+  -H "x-user-id: your-clerk-id" \
+  -d '{"agent_id": "uuid"}'
 ```
 
 ## Inbound Calls
 
 When someone calls a number assigned to an agent:
 
-1. Twilio routes the call to LiveKit via the SIP trunk
-2. LiveKit's dispatch rule matches the phone number to a room
-3. The agent worker joins and starts the voice pipeline
-4. The backend's `/api/telephony/lookup` endpoint resolves the phone number to the correct agent
+1. Twilio routes the call to LiveKit via the auto-provisioned Elastic SIP Trunk
+2. LiveKit's dispatch rule creates a room and dispatches `arkenos-agent`
+3. The agent calls `/api/telephony/lookup` to resolve the phone number to the correct agent config
+4. The agent loads the matching system prompt, voice, greeting, and tools
 
 ## Outbound Calls
 
-Initiate calls from the dashboard:
+Initiate calls from the dashboard or API:
 
-1. Select an agent and enter a phone number
-2. The backend creates a LiveKit SIP participant via `POST /api/calls/outbound`
-3. LiveKit dials out through the Twilio SIP trunk
+1. Select an agent and enter a phone number in the dashboard (or call `POST /api/calls/outbound`)
+2. The backend auto-provisions an outbound SIP trunk (first call only)
+3. LiveKit creates a room, dials the number through Twilio, and dispatches the agent
 4. The agent joins and handles the conversation
+
+```bash
+# Initiate an outbound call
+curl -X POST http://localhost:8000/api/calls/outbound \
+  -H "Content-Type: application/json" \
+  -H "x-user-id: your-clerk-id" \
+  -d '{"agent_id": "uuid", "phone_number": "+15105550100"}'
+```
 
 ## Prerequisites
 
-Telephony requires:
-- A Twilio account with a phone number
-- Twilio Elastic SIP Trunk connected to LiveKit
-- LiveKit inbound and outbound SIP trunk configuration
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_SIP_DOMAIN`, and `LIVEKIT_SIP_TRUNK_ID` in `backend/.env`
+- A [Twilio account](https://www.twilio.com/try-twilio) with credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`)
+- A [LiveKit Cloud account](https://cloud.livekit.io) with credentials (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`)
+- Both set in `backend/.env`
+
+Everything else (SIP trunks, dispatch rules, credentials) is auto-provisioned.
 
 See [Telephony Setup](/configuration/telephony) for the full configuration guide.

@@ -104,7 +104,7 @@ async def create_outbound_call(
 
     # --- Create voice session ---
     session_id = str(uuid.uuid4())
-    room_name = f"outbound-{session_id[:8]}"
+    room_name = f"outbound-{session_id}"
 
     session = VoiceSession(
         id=session_id,
@@ -133,25 +133,50 @@ async def create_outbound_call(
             api_secret=settings.livekit_api_secret,
         )
 
-        # Create room first
-        from livekit.protocol.room import CreateRoomRequest
+        try:
+            # Create room and dispatch agent into it
+            from livekit.protocol.room import CreateRoomRequest
+            from livekit.protocol.agent_dispatch import RoomAgentDispatch
 
-        await livekit.room.create_room(
-            CreateRoomRequest(name=room_name, empty_timeout=120)
-        )
+            await livekit.room.create_room(
+                CreateRoomRequest(
+                    name=room_name,
+                    empty_timeout=120,
+                    agents=[RoomAgentDispatch(agent_name="arkenos-agent")],
+                )
+            )
 
-        # Dial the phone number via SIP
-        sip_request = CreateSIPParticipantRequest(
-            sip_trunk_id=settings.twilio_sip_domain,  # Outbound trunk ID
-            sip_call_to=phone,
-            room_name=room_name,
-            participant_identity=f"phone-{phone}",
-            participant_name=f"Phone {phone}",
-            play_dialtone=True,
-        )
+            # Get outbound SIP trunk ID (auto-provisioned or fallback)
+            from app.services.telephony_provisioning import ensure_outbound_trunk
 
-        await livekit.sip.create_sip_participant(sip_request)
-        await livekit.aclose()
+            try:
+                outbound_trunk_id = await ensure_outbound_trunk()
+                logger.info(f"Using outbound trunk: {outbound_trunk_id}")
+            except Exception as e:
+                logger.error(f"Failed to provision outbound trunk: {e}", exc_info=True)
+                outbound_trunk_id = settings.livekit_sip_trunk_id
+                if outbound_trunk_id:
+                    logger.info(f"Falling back to env LIVEKIT_SIP_TRUNK_ID: {outbound_trunk_id}")
+
+            if not outbound_trunk_id:
+                raise RuntimeError(
+                    "No outbound SIP trunk available. "
+                    "Ensure Twilio credentials are configured and at least one agent has a phone number."
+                )
+
+            # Dial the phone number via SIP
+            sip_request = CreateSIPParticipantRequest(
+                sip_trunk_id=outbound_trunk_id,
+                sip_call_to=phone,
+                room_name=room_name,
+                participant_identity=f"phone-{phone}",
+                participant_name=f"Phone {phone}",
+                play_dialtone=True,
+            )
+
+            await livekit.sip.create_sip_participant(sip_request)
+        finally:
+            await livekit.aclose()
 
     except Exception as e:
         # Mark session as failed if SIP call initiation fails
@@ -172,6 +197,50 @@ async def create_outbound_call(
     )
 
 
+@router.post("/{call_id}/end")
+async def end_call(
+    call_id: str,
+    x_user_id: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """End an active outbound call by deleting the LiveKit room."""
+    settings = get_settings()
+
+    session = db.query(VoiceSession).filter(VoiceSession.id == call_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Call not found")
+
+    # Verify user owns this call
+    user = db.query(User).filter(User.clerk_id == x_user_id).first()
+    if not user or session.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Delete the LiveKit room to end the call
+    try:
+        from livekit import api as lk_api
+        from livekit.protocol.room import DeleteRoomRequest
+
+        livekit = lk_api.LiveKitAPI(
+            url=settings.livekit_url,
+            api_key=settings.livekit_api_key,
+            api_secret=settings.livekit_api_secret,
+        )
+        await livekit.room.delete_room(DeleteRoomRequest(room=session.room_name))
+        await livekit.aclose()
+    except Exception as e:
+        logger.warning(f"Failed to delete LiveKit room: {e}")
+
+    # Update session status
+    session.call_status = CallStatus.COMPLETED
+    session.status = SessionStatus.COMPLETED
+    session.ended_at = datetime.utcnow()
+    if session.started_at:
+        session.duration = int((session.ended_at - session.started_at).total_seconds())
+    db.commit()
+
+    return {"success": True, "call_id": call_id}
+
+
 @router.get("/{call_id}/status", response_model=CallStatusResponse)
 async def get_call_status(
     call_id: str,
@@ -181,6 +250,57 @@ async def get_call_status(
     session = db.query(VoiceSession).filter(VoiceSession.id == call_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Call not found")
+
+    # Check LiveKit room state if call is still active
+    if session.call_status in (CallStatus.RINGING, CallStatus.ANSWERED) and session.room_name:
+        try:
+            from livekit import api as lk_api
+            from livekit.protocol.room import ListParticipantsRequest, ListRoomsRequest
+
+            settings = get_settings()
+            lk = lk_api.LiveKitAPI(
+                url=settings.livekit_url,
+                api_key=settings.livekit_api_key,
+                api_secret=settings.livekit_api_secret,
+            )
+            try:
+                # Check if room still exists
+                rooms_resp = await lk.room.list_rooms(
+                    ListRoomsRequest(names=[session.room_name])
+                )
+                if not rooms_resp.rooms:
+                    # Room gone — call ended
+                    session.call_status = CallStatus.COMPLETED
+                    session.status = SessionStatus.COMPLETED
+                    session.ended_at = session.ended_at or datetime.utcnow()
+                    if session.started_at and session.ended_at:
+                        session.duration = int((session.ended_at - session.started_at).total_seconds())
+                    db.commit()
+                else:
+                    # Room exists — check participants
+                    resp = await lk.room.list_participants(
+                        ListParticipantsRequest(room=session.room_name)
+                    )
+                    has_phone = any(
+                        p.identity.startswith("sip_") or p.identity.startswith("phone-") or p.identity.startswith("+")
+                        for p in resp.participants
+                    )
+
+                    if session.call_status == CallStatus.RINGING and has_phone:
+                        session.call_status = CallStatus.ANSWERED
+                        db.commit()
+                    elif session.call_status == CallStatus.ANSWERED and not has_phone:
+                        # Phone participant left — call ended
+                        session.call_status = CallStatus.COMPLETED
+                        session.status = SessionStatus.COMPLETED
+                        session.ended_at = datetime.utcnow()
+                        if session.started_at:
+                            session.duration = int((session.ended_at - session.started_at).total_seconds())
+                        db.commit()
+            finally:
+                await lk.aclose()
+        except Exception:
+            pass  # Room may not exist yet, ignore
 
     return CallStatusResponse(
         call_id=session.id,

@@ -19,6 +19,7 @@ interface Session {
     duration: number | null;
     created_at: string;
     agent_name?: string;
+    outbound_phone_number?: string | null;
     analysis?: CallAnalysis | null;
 }
 
@@ -109,10 +110,13 @@ export default async function CallDetailsPage({
                     <div className="flex-1">
                         <h1 className="text-2xl font-bold">Call Details</h1>
                         <p className="text-muted-foreground">
-                            {session.agent_name
-                                ? `${session.agent_name} — ID: ${session.room_name.replace(/^(preview-|arkenos-)/, '')}`
-                                : `Call — ID: ${session.room_name.replace(/^(preview-|arkenos-)/, '')}`
-                            }
+                            {(() => {
+                                const name = session.agent_name || 'Call'
+                                if (session.outbound_phone_number) return `${name} — Outbound ${session.outbound_phone_number}`
+                                const sipMatch = session.room_name.match(/(?:sip-)?_?(\+?\d{7,15})_?/)
+                                if (sipMatch) return `${name} — Inbound ${sipMatch[1].startsWith('+') ? sipMatch[1] : '+' + sipMatch[1]}`
+                                return `${name} — ID: ${session.room_name.replace(/^(preview-|arkenos-)/, '')}`
+                            })()}
                         </p>
                     </div>
                 </div>

@@ -266,7 +266,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [searchAreaCode, setSearchAreaCode] = useState("");
     const [searchResults, setSearchResults] = useState<{ phone_number: string; friendly_name: string; locality?: string; region?: string }[]>([]);
     const [isSearching, setIsSearching] = useState(false);
-    const [isBuying, setIsBuying] = useState(false);
+    const [buyingNumber, setBuyingNumber] = useState<string | null>(null);
     const [isAssigning, setIsAssigning] = useState(false);
     const [isReleasing, setIsReleasing] = useState(false);
 
@@ -286,7 +286,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     }, [apiUrl, searchAreaCode]);
 
     const handleBuyNumber = useCallback(async (number: string) => {
-        setIsBuying(true);
+        setBuyingNumber(number);
         try {
             const res = await fetch(`${apiUrl}/telephony/numbers/buy`, {
                 method: "POST",
@@ -301,7 +301,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } catch (error) {
             toast.error("Failed to buy number");
         } finally {
-            setIsBuying(false);
+            setBuyingNumber(null);
         }
     }, [apiUrl, agent.id]);
 
@@ -890,9 +890,9 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                                     <Button
                                                         size="sm"
                                                         onClick={() => handleBuyNumber(num.phone_number)}
-                                                        disabled={isBuying}
+                                                        disabled={buyingNumber !== null}
                                                     >
-                                                        {isBuying ? "Buying..." : "Buy"}
+                                                        {buyingNumber === num.phone_number ? "Buying..." : "Buy"}
                                                     </Button>
                                                 </div>
                                             ))}

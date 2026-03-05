@@ -10,7 +10,7 @@ The easiest way to run Arkenos. All 4 services start with one command.
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- API keys for: LiveKit, AssemblyAI (or Deepgram/ElevenLabs), Google Gemini, Resemble AI, Clerk
+- API keys for: Clerk (frontend auth), plus provider keys (LiveKit, Google Gemini, Resemble AI, STT) configured via the dashboard after first boot
 
 ## 1. Clone the Repository
 
@@ -24,13 +24,12 @@ cd Arkenos
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
-cp agent/.env.example agent/.env
 ```
 
-Edit each file and add your API keys. See [Environment Variables](/configuration/environment-variables) for the full reference.
+Edit each file and add your credentials. See [Environment Variables](/configuration/environment-variables) for the full reference.
 
 <Note>
-Make sure `POSTGRES_PASSWORD` is set in `backend/.env`. This is used for both the PostgreSQL container and the backend database connection.
+The agent needs **no `.env` file** — it fetches all API keys from the backend dashboard on startup. Only `backend/.env` (Postgres password) and `frontend/.env.local` (Clerk + API URL) are required.
 </Note>
 
 ## 3. Run

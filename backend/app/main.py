@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import agents, sessions, livekit, telephony, resemble, calls, usage, costs
 from app.routers import agent_files, containers, coding_agent
+from app.routers import settings as settings_router
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(
@@ -33,7 +37,29 @@ app.include_router(costs.router, prefix="/api/costs", tags=["Costs"])
 app.include_router(agent_files.router, prefix="/api/agents/{agent_id}/files", tags=["Agent Files"])
 app.include_router(containers.router, prefix="/api/agents/{agent_id}/containers", tags=["Containers"])
 app.include_router(coding_agent.router, prefix="/api/agents/{agent_id}/coding-agent", tags=["Coding Agent"])
+app.include_router(settings_router.router, prefix="/api/settings", tags=["Settings"])
 
+
+
+def _run_migrations():
+    """Auto-run Alembic migrations on startup. Safe to run repeatedly."""
+    import os
+    from alembic.config import Config
+    from alembic import command
+
+    # Resolve alembic.ini relative to backend/ directory
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ini_path = os.path.join(backend_dir, "alembic.ini")
+    alembic_cfg = Config(ini_path)
+    alembic_cfg.set_main_option("script_location", os.path.join(backend_dir, "alembic"))
+    command.upgrade(alembic_cfg, "head")
+    logger.info("Database migrations applied successfully")
+
+
+try:
+    _run_migrations()
+except Exception as e:
+    logger.error(f"Failed to run migrations: {e}")
 
 
 @app.get("/health")

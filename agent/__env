@@ -1,0 +1,21 @@
+# LiveKit Configuration
+LIVEKIT_API_KEY=APIhFLnELsA8J3A
+LIVEKIT_API_SECRET=yGMJAJX9SeaOZexUxAyQ6bmBthdFOQMuQircFYZNJxB
+LIVEKIT_URL=wss://try-agent-kdjgdgqp.livekit.cloud
+
+# Deepgram API Key (for Speech-to-Text)
+DEEPGRAM_API_KEY=ab67379a3e2e11e77d2df1031d3056cb93275fc2
+
+# AssemblyAI API Key (alternative STT provider)
+ASSEMBLYAI_API_KEY=f5b3c3a4bdba4a6e8cba22fd9b270a7c
+
+# ElevenLabs API Key (alternative STT provider)
+ELEVENLABS_API_KEY=sk_ee74e6e9fdf2649939d41c8f6c50d067e4a1a87fc0a7d225
+
+# Google Gemini API Key (for LLM)
+GOOGLE_API_KEY=AIzaSyBJqKw2_Czogjbm5WlyYi3iyc80kqUg5UA
+
+# Resemble AI (for Text-to-Speech)
+RESEMBLE_API_KEY=vW4z6OrlHtJzrBcGsYYwFRAtt
+# RESEMBLE_PROJECT_UUID=your_project_uuid
+RESEMBLE_VOICE_UUID=e8883d33

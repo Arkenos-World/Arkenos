@@ -14,13 +14,15 @@ It does return `default_language` as a BCP-47 code (e.g. "en", "sw").
 import logging
 import time
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 
-from app.config import get_settings
+from sqlalchemy.orm import Session
+
+from app.database import get_db, SessionLocal
+from app.services.config_resolver import get_key, require_providers
 
 router = APIRouter()
-settings = get_settings()
 logger = logging.getLogger("resemble-voices")
 
 _CACHE_TTL_SECS = 300  # 5 minutes
@@ -90,7 +92,13 @@ async def _ensure_full_cache() -> list[dict]:
     if _all_voices and (now - _all_voices_ts) < _CACHE_TTL_SECS:
         return _all_voices
 
-    if not settings.resemble_api_key:
+    db = SessionLocal()
+    try:
+        api_key = get_key(db, "resemble_api_key")
+    finally:
+        db.close()
+
+    if not api_key:
         return []
 
     voices: list[dict] = []
@@ -99,7 +107,7 @@ async def _ensure_full_cache() -> list[dict]:
         while True:
             resp = await client.get(
                 "https://app.resemble.ai/api/v2/voices",
-                headers={"Authorization": f"Token {settings.resemble_api_key}"},
+                headers={"Authorization": f"Token {api_key}"},
                 params={"page": page, "page_size": 100},
             )
             if resp.status_code != 200:
@@ -123,10 +131,8 @@ async def _ensure_full_cache() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 @router.get("/voices/languages")
-async def list_languages():
+async def list_languages(_=Depends(require_providers("resemble"))):
     """Return sorted list of distinct language names across all voices."""
-    if not settings.resemble_api_key:
-        raise HTTPException(status_code=503, detail="RESEMBLE_API_KEY is not configured.")
     try:
         all_v = await _ensure_full_cache()
     except Exception as exc:
@@ -140,11 +146,9 @@ async def list_voices(
     page: int = Query(1, ge=1),
     page_size: int = Query(12, ge=1, le=100),
     language: Optional[str] = Query(None, description="Filter by language name"),
+    _=Depends(require_providers("resemble")),
 ):
     """Return a paginated (and optionally language-filtered) list of voices."""
-    if not settings.resemble_api_key:
-        raise HTTPException(status_code=503, detail="RESEMBLE_API_KEY is not configured.")
-
     cache_key = (page, page_size, language or "")
     now = time.monotonic()
     cached = _page_cache.get(cache_key)
@@ -174,10 +178,8 @@ async def list_voices(
 
 
 @router.get("/voices/{voice_id}")
-async def get_voice(voice_id: str):
+async def get_voice(voice_id: str, _=Depends(require_providers("resemble"))):
     """Return a single voice by ID from the cache."""
-    if not settings.resemble_api_key:
-        raise HTTPException(status_code=503, detail="RESEMBLE_API_KEY is not configured.")
     try:
         all_v = await _ensure_full_cache()
     except Exception as exc:

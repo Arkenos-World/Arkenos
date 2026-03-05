@@ -14,7 +14,7 @@ Manage phone numbers directly from the dashboard or API:
 - **Search**: Find available numbers by area code or country
 - **Buy**: Purchase a number — automatically provisions all SIP infrastructure and assigns to an agent
 - **Assign**: Assign an already-owned Twilio number to an agent (also auto-provisions)
-- **Release**: Release a number — cleans up Twilio billing, trunk associations, and database
+- **Release**: Unassign a number from an agent — removes SIP routing but keeps the number in your Twilio account
 - **Retry**: Re-run provisioning if it partially failed during buy/assign
 
 ```bash
@@ -62,9 +62,9 @@ curl -X POST http://localhost:8000/api/calls/outbound \
 
 ## Prerequisites
 
-- A [Twilio account](https://www.twilio.com/try-twilio) with credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`)
-- A [LiveKit Cloud account](https://cloud.livekit.io) with credentials (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`)
-- Both set in `backend/.env`
+- A [Twilio account](https://www.twilio.com/try-twilio) with Account SID and Auth Token
+- A [LiveKit Cloud account](https://cloud.livekit.io) with API Key, API Secret, and Server URL
+- Both configured via **Settings > API Keys** in the dashboard
 
 Everything else (SIP trunks, dispatch rules, credentials) is auto-provisioned.
 

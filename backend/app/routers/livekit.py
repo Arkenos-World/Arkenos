@@ -1,17 +1,17 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from livekit.api import AccessToken, VideoGrants
+from sqlalchemy.orm import Session
 
-from app.config import get_settings
-from app.database import SessionLocal
+from app.database import get_db, SessionLocal
+from app.services.config_resolver import get_key, require_providers
 from app.models import CallStatus, SessionStatus, VoiceSession
 from app.schemas import TokenRequest, TokenResponse
 
 logger = logging.getLogger("livekit_webhook")
 router = APIRouter()
-settings = get_settings()
 
 
 def _update_call_status(room_name: str, status: CallStatus, end: bool = False) -> None:
@@ -40,19 +40,24 @@ def _update_call_status(room_name: str, status: CallStatus, end: bool = False) -
 
 
 @router.post("/token", response_model=TokenResponse)
-async def generate_token(request: TokenRequest):
+async def generate_token(
+    request: TokenRequest,
+    db: Session = Depends(get_db),
+    _=Depends(require_providers("livekit")),
+):
     """Generate a LiveKit access token for a user to join a room."""
-    if not settings.livekit_api_key or not settings.livekit_api_secret:
-        raise HTTPException(status_code=500, detail="LiveKit not configured")
-    
+    lk_api_key = get_key(db, "livekit_api_key")
+    lk_api_secret = get_key(db, "livekit_api_secret")
+    lk_url = get_key(db, "livekit_url")
+
     token = AccessToken(
-        api_key=settings.livekit_api_key,
-        api_secret=settings.livekit_api_secret,
+        api_key=lk_api_key,
+        api_secret=lk_api_secret,
     )
     token.identity = request.user_id
     token.name = request.user_name or request.user_id
     token.ttl = 600  # 10 minutes
-    
+
     token.add_grant(
         VideoGrants(
             room=request.room_name,
@@ -62,12 +67,12 @@ async def generate_token(request: TokenRequest):
             can_publish_data=True,
         )
     )
-    
+
     jwt_token = token.to_jwt()
-    
+
     return TokenResponse(
         token=jwt_token,
-        ws_url=settings.livekit_url,
+        ws_url=lk_url,
         room_name=request.room_name,
     )
 

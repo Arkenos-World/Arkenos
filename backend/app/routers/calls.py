@@ -12,8 +12,8 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.database import get_db
+from app.services.config_resolver import get_key, require_providers
 from app.models import (
     Agent,
     CallDirection,
@@ -68,21 +68,19 @@ async def create_outbound_call(
     background_tasks: BackgroundTasks,
     x_user_id: str = Header(...),
     db: Session = Depends(get_db),
+    _=Depends(require_providers("livekit")),
 ):
     """Initiate an outbound phone call via LiveKit SIP.
 
     Creates a voice session, a LiveKit room, and dials the phone number.
     """
-    settings = get_settings()
+    # Resolve keys from DB → env fallback
+    lk_api_key = get_key(db, "livekit_api_key")
+    lk_api_secret = get_key(db, "livekit_api_secret")
+    lk_url = get_key(db, "livekit_url")
 
     # --- Validate inputs ---
     phone = _validate_e164(request.phone_number)
-
-    if not settings.livekit_api_key or not settings.livekit_api_secret:
-        raise HTTPException(status_code=500, detail="LiveKit not configured")
-
-    if not settings.livekit_url:
-        raise HTTPException(status_code=500, detail="LiveKit URL not configured")
 
     # --- Authenticate user ---
     user = db.query(User).filter(User.clerk_id == x_user_id).first()
@@ -128,9 +126,9 @@ async def create_outbound_call(
         from livekit.protocol.sip import CreateSIPParticipantRequest
 
         livekit = lk_api.LiveKitAPI(
-            url=settings.livekit_url,
-            api_key=settings.livekit_api_key,
-            api_secret=settings.livekit_api_secret,
+            url=lk_url,
+            api_key=lk_api_key,
+            api_secret=lk_api_secret,
         )
 
         try:
@@ -138,10 +136,12 @@ async def create_outbound_call(
             from livekit.protocol.room import CreateRoomRequest
             from livekit.protocol.agent_dispatch import RoomAgentDispatch
 
+            import json as _json
             await livekit.room.create_room(
                 CreateRoomRequest(
                     name=room_name,
                     empty_timeout=120,
+                    metadata=_json.dumps({"agentId": agent.id}),
                     agents=[RoomAgentDispatch(agent_name="arkenos-agent")],
                 )
             )
@@ -154,7 +154,7 @@ async def create_outbound_call(
                 logger.info(f"Using outbound trunk: {outbound_trunk_id}")
             except Exception as e:
                 logger.error(f"Failed to provision outbound trunk: {e}", exc_info=True)
-                outbound_trunk_id = settings.livekit_sip_trunk_id
+                outbound_trunk_id = get_key(db, "livekit_sip_trunk_id")
                 if outbound_trunk_id:
                     logger.info(f"Falling back to env LIVEKIT_SIP_TRUNK_ID: {outbound_trunk_id}")
 
@@ -202,9 +202,12 @@ async def end_call(
     call_id: str,
     x_user_id: str = Header(...),
     db: Session = Depends(get_db),
+    _=Depends(require_providers("livekit")),
 ):
     """End an active outbound call by deleting the LiveKit room."""
-    settings = get_settings()
+    lk_api_key = get_key(db, "livekit_api_key")
+    lk_api_secret = get_key(db, "livekit_api_secret")
+    lk_url = get_key(db, "livekit_url")
 
     session = db.query(VoiceSession).filter(VoiceSession.id == call_id).first()
     if not session:
@@ -221,9 +224,9 @@ async def end_call(
         from livekit.protocol.room import DeleteRoomRequest
 
         livekit = lk_api.LiveKitAPI(
-            url=settings.livekit_url,
-            api_key=settings.livekit_api_key,
-            api_secret=settings.livekit_api_secret,
+            url=lk_url,
+            api_key=lk_api_key,
+            api_secret=lk_api_secret,
         )
         await livekit.room.delete_room(DeleteRoomRequest(room=session.room_name))
         await livekit.aclose()
@@ -245,6 +248,7 @@ async def end_call(
 async def get_call_status(
     call_id: str,
     db: Session = Depends(get_db),
+    _=Depends(require_providers("livekit")),
 ):
     """Get the current status of a call."""
     session = db.query(VoiceSession).filter(VoiceSession.id == call_id).first()
@@ -257,11 +261,10 @@ async def get_call_status(
             from livekit import api as lk_api
             from livekit.protocol.room import ListParticipantsRequest, ListRoomsRequest
 
-            settings = get_settings()
             lk = lk_api.LiveKitAPI(
-                url=settings.livekit_url,
-                api_key=settings.livekit_api_key,
-                api_secret=settings.livekit_api_secret,
+                url=get_key(db, "livekit_url"),
+                api_key=get_key(db, "livekit_api_key"),
+                api_secret=get_key(db, "livekit_api_secret"),
             )
             try:
                 # Check if room still exists

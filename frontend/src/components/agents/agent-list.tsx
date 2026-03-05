@@ -34,6 +34,7 @@ import {
 } from "@/components/icons";
 import { Code2 } from "lucide-react";
 import { STATUS_BG } from "@/lib/design-tokens";
+import { useKeyStatus } from "@/hooks/use-key-status";
 
 interface ResembleVoice {
     id: string;
@@ -134,6 +135,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
     const [isLoadingVoices, setIsLoadingVoices] = useState(true);
     const [creationStep, setCreationStep] = useState<"mode" | "template">("mode");
     const [selectedMode, setSelectedMode] = useState<"STANDARD" | "CUSTOM" | null>(null);
+    const { allConfigured } = useKeyStatus();
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -281,7 +283,12 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                     <p className="text-muted-foreground">Create and manage your voice assistants</p>
                 </div>
 
-                <Button className="gap-2" onClick={() => setIsOpen(true)}>
+                <Button
+                    className="gap-2"
+                    onClick={() => setIsOpen(true)}
+                    disabled={!allConfigured}
+                    title={!allConfigured ? "Configure API keys first" : undefined}
+                >
                     <PlusIcon className="h-4 w-4" />
                     Create Assistant
                 </Button>
@@ -495,7 +502,12 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                         <BotIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                         <h3 className="font-semibold mb-2">No assistants yet</h3>
                         <p className="text-muted-foreground mb-4">Create your first voice assistant to get started</p>
-                        <Button className="gap-2" onClick={() => setIsOpen(true)}>
+                        <Button
+                            className="gap-2"
+                            onClick={() => setIsOpen(true)}
+                            disabled={!allConfigured}
+                            title={!allConfigured ? "Configure API keys first" : undefined}
+                        >
                             <PlusIcon className="h-4 w-4" />
                             Create Assistant
                         </Button>

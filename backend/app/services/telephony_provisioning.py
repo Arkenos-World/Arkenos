@@ -7,7 +7,8 @@ import logging
 import secrets
 from dataclasses import dataclass, field
 
-from app.config import get_settings
+from app.database import SessionLocal
+from app.services.config_resolver import get_key
 
 logger = logging.getLogger("telephony_provisioning")
 
@@ -25,15 +26,29 @@ _state = ProvisioningState()
 
 
 def _get_lk():
-    """Create a LiveKitAPI client from settings."""
+    """Create a LiveKitAPI client from DB/env keys."""
     from livekit import api as lk_api
 
-    settings = get_settings()
-    return lk_api.LiveKitAPI(
-        url=settings.livekit_url,
-        api_key=settings.livekit_api_key,
-        api_secret=settings.livekit_api_secret,
-    )
+    db = SessionLocal()
+    try:
+        return lk_api.LiveKitAPI(
+            url=get_key(db, "livekit_url"),
+            api_key=get_key(db, "livekit_api_key"),
+            api_secret=get_key(db, "livekit_api_secret"),
+        )
+    finally:
+        db.close()
+
+
+def _get_twilio_client():
+    """Create a Twilio client from DB/env keys."""
+    from twilio.rest import Client
+
+    db = SessionLocal()
+    try:
+        return Client(get_key(db, "twilio_account_sid"), get_key(db, "twilio_auth_token"))
+    finally:
+        db.close()
 
 
 async def ensure_inbound_trunk(phone: str | None = None) -> str:
@@ -159,14 +174,50 @@ async def remove_number_from_inbound_trunk(phone: str) -> None:
         await lk.aclose()
 
 
+async def _sync_outbound_trunk_numbers(trunk_id: str) -> None:
+    """Sync agent phone numbers onto the LiveKit outbound trunk."""
+    from app import models as _models
+
+    db = SessionLocal()
+    try:
+        agents_with_phones = db.query(_models.Agent).filter(
+            _models.Agent.phone_number.isnot(None)
+        ).all()
+        current_numbers = {a.phone_number for a in agents_with_phones if a.phone_number}
+    except Exception:
+        return
+    finally:
+        db.close()
+
+    if not current_numbers:
+        return
+
+    lk = _get_lk()
+    try:
+        from livekit.api import ListSIPOutboundTrunkRequest, ListUpdate
+
+        resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
+        for trunk in resp.items:
+            if trunk.sip_trunk_id == trunk_id:
+                trunk_numbers = set(trunk.numbers) if trunk.numbers else set()
+                missing = current_numbers - trunk_numbers
+                if missing:
+                    await lk.sip.update_outbound_trunk_fields(
+                        trunk_id, numbers=ListUpdate(add=list(missing))
+                    )
+                    logger.info(f"Synced {missing} to outbound trunk {trunk_id}")
+                return
+    except Exception as e:
+        logger.warning(f"Could not sync outbound trunk numbers: {e}")
+    finally:
+        await lk.aclose()
+
+
 async def ensure_outbound_trunk() -> str:
     """Ensure an outbound SIP trunk exists (Twilio Elastic SIP + LiveKit). Returns trunk ID.
     Reuses the same Twilio Elastic SIP Trunk as inbound (trial accounts only allow one).
     """
     global _state
-
-    if _state.outbound_trunk_id:
-        return _state.outbound_trunk_id
 
     from livekit.api import (
         CreateSIPOutboundTrunkRequest,
@@ -174,20 +225,23 @@ async def ensure_outbound_trunk() -> str:
         SIPOutboundTrunkInfo,
     )
 
-    settings = get_settings()
+    # Always sync numbers even if trunk ID is cached — new numbers may have been added
+    if _state.outbound_trunk_id:
+        await _sync_outbound_trunk_numbers(_state.outbound_trunk_id)
+        return _state.outbound_trunk_id
+
     lk = _get_lk()
     try:
-        # Check for existing LiveKit outbound trunk
+        # Check for existing LiveKit outbound trunk — reuse if valid
         resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
         for trunk in resp.items:
             if trunk.name == "Arkenos Outbound":
                 _state.outbound_trunk_id = trunk.sip_trunk_id
                 logger.info(f"Reusing existing outbound trunk: {trunk.sip_trunk_id}")
+                await _sync_outbound_trunk_numbers(trunk.sip_trunk_id)
                 return trunk.sip_trunk_id
 
-        from twilio.rest import Client
-
-        client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+        client = _get_twilio_client()
         password = secrets.token_urlsafe(32)
 
         # Find or create credential list for LiveKit → Twilio auth
@@ -214,7 +268,12 @@ async def ensure_outbound_trunk() -> str:
 
         # Enable termination by setting a domain name if not already set
         if not trunk_obj.domain_name:
-            domain_name = f"arkenos-{settings.twilio_account_sid[-6:].lower()}.pstn.twilio.com"
+            db = SessionLocal()
+            try:
+                tw_sid = get_key(db, "twilio_account_sid")
+            finally:
+                db.close()
+            domain_name = f"arkenos-{tw_sid[-6:].lower()}.pstn.twilio.com"
             client.trunking.v1.trunks(twilio_trunk_sid).update(
                 domain_name=domain_name
             )
@@ -232,7 +291,6 @@ async def ensure_outbound_trunk() -> str:
             logger.warning(f"Could not add credential list to trunk (may already exist): {e}")
 
         # Collect all phone numbers assigned to agents for the outbound trunk
-        from app.database import SessionLocal
         from app import models
 
         db = SessionLocal()
@@ -276,10 +334,7 @@ async def ensure_twilio_elastic_trunk() -> str:
     if _state.twilio_trunk_sid:
         return _state.twilio_trunk_sid
 
-    from twilio.rest import Client
-
-    settings = get_settings()
-    client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+    client = _get_twilio_client()
 
     # Check for existing trunk
     trunks = client.trunking.v1.trunks.list()
@@ -316,10 +371,7 @@ async def associate_number_with_twilio_trunk(phone_sid: str) -> None:
     """
     trunk_sid = await ensure_twilio_elastic_trunk()
 
-    from twilio.rest import Client
-
-    settings = get_settings()
-    client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+    client = _get_twilio_client()
 
     # Check if already associated
     existing = client.trunking.v1.trunks(trunk_sid).phone_numbers.list()
@@ -342,10 +394,7 @@ async def disassociate_number_from_twilio_trunk(phone_sid: str) -> None:
     if not _state.twilio_trunk_sid:
         return
 
-    from twilio.rest import Client
-
-    settings = get_settings()
-    client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+    client = _get_twilio_client()
 
     try:
         client.trunking.v1.trunks(_state.twilio_trunk_sid).phone_numbers(phone_sid).delete()
@@ -361,15 +410,19 @@ def get_sip_uri() -> str:
     if _state.inbound_sip_uri:
         return _state.inbound_sip_uri
 
-    settings = get_settings()
+    db = SessionLocal()
+    try:
+        sip_domain = get_key(db, "twilio_sip_domain")
+        lk_url = get_key(db, "livekit_url")
+    finally:
+        db.close()
 
     # If twilio_sip_domain is explicitly set, use it
-    if settings.twilio_sip_domain:
-        _state.inbound_sip_uri = settings.twilio_sip_domain
+    if sip_domain:
+        _state.inbound_sip_uri = sip_domain
         return _state.inbound_sip_uri
 
     # Derive from livekit_url: wss://xyz.livekit.cloud -> xyz.sip.livekit.cloud
-    lk_url = settings.livekit_url
     if lk_url:
         host = lk_url.replace("wss://", "").replace("ws://", "").rstrip("/")
         parts = host.split(".", 1)

@@ -8,7 +8,6 @@ import uuid
 from decimal import Decimal
 
 from app.database import get_db
-from app.config import get_settings
 from app.models import VoiceSession, UsageEvent, User, Transcript, SessionStatus, TransferType
 from app.schemas import (
     VoiceSessionCreate,
@@ -25,6 +24,7 @@ from app.schemas import (
 from app.services.call_analysis import analyze_call
 from app.services.cost_aggregation import aggregate_session_cost
 from app.services.call_transfer import validate_e164, cold_transfer, warm_transfer
+from app.services.config_resolver import get_key, require_providers
 
 router = APIRouter()
 
@@ -197,16 +197,12 @@ async def create_session(
         # Fall back to Clerk ID lookup / creation
         user = get_or_create_user(db, incoming_user_id)
 
-    # If a stale session with this room_name exists, mark it as completed
+    # If a session with this room_name already exists, return it (don't duplicate)
     existing = db.query(VoiceSession).filter(
         VoiceSession.room_name == session_data.room_name
     ).first()
     if existing:
-        existing.status = SessionStatus.COMPLETED
-        existing.ended_at = existing.ended_at or datetime.utcnow()
-        db.commit()
-        # Append a suffix to make the new room_name unique
-        session_data.room_name = f"{session_data.room_name}-{uuid.uuid4().hex[:6]}"
+        return existing
 
     session = VoiceSession(
         id=str(uuid.uuid4()),
@@ -271,6 +267,7 @@ async def transfer_call(
     session_id: str,
     transfer_data: TransferRequest,
     db: Session = Depends(get_db),
+    _=Depends(require_providers("twilio", "livekit")),
 ):
     """
     Transfer an active call to another phone number.
@@ -299,13 +296,12 @@ async def transfer_call(
         raise HTTPException(status_code=400, detail="Session has already been transferred")
 
     # Get outbound SIP trunk ID (auto-provisioned or fallback)
-    settings = get_settings()
     from app.services.telephony_provisioning import ensure_outbound_trunk
 
     try:
         sip_trunk_id = await ensure_outbound_trunk()
     except Exception:
-        sip_trunk_id = settings.livekit_sip_trunk_id
+        sip_trunk_id = get_key(db, "livekit_sip_trunk_id")
 
     if not sip_trunk_id:
         raise HTTPException(status_code=500, detail="SIP trunk not configured")

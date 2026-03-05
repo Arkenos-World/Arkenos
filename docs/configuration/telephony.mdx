@@ -14,8 +14,8 @@ Telephony is **optional**. Browser-based voice testing via the Preview page work
 ## How It Works
 
 ```
-Inbound:  Caller → Twilio → Elastic SIP Trunk → LiveKit SIP → Arkenos Agent
-Outbound: Dashboard → LiveKit SIP → Twilio Outbound Trunk → Phone
+Inbound:  Caller --> Twilio --> Elastic SIP Trunk --> LiveKit SIP --> Arkenos Agent
+Outbound: Dashboard --> LiveKit SIP --> Twilio Outbound Trunk --> Phone
 ```
 
 - **Inbound**: Someone dials your Twilio number → Twilio routes via Elastic SIP Trunk to LiveKit → LiveKit dispatches the agent → agent looks up the called number and loads the right config
@@ -55,33 +55,17 @@ You need two accounts:
 **Twilio trial accounts** can only make outbound calls to phone numbers you've verified. Go to **Twilio Console → Phone Numbers → Verified Caller IDs** to add your number. Also enable **Geographic Permissions** for the countries you want to call.
 </Warning>
 
-### Step 2: Add Environment Variables
+### Step 2: Add API Keys via Dashboard
 
-Add the following to `backend/.env`:
+Open the **Arkenos Dashboard** → **Settings** → **API Keys** and configure:
 
-```bash
-# Twilio credentials (from https://console.twilio.com)
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_auth_token
+1. **LiveKit** — API Key, API Secret, Server URL (from [LiveKit Cloud](https://cloud.livekit.io))
+2. **Twilio** — Account SID, Auth Token (from [Twilio Console](https://console.twilio.com))
 
-# LiveKit credentials (from https://cloud.livekit.io)
-LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your_api_key
-LIVEKIT_API_SECRET=your_api_secret
-```
-
-Optional overrides (usually not needed):
-
-```bash
-# Override the SIP domain (auto-derived from LIVEKIT_URL if not set)
-# TWILIO_SIP_DOMAIN=2w0eusjtqsa.sip.livekit.cloud
-
-# Override outbound trunk ID (auto-provisioned if not set)
-# LIVEKIT_SIP_TRUNK_ID=ST_xxxxxxxxxxxx
-```
+Use the **Test Connection** button on each card to verify your credentials.
 
 <Note>
-The **agent service** does not need Twilio credentials. It only needs LiveKit credentials (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`) in `agent/.env`.
+All keys are encrypted and stored in the database. No `.env` files needed for provider credentials. The agent service auto-fetches keys from the backend on startup.
 </Note>
 
 ### Step 3: Buy a Number and Assign to an Agent
@@ -148,12 +132,25 @@ That's it. The backend will automatically:
 
 If you already own a Twilio number and want to use it with Arkenos:
 
+**Via Dashboard:** Go to **Agents** → select agent → **Phone** tab → enter the number → **Assign**. Then click **Test & Setup Pipeline** to verify and provision the full SIP routing.
+
+**Via API:**
+
 ```bash
 curl -X POST http://localhost:8000/api/telephony/numbers/assign \
   -H "Content-Type: application/json" \
   -H "x-user-id: your-clerk-id" \
   -d '{"phone_number": "+14155551234", "agent_id": "your-agent-uuid"}'
+
+# Then provision the SIP pipeline:
+curl -X POST http://localhost:8000/api/telephony/numbers/provision \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id": "your-agent-uuid"}'
 ```
+
+<Note>
+Numbers bought through the dashboard are auto-provisioned. The **Test & Setup Pipeline** button is mainly needed when assigning numbers purchased directly from Twilio. If the Twilio SIP Trunk step shows a warning, clicking **Test & Setup Pipeline** again will attempt to resolve the Twilio SID automatically and complete the association.
+</Note>
 
 ### Release a Number
 
@@ -164,7 +161,7 @@ curl -X POST http://localhost:8000/api/telephony/numbers/release \
   -d '{"agent_id": "your-agent-uuid"}'
 ```
 
-This removes the number from Twilio (stops billing), cleans up SIP trunk associations, and clears the assignment from the database.
+This unassigns the number from the agent, removes it from LiveKit SIP routing, and disassociates it from the Twilio Elastic SIP Trunk. The number is **not** deleted from your Twilio account — you keep ownership and can re-assign it later.
 
 ### Retry Failed Provisioning
 
@@ -193,9 +190,9 @@ curl -X POST http://localhost:8000/api/telephony/numbers/provision \
   <Accordion title="Call immediately disconnects">
     The agent is crashing on startup. Check the agent terminal for errors:
 
-    - **Missing API keys**: AssemblyAI, Google (Gemini), or Resemble AI key not set in `agent/.env`
+    - **Missing API keys**: AssemblyAI, Google (Gemini), or Resemble AI key not configured at **Settings > API Keys**
     - **TTS credits exhausted**: Check your Resemble AI balance at [app.resemble.ai/hub/billing](https://app.resemble.ai/hub/billing)
-    - **LiveKit credentials mismatch**: `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` must be identical across all services
+    - **Key fetch failed**: Check the agent terminal for "Could not fetch keys from backend" — ensure the backend is running
   </Accordion>
 
   <Accordion title="Inbound call doesn't ring / goes to voicemail">
@@ -218,10 +215,11 @@ curl -X POST http://localhost:8000/api/telephony/numbers/provision \
     5. **Geographic permissions**: Enable the destination country at **Twilio Console → Voice → Geographic Permissions**
   </Accordion>
 
-  <Accordion title="Agent picks up but uses default config">
-    The phone number isn't assigned to an agent in the database:
+  <Accordion title="Agent picks up but uses default config (wrong voice/STT)">
+    For **inbound calls**: The phone number isn't assigned to an agent in the database. Go to **Dashboard** → **Agents** → **Phone** tab → assign the number.
 
-    - Go to **Dashboard** → **Agents** → **Phone** tab → assign the number
+    For **outbound calls**: The room metadata might be missing the agent ID. Check that you're using the latest backend code — the outbound call endpoint must include `metadata={"agentId": "..."}` when creating the LiveKit room.
+
     - Check backend logs for `No agent found for phone +1234...` messages
     - Verify the number is in E.164 format (e.g. `+14155551234`)
   </Accordion>
@@ -253,14 +251,14 @@ All SIP resources are created with a **reuse-first** strategy — the system che
 
 ### How the SIP Domain is Resolved
 
-The SIP domain (`TWILIO_SIP_DOMAIN`) is auto-derived from your `LIVEKIT_URL`:
+The SIP domain is auto-derived from your LiveKit Server URL:
 
 ```
-LIVEKIT_URL=wss://2w0eusjtqsa.livekit.cloud
-→ SIP domain: 2w0eusjtqsa.sip.livekit.cloud
+LiveKit URL: wss://2w0eusjtqsa.livekit.cloud
+  --> SIP domain: 2w0eusjtqsa.sip.livekit.cloud
 ```
 
-You only need to set `TWILIO_SIP_DOMAIN` manually if your LiveKit project uses a custom domain.
+No manual configuration needed. If your LiveKit project uses a custom domain, you can override it by saving `twilio_sip_domain` via the settings API.
 
 ### Provisioning Code
 

@@ -10,7 +10,7 @@ from typing import Optional
 import logging
 
 from app.database import get_db
-from app.config import get_settings
+from app.services.config_resolver import get_key, require_providers
 from app import models
 
 logger = logging.getLogger("telephony")
@@ -53,16 +53,16 @@ async def search_available_numbers(
     area_code: Optional[str] = Query(None, description="Area code to search in"),
     country: str = Query("US", description="Country code"),
     limit: int = Query(10, ge=1, le=20),
+    db: Session = Depends(get_db),
+    _=Depends(require_providers("twilio")),
 ):
     """Search for available Twilio phone numbers."""
-    settings = get_settings()
-
-    if not settings.twilio_account_sid or not settings.twilio_auth_token:
-        raise HTTPException(status_code=500, detail="Twilio credentials not configured")
+    twilio_sid = get_key(db, "twilio_account_sid")
+    twilio_token = get_key(db, "twilio_auth_token")
 
     try:
         from twilio.rest import Client
-        client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+        client = Client(twilio_sid, twilio_token)
 
         search_params = {"limit": limit}
         if area_code:
@@ -90,12 +90,11 @@ async def search_available_numbers(
 async def buy_number(
     request: BuyNumberRequest,
     db: Session = Depends(get_db),
+    _=Depends(require_providers("twilio", "livekit")),
 ):
     """Purchase a Twilio phone number and assign it to an agent."""
-    settings = get_settings()
-
-    if not settings.twilio_account_sid or not settings.twilio_auth_token:
-        raise HTTPException(status_code=500, detail="Twilio credentials not configured")
+    twilio_sid = get_key(db, "twilio_account_sid")
+    twilio_token = get_key(db, "twilio_auth_token")
 
     # Verify agent exists
     agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
@@ -111,7 +110,7 @@ async def buy_number(
 
     try:
         from twilio.rest import Client
-        client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+        client = Client(twilio_sid, twilio_token)
 
         incoming = client.incoming_phone_numbers.create(phone_number=request.phone_number)
     except ImportError:
@@ -177,9 +176,11 @@ async def buy_number(
 async def release_number(
     request: ReleaseNumberRequest,
     db: Session = Depends(get_db),
+    _=Depends(require_providers("twilio", "livekit")),
 ):
     """Release a Twilio phone number from an agent."""
-    settings = get_settings()
+    twilio_sid = get_key(db, "twilio_account_sid")
+    twilio_token = get_key(db, "twilio_auth_token")
 
     agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
     if not agent:
@@ -207,12 +208,6 @@ async def release_number(
                 except Exception as e:
                     logger.warning(f"Could not disassociate from Twilio trunk: {e}")
 
-        # Only call Twilio API if we have a SID (numbers assigned manually may not have one)
-        if agent.twilio_sid:
-            from twilio.rest import Client
-            client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
-            client.incoming_phone_numbers(agent.twilio_sid).delete()
-
         old_number = agent.phone_number
         agent.phone_number = None
         agent.twilio_sid = None
@@ -232,9 +227,11 @@ async def release_number(
 async def assign_existing_number(
     request: AssignNumberRequest,
     db: Session = Depends(get_db),
+    _=Depends(require_providers("twilio", "livekit")),
 ):
     """Assign an already-owned Twilio number to an agent (no purchase)."""
-    settings = get_settings()
+    tw_account_sid = get_key(db, "twilio_account_sid")
+    tw_auth_token = get_key(db, "twilio_auth_token")
 
     agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
     if not agent:
@@ -253,10 +250,10 @@ async def assign_existing_number(
 
     # Validate ownership by looking it up in Twilio account
     twilio_sid = None
-    if settings.twilio_account_sid and settings.twilio_auth_token:
+    if tw_account_sid and tw_auth_token:
         try:
             from twilio.rest import Client
-            client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+            client = Client(tw_account_sid, tw_auth_token)
             numbers = client.incoming_phone_numbers.list(phone_number=phone)
             if numbers:
                 twilio_sid = numbers[0].sid
@@ -302,14 +299,13 @@ async def assign_existing_number(
 
 
 @router.post("/numbers/provision")
-async def retry_provisioning(
+async def provision_pipeline(
     request: ReleaseNumberRequest,  # reuse schema — just needs agent_id
     db: Session = Depends(get_db),
+    _=Depends(require_providers("twilio", "livekit")),
 ):
-    """Retry LiveKit provisioning + Twilio webhook for an agent's existing number.
-    Use this if buy/assign succeeded but provisioning failed."""
-    settings = get_settings()
-
+    """Test and set up the full SIP pipeline for an agent's phone number.
+    Checks each step, provisions anything missing, and returns per-step results."""
     agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -321,27 +317,76 @@ async def retry_provisioning(
         associate_number_with_twilio_trunk,
         ensure_dispatch_rule,
         ensure_inbound_trunk,
+        ensure_outbound_trunk,
     )
 
-    errors = []
+    steps = []
 
+    # Step 1: LiveKit inbound trunk
     try:
-        await ensure_inbound_trunk(agent.phone_number)
-        await ensure_dispatch_rule()
-        await add_number_to_inbound_trunk(agent.phone_number)
+        trunk_id = await ensure_inbound_trunk(agent.phone_number)
+        steps.append({"step": "LiveKit Inbound Trunk", "status": "ok", "detail": f"Trunk ID: {trunk_id}"})
     except Exception as e:
-        errors.append(f"LiveKit provisioning: {e}")
+        steps.append({"step": "LiveKit Inbound Trunk", "status": "error", "detail": str(e)})
 
-    if agent.twilio_sid and settings.twilio_account_sid:
+    # Step 2: LiveKit dispatch rule
+    try:
+        rule_id = await ensure_dispatch_rule()
+        steps.append({"step": "LiveKit Dispatch Rule", "status": "ok", "detail": f"Rule ID: {rule_id}"})
+    except Exception as e:
+        steps.append({"step": "LiveKit Dispatch Rule", "status": "error", "detail": str(e)})
+
+    # Step 3: Add number to inbound trunk
+    try:
+        await add_number_to_inbound_trunk(agent.phone_number)
+        steps.append({"step": "Number on Inbound Trunk", "status": "ok", "detail": agent.phone_number})
+    except Exception as e:
+        steps.append({"step": "Number on Inbound Trunk", "status": "error", "detail": str(e)})
+
+    # Step 4: Twilio Elastic SIP Trunk association
+    # If twilio_sid is missing (manual assignment), try to resolve it from Twilio
+    phone_sid = agent.twilio_sid
+    if not phone_sid:
         try:
-            await associate_number_with_twilio_trunk(agent.twilio_sid)
+            tw_sid = get_key(db, "twilio_account_sid")
+            tw_token = get_key(db, "twilio_auth_token")
+            if tw_sid and tw_token:
+                from twilio.rest import Client
+                client = Client(tw_sid, tw_token)
+                numbers = client.incoming_phone_numbers.list(phone_number=agent.phone_number)
+                if numbers:
+                    phone_sid = numbers[0].sid
+                    agent.twilio_sid = phone_sid
+                    db.commit()
+                    logger.info(f"Resolved Twilio SID {phone_sid} for manually assigned number {agent.phone_number}")
         except Exception as e:
-            errors.append(f"Twilio SIP trunk: {e}")
+            logger.warning(f"Could not resolve Twilio SID for {agent.phone_number}: {e}")
 
-    if errors:
-        raise HTTPException(status_code=500, detail=f"Provisioning partially failed: {'; '.join(errors)}")
+    if phone_sid:
+        try:
+            await associate_number_with_twilio_trunk(phone_sid)
+            steps.append({"step": "Twilio SIP Trunk", "status": "ok", "detail": f"Number SID: {phone_sid}"})
+        except Exception as e:
+            steps.append({"step": "Twilio SIP Trunk", "status": "error", "detail": str(e)})
+    else:
+        steps.append({"step": "Twilio SIP Trunk", "status": "warning", "detail": "Number not found in Twilio account — verify it exists and matches your Twilio credentials"})
 
-    return {"status": "provisioned", "phone_number": agent.phone_number, "agent_id": agent.id}
+    # Step 5: LiveKit outbound trunk (for making outbound calls)
+    try:
+        outbound_id = await ensure_outbound_trunk()
+        steps.append({"step": "LiveKit Outbound Trunk", "status": "ok", "detail": f"Trunk ID: {outbound_id}"})
+    except Exception as e:
+        steps.append({"step": "LiveKit Outbound Trunk", "status": "error", "detail": str(e)})
+
+    all_ok = all(s["status"] == "ok" for s in steps)
+    has_errors = any(s["status"] == "error" for s in steps)
+
+    return {
+        "status": "ready" if all_ok else ("partial" if not has_errors else "error"),
+        "phone_number": agent.phone_number,
+        "agent_id": agent.id,
+        "steps": steps,
+    }
 
 
 # --- Utility ---

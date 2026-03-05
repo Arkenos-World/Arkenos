@@ -12,17 +12,10 @@ LiveKit handles real-time audio between the browser, voice agent, and phone call
 1. Create an account at [LiveKit Cloud](https://cloud.livekit.io)
 2. Create a new project
 3. Copy your **API Key**, **API Secret**, and **WebSocket URL**
-4. Add credentials to all three `.env` files:
-
-```bash
-# backend/.env, frontend/.env.local, and agent/.env
-LIVEKIT_API_KEY=your_api_key
-LIVEKIT_API_SECRET=your_api_secret
-LIVEKIT_URL=wss://your-project.livekit.cloud
-```
+4. Add credentials via the **Arkenos Dashboard** at **Settings > API Keys > LiveKit**
 
 <Note>
-The same LiveKit credentials must match across all three services. Mismatched credentials are the most common cause of agent connection issues.
+LiveKit credentials are stored encrypted in the database and shared across all services automatically. The agent fetches them from the backend on startup — no `.env` files needed for LiveKit.
 </Note>
 
 ## How It Works
@@ -41,9 +34,10 @@ After adding credentials, verify everything works:
 4. You should hear the agent greet you within a few seconds
 
 If the call immediately disconnects, check:
-- All three `.env` files have **identical** `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET`
+- LiveKit credentials are configured at **Settings > API Keys** and the **Test Connection** button shows success
 - The `LIVEKIT_URL` format is correct (`wss://` prefix)
 - The agent terminal shows `Worker registered` on startup
+- The agent terminal shows `Injected N keys from backend dashboard` on startup
 
 ## Documentation
 

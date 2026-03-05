@@ -24,13 +24,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const wsUrl = process.env.LIVEKIT_URL;
+    // Fetch LiveKit keys from backend dashboard (DB → env fallback)
+    const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    let apiKey = process.env.LIVEKIT_API_KEY;
+    let apiSecret = process.env.LIVEKIT_API_SECRET;
+    let wsUrl = process.env.LIVEKIT_URL;
+
+    if (!apiKey || !apiSecret || !wsUrl) {
+      try {
+        const keysRes = await fetch(`${backendUrl}/settings/keys/agent`);
+        if (keysRes.ok) {
+          const keys = await keysRes.json();
+          apiKey = apiKey || keys.livekit_api_key;
+          apiSecret = apiSecret || keys.livekit_api_secret;
+          wsUrl = wsUrl || keys.livekit_url;
+        }
+      } catch (err) {
+        console.error("Failed to fetch keys from backend:", err);
+      }
+    }
 
     if (!apiKey || !apiSecret || !wsUrl) {
       return NextResponse.json(
-        { error: "LiveKit credentials not configured" },
+        { error: "LiveKit credentials not configured. Add them at Settings > API Keys." },
         { status: 500 }
       );
     }
@@ -100,21 +116,21 @@ export async function POST(request: NextRequest) {
 
     const token = await at.toJwt();
 
-    // Create session in backend for tracking
-    try {
-      const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-      await fetch(`${apiUrl}/sessions/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          room_name: roomName,
-          user_id: userId,
-          agent_id: agentId && agentId !== "default" ? agentId : null,
-        }),
-      });
-    } catch (sessionError) {
-      console.error("Failed to create session record:", sessionError);
-      // Don't fail the token request if session creation fails
+    // Create session in backend for tracking (skip for outbound calls — they already have a session)
+    if (!roomName.startsWith("outbound-")) {
+      try {
+        await fetch(`${backendUrl}/sessions/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room_name: roomName,
+            user_id: userId,
+            agent_id: agentId && agentId !== "default" ? agentId : null,
+          }),
+        });
+      } catch (sessionError) {
+        console.error("Failed to create session record:", sessionError);
+      }
     }
 
     return NextResponse.json({

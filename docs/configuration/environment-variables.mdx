@@ -5,25 +5,20 @@ description: Complete reference for all configuration variables across services.
 
 # Environment Variables
 
-Arkenos uses three `.env` files, one per service.
+Arkenos manages most API keys through the **Settings > API Keys** dashboard page (encrypted in the database). Only a few infrastructure variables need `.env` files.
 
 ## Backend (`backend/.env`)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `POSTGRES_PASSWORD` | Yes | PostgreSQL password (used by both PostgreSQL and backend to build `DATABASE_URL`) |
+| `POSTGRES_PASSWORD` | Yes | PostgreSQL password (used to build `DATABASE_URL`) |
 | `DATABASE_URL` | No | Full PostgreSQL connection string (overrides auto-built URL if set) |
-| `LIVEKIT_API_KEY` | Yes | From [LiveKit Cloud](https://cloud.livekit.io) |
-| `LIVEKIT_API_SECRET` | Yes | From [LiveKit Cloud](https://cloud.livekit.io) |
-| `LIVEKIT_URL` | Yes | LiveKit server URL (e.g., `wss://your-project.livekit.cloud`) |
-| `RESEMBLE_API_KEY` | Yes | From [Resemble AI](https://app.resemble.ai/account/api) |
-| `TWILIO_ACCOUNT_SID` | For telephony | From [Twilio Console](https://console.twilio.com) — required for buying/releasing numbers and auto-provisioning SIP trunks |
-| `TWILIO_AUTH_TOKEN` | For telephony | From [Twilio Console](https://console.twilio.com) |
-| `TWILIO_SIP_DOMAIN` | No | SIP domain override (auto-derived from `LIVEKIT_URL` if not set, e.g. `xyz.sip.livekit.cloud`) |
-| `LIVEKIT_SIP_TRUNK_ID` | No | Outbound SIP trunk ID fallback (auto-provisioned on first outbound call if not set) |
-| `FRONTEND_URL` | No | CORS origin (default: `http://localhost:3000`) |
-| `PORT` | No | Server port (default: `8000`) |
-| `DEBUG` | No | Debug mode (default: `true`) |
+
+All provider API keys (LiveKit, Google, Resemble, Twilio, Deepgram, AssemblyAI, ElevenLabs) are configured via the dashboard and stored encrypted in the database. You can still set them in `.env` as a fallback — the dashboard takes priority.
+
+<Note>
+`POSTGRES_PASSWORD` is the only truly required environment variable for the backend. Everything else is managed through the dashboard or has sensible defaults.
+</Note>
 
 ## Frontend (`frontend/.env.local`)
 
@@ -32,29 +27,46 @@ Arkenos uses three `.env` files, one per service.
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes | From [Clerk](https://clerk.com) |
 | `CLERK_SECRET_KEY` | Yes | From [Clerk](https://clerk.com) |
 | `NEXT_PUBLIC_API_URL` | Yes | Backend API URL (e.g., `http://localhost:8000/api`) |
-| `LIVEKIT_API_KEY` | Yes | From [LiveKit Cloud](https://cloud.livekit.io) |
-| `LIVEKIT_API_SECRET` | Yes | From [LiveKit Cloud](https://cloud.livekit.io) |
-| `LIVEKIT_URL` | Yes | LiveKit server URL |
-| `GOOGLE_API_KEY` | No | For LLM model listing in agent config UI |
-| `DEEPGRAM_API_KEY` | No | For STT model listing in agent config UI |
-| `RESEMBLE_API_KEY` | No | For TTS voice listing in agent config UI |
-| `RESEMBLE_PROJECT_UUID` | No | Resemble project UUID |
 
-## Agent (`agent/.env`)
+<Note>
+LiveKit, Google, Resemble, and Deepgram keys are no longer needed in the frontend `.env`. The frontend fetches provider data through the backend API, which resolves keys from the dashboard.
+</Note>
+
+## Agent
+
+The agent requires **no `.env` file**. On startup, it calls the backend's `/api/settings/keys/agent` endpoint and injects all keys (including LiveKit) into the process environment before connecting.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `LIVEKIT_API_KEY` | Yes | From [LiveKit Cloud](https://cloud.livekit.io) |
-| `LIVEKIT_API_SECRET` | Yes | From [LiveKit Cloud](https://cloud.livekit.io) |
-| `LIVEKIT_URL` | Yes | LiveKit server URL |
-| `GOOGLE_API_KEY` | Yes | From [Google AI Studio](https://aistudio.google.com/app/apikey) — for Gemini LLM |
-| `RESEMBLE_API_KEY` | Yes | From [Resemble AI](https://app.resemble.ai) |
-| `RESEMBLE_PROJECT_UUID` | Yes | Resemble project UUID |
-| `RESEMBLE_VOICE_UUID` | Yes | Default voice UUID (fallback when agent has no voice configured) |
-| `ASSEMBLYAI_API_KEY` | For AssemblyAI STT | From [AssemblyAI](https://www.assemblyai.com) |
-| `ELEVENLABS_API_KEY` | For ElevenLabs STT | From [ElevenLabs](https://elevenlabs.io) |
-| `DEEPGRAM_API_KEY` | For Deepgram STT | From [Deepgram](https://console.deepgram.com) |
+| `BACKEND_API_URL` | No | Defaults to `http://localhost:8000/api`. Only set this if the backend runs on a different host/port. |
 
 <Note>
-You need at least one STT provider key in the agent `.env`. AssemblyAI is the default.
+All provider keys — LiveKit, Google, Resemble, STT providers — are fetched from the backend dashboard automatically. No `.env` file needed.
 </Note>
+
+## Dashboard-Managed Keys
+
+These keys are configured at **Settings > API Keys** in the dashboard. They are encrypted with AES-256-GCM and stored in the database.
+
+| Provider | Keys | Purpose |
+|----------|------|---------|
+| LiveKit | API Key, API Secret, Server URL | Real-time voice infrastructure |
+| Google | API Key | Gemini LLM for conversational intelligence |
+| Resemble AI | API Key | Text-to-speech voice synthesis |
+| Twilio | Account SID, Auth Token | Phone number management and SIP telephony |
+| AssemblyAI | API Key | Speech-to-text (STT option) |
+| Deepgram | API Key | Speech-to-text (STT option) |
+| ElevenLabs | API Key | Speech-to-text (STT option) |
+
+## Auto-Provisioned (No Config Needed)
+
+These were previously environment variables but are now fully automated:
+
+| Old Variable | What Happens Now |
+|-------------|-----------------|
+| `TWILIO_SIP_DOMAIN` | Auto-derived from `LIVEKIT_URL` |
+| `LIVEKIT_SIP_TRUNK_ID` | Auto-provisioned on first outbound call |
+| `ENCRYPTION_KEY` | Auto-generated and stored in database on first boot |
+| `FRONTEND_URL` | Defaults to `http://localhost:3000` |
+| `PORT` | Defaults to `8000` |
+| `DEBUG` | Defaults to `true` |

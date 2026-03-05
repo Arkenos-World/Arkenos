@@ -13,8 +13,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.database import get_db
+from app.services.config_resolver import get_key, require_providers
 from app.models import Agent, AgentFile, CodingAgentConversation, CodingAgentMessage
 from app.schemas import (
     CodingAgentRequest,
@@ -256,12 +256,13 @@ async def chat_stream(
     agent_id: str = Path(...),
     x_user_id: str = Header(...),
     db: Session = Depends(get_db),
+    _=Depends(require_providers("google")),
     _agent: Agent = Depends(verify_agent_ownership),
 ):
     """Stream coding agent responses with Cursor-like rich events."""
 
     request.agent_id = agent_id
-    settings = get_settings()
+    google_api_key = get_key(db, "google_api_key")
 
     async def event_stream():
         full_text = ""
@@ -328,7 +329,7 @@ async def chat_stream(
 
             import google.generativeai as genai
 
-            genai.configure(api_key=settings.google_api_key)
+            genai.configure(api_key=google_api_key)
             model = genai.GenerativeModel(
                 CODING_MODEL,
                 system_instruction=SYSTEM_PROMPT,

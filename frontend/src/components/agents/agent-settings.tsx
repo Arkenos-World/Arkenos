@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WebhookConfig, WebhookConfigState } from "./webhook-config";
 import { FunctionConfig, FunctionDefinition } from "./function-config";
 import { OutboundCallModal } from "./outbound-call-modal";
+import { useKeyStatus } from "@/hooks/use-key-status";
 import {
     BrainCircuit,
     AudioLines,
@@ -174,6 +175,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingCall, setIsTestingCall] = useState(false);
     const [isOutboundCallOpen, setIsOutboundCallOpen] = useState(false);
+    const { allConfigured, isProviderReady } = useKeyStatus();
 
     // Form state
     const [name, setName] = useState(agent.name);
@@ -269,6 +271,8 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [buyingNumber, setBuyingNumber] = useState<string | null>(null);
     const [isAssigning, setIsAssigning] = useState(false);
     const [isReleasing, setIsReleasing] = useState(false);
+    const [isProvisioning, setIsProvisioning] = useState(false);
+    const [pipelineResult, setPipelineResult] = useState<{ status: string; steps: { step: string; status: string; detail: string }[] } | null>(null);
 
     const handleSearchNumbers = useCallback(async () => {
         setIsSearching(true);
@@ -347,6 +351,33 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             toast.error("Failed to release number");
         } finally {
             setIsReleasing(false);
+        }
+    }, [apiUrl, agent.id]);
+
+    const handleTestPipeline = useCallback(async () => {
+        setIsProvisioning(true);
+        setPipelineResult(null);
+        try {
+            const res = await fetch(`${apiUrl}/telephony/numbers/provision`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ agent_id: agent.id }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.detail || "Pipeline check failed");
+                return;
+            }
+            setPipelineResult(data);
+            if (data.status === "ready") {
+                toast.success("Pipeline is fully configured!");
+            } else {
+                toast.warning("Pipeline has issues — see details below");
+            }
+        } catch {
+            toast.error("Failed to check pipeline");
+        } finally {
+            setIsProvisioning(false);
         }
     }, [apiUrl, agent.id]);
 
@@ -449,7 +480,14 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsOutboundCallOpen(true)}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setIsOutboundCallOpen(true)}
+                        disabled={!allConfigured || !isProviderReady("twilio")}
+                        title={!allConfigured ? "Configure API keys first" : !isProviderReady("twilio") ? "Configure Twilio keys first" : undefined}
+                    >
                         <PhoneOutgoingIcon className="h-4 w-4" />
                         Make a Call
                     </Button>
@@ -457,7 +495,14 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                         <CodeIcon className="h-4 w-4" />
                         Code
                     </Button>
-                    <Button variant="outline" size="sm" className="gap-2" onClick={handleTestCall}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={handleTestCall}
+                        disabled={!allConfigured}
+                        title={!allConfigured ? "Configure API keys first" : undefined}
+                    >
                         <PlayIcon className="h-4 w-4" />
                         Test
                     </Button>
@@ -814,6 +859,65 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             ) : (
                                 <div className="p-4 rounded-md border border-dashed border-border text-center text-sm text-muted-foreground">
                                     No phone number assigned. Assign an existing Twilio number or search for a new one below.
+                                </div>
+                            )}
+
+                            {/* Pipeline Test */}
+                            {phoneNumber && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium">SIP Pipeline</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Test if LiveKit + Twilio SIP routing is correctly configured for this number.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleTestPipeline}
+                                            disabled={isProvisioning}
+                                        >
+                                            {isProvisioning ? (
+                                                <>
+                                                    <Settings2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                                    Checking...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />
+                                                    Test & Setup Pipeline
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                    {pipelineResult && (
+                                        pipelineResult.status === "ready" ? (
+                                            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-emerald-500/10 text-emerald-600 text-sm">
+                                                <ShieldCheck className="h-4 w-4" />
+                                                <span className="font-medium">Pipeline ready</span>
+                                                <span className="text-xs opacity-70">— all {pipelineResult.steps.length} steps passed</span>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1.5 text-sm">
+                                                {pipelineResult.steps.map((s, i) => (
+                                                    <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-md ${
+                                                        s.status === "ok"
+                                                            ? "bg-emerald-500/10 text-emerald-600"
+                                                            : s.status === "warning"
+                                                            ? "bg-amber-500/10 text-amber-600"
+                                                            : "bg-destructive/10 text-destructive"
+                                                    }`}>
+                                                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                                            s.status === "ok" ? "bg-emerald-500" : s.status === "warning" ? "bg-amber-500" : "bg-destructive"
+                                                        }`} />
+                                                        <span className="font-medium">{s.step}</span>
+                                                        <span className="text-xs opacity-70 ml-auto truncate max-w-[200px]">{s.detail}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )
+                                    )}
                                 </div>
                             )}
 

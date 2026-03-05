@@ -8,7 +8,7 @@ import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { MicrophoneIcon, PhoneIcon } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
-import type { VoiceSession, SessionsPage } from "@/lib/api";
+import type { VoiceSession, SessionsPage, KeyStatusResponse } from "@/lib/api";
 
 // ─── Session label resolver ──────────────────────────────────────────────────
 function resolveSessionLabel(session: { agent_name?: string | null; room_name: string; outbound_phone_number?: string | null }): {
@@ -37,7 +37,12 @@ export default async function DashboardPage() {
     const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
     const headers = { 'x-user-id': userId };
 
-    const recentRes = await fetch(`${apiUrl}/sessions/?limit=5`, { headers, cache: 'no-store' });
+    const [recentRes, keyStatusRes] = await Promise.all([
+        fetch(`${apiUrl}/sessions/?limit=5`, { headers, cache: 'no-store' }),
+        fetch(`${apiUrl}/settings/keys`, { cache: 'no-store' }).catch(() => null),
+    ]);
+    const keyStatus: KeyStatusResponse | null = keyStatusRes?.ok ? await keyStatusRes.json().catch(() => null) : null;
+    const allConfigured = keyStatus?.all_required_set ?? false;
 
     const recentData: SessionsPage | null = recentRes.ok ? await recentRes.json().catch(() => null) : null;
     const recentSessions: VoiceSession[] = recentData?.sessions ?? [];
@@ -124,12 +129,19 @@ export default async function DashboardPage() {
 
                 {/* Quick Actions */}
                 <div className="flex gap-4">
-                    <Link href="/preview">
-                        <Button size="lg" className="gap-2">
+                    {allConfigured ? (
+                        <Link href="/preview">
+                            <Button size="lg" className="gap-2">
+                                <MicrophoneIcon className="h-5 w-5" />
+                                Start Voice Session
+                            </Button>
+                        </Link>
+                    ) : (
+                        <Button size="lg" className="gap-2" disabled title="Configure API keys first">
                             <MicrophoneIcon className="h-5 w-5" />
                             Start Voice Session
                         </Button>
-                    </Link>
+                    )}
                 </div>
             </div>
         </DashboardLayout>

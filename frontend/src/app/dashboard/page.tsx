@@ -128,22 +128,6 @@ export default async function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {/* Quick Actions */}
-                <div className="flex gap-4">
-                    {allConfigured ? (
-                        <Link href="/preview">
-                            <Button size="lg" className="gap-2">
-                                <MicrophoneIcon className="h-5 w-5" />
-                                Start Voice Session
-                            </Button>
-                        </Link>
-                    ) : (
-                        <Button size="lg" className="gap-2" disabled title="Configure API keys first">
-                            <MicrophoneIcon className="h-5 w-5" />
-                            Start Voice Session
-                        </Button>
-                    )}
-                </div>
             </div>
         </DashboardLayout>
     );

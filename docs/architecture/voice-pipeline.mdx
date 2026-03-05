@@ -10,13 +10,25 @@ The voice pipeline is the core of Arkenos — it processes audio in real-time be
 ## Pipeline Flow
 
 ```
-Caller Audio --> STT --> Transcript --> LLM --> Response --> TTS --> Agent Audio
-                                        |
-                                        v
-                              Function Tool Execution
-                                        |
-                                        v
-                              Webhook Integration
++-------------+     +-----+     +-----------+     +-------+     +----------+     +-----+     +-------------+
+| Caller      |---->| VAD |---->| STT       |---->| LLM   |---->| Response |---->| TTS |---->| Agent Audio |
+| Audio       |     |     |     | (speech   |     | (text  |     | Text     |     |     |     | (to caller) |
+| (from mic)  |     |     |     |  to text) |     |  gen)  |     |          |     |     |     |             |
++-------------+     +-----+     +-----------+     +---+---+     +----------+     +-----+     +-------------+
+                                                      |
+                                                      | function call?
+                                                      v
+                                              +----------------+
+                                              | HTTP endpoint  |
+                                              | (your API)     |
+                                              +-------+--------+
+                                                      |
+                                                      | result fed back to LLM
+                                                      v
+                                              +----------------+
+                                              | Webhooks       |
+                                              | (pre/post call)|
+                                              +----------------+
 ```
 
 ## Components

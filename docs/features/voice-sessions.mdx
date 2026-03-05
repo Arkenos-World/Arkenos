@@ -10,8 +10,8 @@ A voice session represents a single call between a user and an agent. Sessions t
 ## Session Lifecycle
 
 ```
-CREATED → ACTIVE → COMPLETED
-                 → FAILED
+CREATED ---> ACTIVE ---> COMPLETED (triggers call analysis)
+                    +--> FAILED
 ```
 
 1. **CREATED**: Session record created when a token is generated

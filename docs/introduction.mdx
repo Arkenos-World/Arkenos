@@ -5,19 +5,22 @@ description: Composable orchestration layer for enterprise-grade conversational 
 
 # What is Arkenos?
 
-Arkenos is an open-source orchestration layer for enterprise-grade conversational AI. Build, deploy, and manage production voice agents with runtime compute, persistent memory, and MCP tool integration. Connect your own STT, LLM, and TTS providers, configure agents with custom system prompts and tools, and handle inbound/outbound phone calls — all with real-time transcription, cost tracking, and post-call intelligence.
+Arkenos is an open-source orchestration layer for enterprise-grade conversational AI. Build, deploy, and manage production voice agents — configure them from the dashboard or write custom Python agents with a built-in coding assistant. Connect your own STT, LLM, and TTS providers, handle inbound/outbound phone calls with auto-provisioned SIP infrastructure, and get real-time transcription, cost tracking, and post-call intelligence out of the box.
 
 ## Key Features
 
 <CardGroup cols={2}>
   <Card title="Agent Configuration" icon="user-gear" iconType="solid">
-    Create voice agents with custom system prompts, STT providers, voice selection, function calling, and webhooks.
+    Create voice agents with custom system prompts, STT providers, voice selection, function calling, and webhooks — all from the dashboard.
+  </Card>
+  <Card title="Custom Agents" icon="code" iconType="solid">
+    Write custom Python agents with full code control. Built-in coding assistant helps you write, edit, and deploy agent code from the browser.
   </Card>
   <Card title="Voice Pipeline" icon="wave-square" iconType="solid">
-    Real-time STT → LLM → TTS pipeline powered by LiveKit with sub-second latency.
+    Real-time STT → LLM → TTS pipeline powered by LiveKit with sub-second latency and Silero VAD for natural turn-taking.
   </Card>
   <Card title="Telephony" icon="phone-volume" iconType="solid">
-    Inbound and outbound phone calls via Twilio SIP trunks. Buy, assign, and manage numbers from the dashboard.
+    Inbound and outbound phone calls via Twilio SIP trunks. Buy, assign, and manage numbers — SIP infrastructure is auto-provisioned.
   </Card>
   <Card title="Call Intelligence" icon="magnifying-glass-chart" iconType="solid">
     AI-generated summaries, sentiment analysis, topic extraction, and action items after every call.
@@ -25,8 +28,11 @@ Arkenos is an open-source orchestration layer for enterprise-grade conversationa
   <Card title="Cost Tracking" icon="money-bill-trend-up" iconType="solid">
     Per-session cost breakdown across STT, LLM, and TTS. Aggregation by provider, agent, and time period.
   </Card>
-  <Card title="Dashboard" icon="chart-pie" iconType="solid">
-    Full web dashboard with analytics, call logs, transcripts, and agent management.
+  <Card title="Dashboard-Managed Keys" icon="key" iconType="solid">
+    All provider API keys configured via the dashboard and encrypted with AES-256-GCM. No `.env` files for provider credentials.
+  </Card>
+  <Card title="Full Dashboard" icon="chart-pie" iconType="solid">
+    Web dashboard with analytics, call logs, live transcripts, agent management, phone number provisioning, and API key settings.
   </Card>
 </CardGroup>
 
@@ -41,16 +47,16 @@ Arkenos is an open-source orchestration layer for enterprise-grade conversationa
 | STT | AssemblyAI, ElevenLabs, Deepgram |
 | LLM | Google Gemini |
 | TTS | Resemble AI |
-| Telephony | Twilio |
+| Telephony | Twilio (auto-provisioned SIP) |
 | Real-time | LiveKit |
 
 ## Architecture
 
 ```
 Arkenos/
-├── frontend/    # Next.js 16 web dashboard
-├── backend/     # FastAPI REST API
-├── agent/       # Python LiveKit voice agent
+├── frontend/       # Next.js 16 dashboard
+├── backend/        # FastAPI REST API + encrypted key store
+├── agent/          # Python voice agent (LiveKit Agents SDK)
 └── docker-compose.yml
 ```
 
@@ -58,10 +64,14 @@ Four services run together:
 
 | Service | Description | URL |
 |---------|-------------|-----|
-| Frontend | Next.js dashboard | http://localhost:3000 |
-| Backend | FastAPI API server | http://localhost:8000 |
+| Frontend | Next.js dashboard with Clerk auth | http://localhost:3000 |
+| Backend | FastAPI API server + encrypted key store | http://localhost:8000 |
 | Agent | LiveKit voice agent worker | Connected to LiveKit Cloud |
-| PostgreSQL | Database | localhost:5432 |
+| PostgreSQL | Database (agents, sessions, keys, costs) | localhost:5432 |
+
+<Note>
+The agent requires **no `.env` file** — it fetches all API keys from the backend dashboard on startup. Only the backend needs a Postgres password, and the frontend needs Clerk keys.
+</Note>
 
 ## Next Steps
 

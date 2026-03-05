@@ -51,6 +51,17 @@ This starts 4 services:
 
 Visit [http://localhost:3000](http://localhost:3000) and sign in with Clerk.
 
+## 5. Configure API Keys
+
+Go to **Settings → API Keys** in the dashboard and add your provider credentials:
+
+1. **LiveKit** — API Key, API Secret, Server URL (from [LiveKit Cloud](https://cloud.livekit.io))
+2. **Google** — API Key (for Gemini LLM)
+3. **Resemble AI** — API Key (for TTS)
+4. **STT Provider** — At least one of: AssemblyAI, ElevenLabs, or Deepgram
+
+Use the **Test Connection** button on each card to verify. The agent service will pick up the keys automatically on its next restart.
+
 ## Useful Commands
 
 ```bash
@@ -78,5 +89,11 @@ docker-compose up -d --build backend
   </Card>
   <Card title="LiveKit Setup" icon="signal" href="/configuration/livekit">
     Get your LiveKit Cloud credentials.
+  </Card>
+  <Card title="Telephony Setup" icon="phone" href="/configuration/telephony">
+    Connect phone numbers for inbound and outbound calls.
+  </Card>
+  <Card title="Agent Configuration" icon="user-gear" href="/features/agents">
+    Create and configure your first voice agent.
   </Card>
 </CardGroup>

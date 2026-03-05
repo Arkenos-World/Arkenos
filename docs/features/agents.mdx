@@ -7,6 +7,30 @@ description: Create and configure voice agents with custom prompts, voices, and 
 
 Agents are the core of Arkenos. Each agent defines a voice persona with its own system prompt, voice, STT provider, functions, and webhooks.
 
+## Agent Modes
+
+Arkenos supports two agent modes:
+
+### Standard Agents
+
+Dashboard-configured agents that use the shared voice engine. No code required — configure everything through the UI:
+
+- System prompt and greeting message
+- STT provider selection
+- Voice selection (Resemble AI)
+- Function calling definitions
+- Pre/post-call webhooks
+
+### Custom Agents
+
+Write your own Python agent code for full control over the voice pipeline. Custom agents:
+
+- Have a built-in code editor in the dashboard
+- Include an AI coding assistant (powered by Gemini) to help write and edit code
+- Are built into Docker containers and deployed automatically
+- Track file versions for rollback
+- Can use any libraries or custom logic beyond what standard agents offer
+
 ## Creating an Agent
 
 Navigate to **Dashboard → Agents → Create Agent** or use the API:
@@ -61,4 +85,4 @@ curl http://localhost:8000/api/resemble/voices?page=1&page_size=10
 
 ## Testing
 
-Use the **Preview** button on any agent to start a browser-based voice session without a phone call. This connects directly via LiveKit WebRTC.
+Use the **Preview** button on any agent to start a browser-based voice session without a phone call. This connects directly via LiveKit WebRTC — no phone number or Twilio setup needed.

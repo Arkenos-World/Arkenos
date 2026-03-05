@@ -48,10 +48,10 @@ curl -X POST http://localhost:8000/api/sessions/{session_id}/transfer \
 
 ## Session Tracking
 
-Transfer details are stored on the session:
+Transfer details are stored on the voice session record:
 
 | Field | Description |
 |-------|-------------|
-| `transfer_target` | Destination phone number |
-| `transfer_type` | `cold` or `warm` |
-| `transfer_status` | Current transfer state |
+| `transferred_to` | Destination phone number |
+| `transfer_type` | `WARM` or `COLD` |
+| `transfer_timestamp` | When the transfer occurred |

@@ -10,32 +10,46 @@ Arkenos is composed of four services that work together to provide a complete vo
 ## System Diagram
 
 ```
-+-----------------------------------------------------------+
-|                        Browser                             |
-|                                                            |
-|   +----------------+           +------------------------+  |
-|   |  Dashboard     |   REST    | Voice Session (WebRTC) |  |
-|   |  (Next.js)     |--------->| LiveKit Client SDK      |  |
-|   +-------+--------+           +-----------+------------+  |
-+-----------|--------------------------------|---------------+
-            | HTTP                           | WebRTC
-            v                                v
-+--------------------+          +----------------------------+
-|  Backend API       |          |  LiveKit Cloud              |
-|  (FastAPI)         |<-------->|  (Real-time media)          |
-|                    |   REST   |                             |
-|  +--------------+  |          |  +------------------------+ |
-|  | PostgreSQL   |  |          |  | Voice Agent Worker     | |
-|  |              |  |          |  | (Python)               | |
-|  +--------------+  |          |  +------------------------+ |
-+--------------------+          +-------------+---------------+
-                                              |
-                                  +-----------+-----------+
-                                  |           |           |
-                                  v           v           v
-                               +-----+   +-------+   +-----+
-                               | STT |   |  LLM  |   | TTS |
-                               +-----+   +-------+   +-----+
++------------------------------------------------------------------+
+|                           Browser                                 |
+|                                                                   |
+|   +------------------+                +------------------------+  |
+|   | Dashboard        |    REST API    | Voice Session (WebRTC) |  |
+|   | (Next.js/Clerk)  |-------------->|  LiveKit Client SDK     |  |
+|   +--------+---------+                +-----------+------------+  |
++------------|--------------------------------------|---------------+
+             | HTTP                                 | WebRTC
+             v                                      v
++------------------------+            +-----------------------------+
+| Backend API (FastAPI)  |            | LiveKit Cloud               |
+|                        |   REST     |                             |
+| +--------------------+ |<---------->| +-------------------------+ |
+| | PostgreSQL         | |  webhooks  | | Standard Agent Worker   | |
+| | - agents, sessions | |            | | (shared voice engine)   | |
+| | - encrypted keys   | |            | +-------------------------+ |
+| | - costs, files     | |            |                             |
+| +--------------------+ |            | +-------------------------+ |
+|                        |            | | Custom Agent Containers | |
+| +--------------------+ |            | | (user Python code)      | |
+| | Telephony          | |            | +-------------------------+ |
+| | Provisioning       | |            +-------------+---------------+
+| +--------------------+ |                          |
++----------+-------------+              +-----------+-----------+
+           |                            |           |           |
+           v                            v           v           v
++-------------------+               +-----+   +-------+   +-----+
+| Twilio            |               | STT |   |  LLM  |   | TTS |
+| - SIP trunks      |               +-----+   +-------+   +-----+
+| - Phone numbers   |
++-------------------+
+```
+
+### Data Flow
+
+```
+Browser Call:   Dashboard --> LiveKit Token --> WebRTC --> Agent --> STT/LLM/TTS
+Inbound Call:   Phone --> Twilio --> SIP Trunk --> LiveKit --> Agent --> STT/LLM/TTS
+Outbound Call:  Dashboard --> Backend --> LiveKit SIP --> Twilio --> Phone
 ```
 
 ## Services
@@ -45,35 +59,41 @@ Arkenos is composed of four services that work together to provide a complete vo
 The web dashboard built with Next.js 16, React 19, Tailwind CSS, and shadcn/ui. Handles:
 
 - User authentication via Clerk
-- Agent configuration UI
+- Agent configuration and management
+- Custom agent code editor with AI coding assistant
 - Voice session interface (LiveKit WebRTC)
+- Phone number search, purchase, and assignment
 - Call logs, analytics, and cost dashboards
-- LiveKit token generation (server-side API route)
+- API key management (Settings page)
 
 ### Backend (FastAPI)
 
 The REST API server handling all business logic:
 
-- Agent CRUD operations
-- Session management and transcripts
-- Cost tracking and aggregation
-- Call analysis (AI-generated summaries, sentiment)
-- Telephony management (Twilio number provisioning)
+- Agent CRUD (standard and custom modes)
+- Encrypted API key storage (AES-256-GCM) and resolution
+- Session management, transcripts, and cost tracking
+- Call analysis (AI-generated summaries, sentiment, topics)
+- Telephony provisioning (auto-creates SIP trunks, dispatch rules)
+- Coding agent service (Gemini-powered code assistant)
 - LiveKit webhook processing
+- Key injection endpoint for the agent (`/api/settings/keys/agent`)
 
 ### Voice Agent (Python)
 
 A LiveKit Agents SDK worker that runs the real-time voice pipeline:
 
-- Joins LiveKit rooms when dispatched
-- Fetches agent configuration from the backend API
-- Runs the STT → LLM → TTS pipeline
-- Executes function calls and reports usage events
-- Streams transcripts back to the backend
+- Fetches all API keys from the backend on startup (zero `.env` config)
+- Joins LiveKit rooms when dispatched (browser or SIP calls)
+- Fetches agent configuration and dynamically loads the right persona
+- Runs the STT → LLM → TTS pipeline with Silero VAD
+- Executes function calls and reports usage/cost events
+- Streams transcripts back to the backend in real-time
+- Handles both standard (dashboard-configured) and custom (user-code) agents
 
 ### PostgreSQL
 
-Stores all persistent data: users, agents, sessions, transcripts, and usage events.
+Stores all persistent data: users, agents (with config JSON), sessions, transcripts, usage events, encrypted API keys (`instance_settings`), custom agent files, and coding agent conversations.
 
 ## Communication Patterns
 
@@ -83,10 +103,14 @@ Stores all persistent data: users, agents, sessions, transcripts, and usage even
 | Browser | LiveKit | WebRTC | Real-time audio |
 | Frontend (server) | Backend | HTTP | API calls (SSR) |
 | Frontend (client) | Backend | HTTP | API calls (browser) |
+| Agent | Backend | HTTP | Key fetch, config, transcripts, usage |
 | Agent | LiveKit | WebSocket | Audio pipeline |
-| Agent | Backend | HTTP | Config, transcripts, usage |
+| Agent | STT/LLM/TTS | HTTPS | Provider API calls |
 | Backend | PostgreSQL | TCP | Database queries |
+| Backend | Twilio | HTTPS | Number management, SIP provisioning |
+| Backend | LiveKit | HTTPS | Trunk/rule management, room creation |
 | LiveKit | Backend | HTTP | Webhook events |
+| Twilio | LiveKit | SIP | Inbound/outbound phone calls |
 
 ## Docker Networking
 

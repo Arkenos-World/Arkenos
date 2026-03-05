@@ -196,7 +196,18 @@ async def create_session(
     if user is None:
         # Fall back to Clerk ID lookup / creation
         user = get_or_create_user(db, incoming_user_id)
-    
+
+    # If a stale session with this room_name exists, mark it as completed
+    existing = db.query(VoiceSession).filter(
+        VoiceSession.room_name == session_data.room_name
+    ).first()
+    if existing:
+        existing.status = SessionStatus.COMPLETED
+        existing.ended_at = existing.ended_at or datetime.utcnow()
+        db.commit()
+        # Append a suffix to make the new room_name unique
+        session_data.room_name = f"{session_data.room_name}-{uuid.uuid4().hex[:6]}"
+
     session = VoiceSession(
         id=str(uuid.uuid4()),
         room_name=session_data.room_name,

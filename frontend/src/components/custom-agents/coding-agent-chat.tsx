@@ -9,6 +9,7 @@ import {
     FileCode,
     Check,
     Sparkles,
+    Wand2,
     Copy,
     CheckCheck,
     FolderOpen,
@@ -116,7 +117,7 @@ function formatInline(text: string) {
             return (
                 <code
                     key={i}
-                    className="px-1 py-0.5 rounded bg-white/5 text-[13px] font-mono text-violet-300"
+                    className="px-1.5 py-0.5 rounded bg-muted text-[12px] font-mono text-violet-400"
                 >
                     {part.slice(1, -1)}
                 </code>
@@ -134,7 +135,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
         setTimeout(() => setCopied(false), 2000);
     };
     return (
-        <div className="my-2 rounded-lg border border-white/[0.06] bg-[#0d1117] overflow-hidden">
+        <div className="my-2 rounded-lg border bg-[#0d1117] overflow-hidden">
             <div className="flex items-center justify-between px-3 py-1.5 bg-white/[0.03] border-b border-white/[0.06]">
                 <span className="text-[11px] font-mono text-white/40">{language || "code"}</span>
                 <button onClick={handleCopy} className="text-white/30 hover:text-white/60 transition-colors">
@@ -142,7 +143,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
                 </button>
             </div>
             <pre className="p-3 overflow-x-auto text-[13px] leading-relaxed">
-                <code className="font-mono text-emerald-300/90">{code}</code>
+                <code className="font-mono text-emerald-300">{code}</code>
             </pre>
         </div>
     );
@@ -157,7 +158,7 @@ function ActivityFeed({ steps, isActive }: { steps: ActivityStep[]; isActive: bo
             {steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2 py-0.5 text-[12px]">
                     <StepIcon kind={step.kind} action={step.action} />
-                    <span className="text-white/50 truncate">{step.message}</span>
+                    <span className="text-muted-foreground truncate">{step.message}</span>
                     {step.filePath && step.kind === "file_write" && (
                         <span className="ml-auto text-emerald-400/60 text-[10px] font-medium">saved</span>
                     )}
@@ -169,7 +170,7 @@ function ActivityFeed({ steps, isActive }: { steps: ActivityStep[]; isActive: bo
             {isActive && (
                 <div className="flex items-center gap-2 py-0.5 text-[12px]">
                     <Loader2 className="h-3 w-3 text-violet-400/60 animate-spin" />
-                    <span className="text-white/30">Working...</span>
+                    <span className="text-muted-foreground/60">Working...</span>
                 </div>
             )}
         </div>
@@ -178,14 +179,14 @@ function ActivityFeed({ steps, isActive }: { steps: ActivityStep[]; isActive: bo
 
 function StepIcon({ kind, action }: { kind: string; action?: string }) {
     const cls = "h-3 w-3 shrink-0";
-    if (kind === "file_read") return <Eye className={`${cls} text-blue-400/60`} />;
-    if (kind === "file_error") return <AlertCircle className={`${cls} text-red-400/60`} />;
+    if (kind === "file_read") return <Eye className={`${cls} text-blue-400`} />;
+    if (kind === "file_error") return <AlertCircle className={`${cls} text-destructive`} />;
     if (kind === "file_write") {
-        if (action === "create") return <Plus className={`${cls} text-emerald-400/60`} />;
-        if (action === "delete") return <Trash2 className={`${cls} text-red-400/60`} />;
-        return <Pencil className={`${cls} text-blue-400/60`} />;
+        if (action === "create") return <Plus className={`${cls} text-emerald-400`} />;
+        if (action === "delete") return <Trash2 className={`${cls} text-destructive`} />;
+        return <Pencil className={`${cls} text-blue-400`} />;
     }
-    return <FolderOpen className={`${cls} text-white/30`} />;
+    return <FolderOpen className={`${cls} text-muted-foreground`} />;
 }
 
 // ─── File change cards (shown after auto-apply) ──────────────────
@@ -207,10 +208,10 @@ function FileChangeCard({
     };
 
     return (
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 flex items-center justify-between">
+        <div className="rounded-lg border bg-muted/30 p-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-[12px] min-w-0">
-                <FileCode className="h-3.5 w-3.5 text-white/30 shrink-0" />
-                <span className="font-mono text-white/70 truncate">{change.file_path}</span>
+                <FileCode className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="font-mono text-foreground/70 truncate">{change.file_path}</span>
                 <span
                     className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider border ${
                         actionColors[change.action] || actionColors.modify
@@ -594,36 +595,38 @@ export function CodingAgentChat({
     }, [input, isStreaming, apiUrl, agentId, userId, activeConversationId, addActivity, onFileChanged, processDisplayContent, fetchConversations]);
 
     return (
-        <div className="flex flex-col h-full bg-[#0a0a0f] relative">
+        <div className="flex flex-col h-full bg-background relative">
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between px-3 h-9 border-b bg-muted/20 shrink-0">
                 <div className="flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-violet-500/15 flex items-center justify-center">
-                        <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-                    </div>
-                    <span className="text-[13px] font-semibold text-white/80">AI Assistant</span>
+                    <Wand2 className="h-3.5 w-3.5 text-violet-400" />
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">AI Assistant</span>
                 </div>
-                <div className="flex items-center gap-1">
-                    <button
+                <div className="flex items-center gap-0.5">
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => setShowHistory(!showHistory)}
-                        className="h-7 w-7 rounded-md hover:bg-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/60 transition-colors"
                         title="Chat history"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
                     >
                         <History className="h-3.5 w-3.5" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={handleNewChat}
-                        className="h-7 w-7 rounded-md hover:bg-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/60 transition-colors"
                         title="New chat"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
                     >
                         <Plus className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                 </div>
             </div>
 
             {/* Conversation history overlay */}
             {showHistory && (
-                <div className="absolute inset-x-0 top-[41px] bottom-0 z-10 bg-[#0a0a0f]/95 backdrop-blur-sm overflow-y-auto">
+                <div className="absolute inset-x-0 top-[41px] bottom-0 z-10 bg-background/95 backdrop-blur-sm overflow-y-auto">
                     <div className="p-3 space-y-1">
                         <button
                             onClick={handleNewChat}
@@ -633,19 +636,19 @@ export function CodingAgentChat({
                             New conversation
                         </button>
                         {conversations.length === 0 ? (
-                            <p className="text-[12px] text-white/30 text-center py-4">No conversations yet</p>
+                            <p className="text-[12px] text-muted-foreground text-center py-4">No conversations yet</p>
                         ) : (
                             conversations.map((conv) => (
                                 <button
                                     key={conv.id}
                                     onClick={() => loadConversation(conv.id)}
-                                    className={`group w-full text-left px-3 py-2 rounded-lg hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                                        activeConversationId === conv.id ? "bg-white/[0.06]" : ""
+                                    className={`group w-full text-left px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors flex items-center justify-between ${
+                                        activeConversationId === conv.id ? "bg-muted" : ""
                                     }`}
                                 >
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-[12px] text-white/70 truncate">{conv.title}</p>
-                                        <p className="text-[10px] text-white/30 mt-0.5">
+                                        <p className="text-[12px] text-foreground/70 truncate">{conv.title}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">
                                             {conv.message_count} messages · {new Date(conv.updated_at).toLocaleDateString()}
                                         </p>
                                     </div>
@@ -654,7 +657,7 @@ export function CodingAgentChat({
                                             e.stopPropagation();
                                             deleteConversation(conv.id);
                                         }}
-                                        className="opacity-0 group-hover:opacity-100 h-5 w-5 rounded hover:bg-red-500/20 flex items-center justify-center text-white/30 hover:text-red-400 transition-all"
+                                        className="opacity-0 group-hover:opacity-100 h-5 w-5 rounded hover:bg-destructive/20 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all"
                                     >
                                         <Trash2 className="h-3 w-3" />
                                     </button>
@@ -669,15 +672,33 @@ export function CodingAgentChat({
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
                 {messages.length === 0 && !isStreaming && (
                     <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                        <div className="h-12 w-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-4">
-                            <Sparkles className="h-6 w-6 text-violet-400/60" />
+                        <div className="h-9 w-9 rounded-lg bg-violet-500/10 flex items-center justify-center mb-3">
+                            <Wand2 className="h-4.5 w-4.5 text-violet-400/60" />
                         </div>
-                        <p className="text-[13px] text-white/50 leading-relaxed">
-                            Ask the AI to help you write agent code.
+                        <p className="text-sm font-medium text-foreground/70 mb-1">
+                            AI Coding Assistant
                         </p>
-                        <p className="text-[12px] text-white/30 mt-2">
-                            Try: &quot;Add a function to handle customer complaints&quot;
+                        <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-[240px]">
+                            Describe what you want to build and the AI will write the code for you.
                         </p>
+                        <div className="mt-5 space-y-1.5 w-full max-w-[260px]">
+                            {[
+                                "Create a voice agent for booking",
+                                "Add a function to check order status",
+                                "Handle customer complaints",
+                            ].map((suggestion) => (
+                                <button
+                                    key={suggestion}
+                                    onClick={() => {
+                                        setInput(suggestion);
+                                        inputRef.current?.focus();
+                                    }}
+                                    className="w-full text-left px-3 py-2 rounded-lg border border-border/50 bg-muted/20 text-[12px] text-muted-foreground hover:bg-muted/40 hover:text-foreground hover:border-border transition-colors"
+                                >
+                                    {suggestion}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -702,13 +723,13 @@ export function CodingAgentChat({
                             </div>
                             <div className="flex-1 min-w-0">
                                 {displayContent ? (
-                                    <div className="text-[13px] leading-relaxed text-white/80">
+                                    <div className="text-[13px] leading-relaxed text-foreground/80">
                                         {formatMarkdown(displayContent)}
                                         <span className="inline-block w-1.5 h-4 bg-violet-400/80 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
                                     </div>
                                 ) : streamingContent ? (
                                     /* We have streaming content but displayContent is empty (all content is FILE_CHANGE blocks) */
-                                    <div className="text-[13px] leading-relaxed text-white/80">
+                                    <div className="text-[13px] leading-relaxed text-foreground/80">
                                         <span className="inline-block w-1.5 h-4 bg-violet-400/80 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
                                     </div>
                                 ) : (
@@ -718,7 +739,7 @@ export function CodingAgentChat({
                                             <span className="h-1.5 w-1.5 rounded-full bg-violet-400/60 animate-bounce [animation-delay:150ms]" />
                                             <span className="h-1.5 w-1.5 rounded-full bg-violet-400/60 animate-bounce [animation-delay:300ms]" />
                                         </div>
-                                        <span className="text-[11px] text-white/30 ml-1">
+                                        <span className="text-[11px] text-muted-foreground/60 ml-1">
                                             {activitySteps.length > 0
                                                 ? activitySteps[activitySteps.length - 1].message
                                                 : "Thinking..."}
@@ -731,8 +752,8 @@ export function CodingAgentChat({
                         {/* Writing file indicator */}
                         {writingFile && (
                             <div className="ml-8 flex items-center gap-2 py-1 text-[12px]">
-                                <Loader2 className="h-3 w-3 text-amber-400/60 animate-spin" />
-                                <span className="text-amber-400/70 font-mono">Writing {writingFile}...</span>
+                                <Loader2 className="h-3 w-3 text-amber-400 animate-spin" />
+                                <span className="text-amber-400 font-mono">Writing {writingFile}...</span>
                             </div>
                         )}
 
@@ -778,8 +799,8 @@ export function CodingAgentChat({
             </div>
 
             {/* Input */}
-            <div className="px-3 pb-3 pt-2 border-t border-white/[0.06]">
-                <div className="relative">
+            <div className="px-3 pb-3 pt-2 border-t">
+                <div className="flex items-end gap-2">
                     <textarea
                         ref={inputRef}
                         value={input}
@@ -791,14 +812,14 @@ export function CodingAgentChat({
                             }
                         }}
                         placeholder="Ask the AI assistant..."
-                        className="w-full resize-none rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 pr-10 text-[13px] text-white/90 placeholder:text-white/25 focus:outline-none focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 transition-colors"
+                        className="flex-1 min-w-0 resize-none rounded-lg border bg-muted/30 px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 transition-colors"
                         rows={1}
                         disabled={isStreaming}
                     />
                     <button
                         onClick={handleSend}
                         disabled={isStreaming || !input.trim()}
-                        className="absolute right-2 bottom-2 h-7 w-7 rounded-md bg-violet-500/80 hover:bg-violet-500 disabled:bg-white/[0.05] disabled:text-white/20 text-white flex items-center justify-center transition-colors"
+                        className="h-[36px] w-[36px] shrink-0 rounded-lg bg-violet-500 hover:bg-violet-600 disabled:bg-muted disabled:text-muted-foreground text-white flex items-center justify-center transition-colors"
                     >
                         <Send className="h-3.5 w-3.5" />
                     </button>
@@ -824,20 +845,20 @@ function MessageBubble({
             <div className="flex items-start gap-2.5">
                 <div
                     className={`h-6 w-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                        isUser ? "bg-white/[0.08]" : "bg-violet-500/15"
+                        isUser ? "bg-muted" : "bg-violet-500/15"
                     }`}
                 >
                     {isUser ? (
-                        <User className="h-3.5 w-3.5 text-white/50" />
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
                     ) : (
                         <Bot className="h-3.5 w-3.5 text-violet-400" />
                     )}
                 </div>
                 <div className="flex-1 min-w-0">
                     {isUser ? (
-                        <p className="text-[13px] text-white/90 leading-relaxed">{msg.content}</p>
+                        <p className="text-[13px] text-foreground leading-relaxed">{msg.content}</p>
                     ) : (
-                        <div className="text-[13px] leading-relaxed text-white/80">
+                        <div className="text-[13px] leading-relaxed text-foreground/80">
                             {formatMarkdown(msg.content)}
                         </div>
                     )}

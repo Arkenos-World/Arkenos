@@ -12,7 +12,7 @@ Run each service individually for development with hot-reload.
 - Python 3.10+
 - Node.js 18+
 - PostgreSQL running locally
-- API keys for all services
+- Clerk keys (frontend), Postgres password (backend). All other provider keys are configured via the dashboard.
 
 ## Database Setup
 
@@ -87,15 +87,11 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your credentials
-
 # Start the agent
 python agent.py dev
 ```
 
-The agent connects directly to LiveKit Cloud and joins rooms when dispatched.
+The agent requires **no `.env` file**. On startup it fetches all API keys (LiveKit, Google, Resemble, STT providers) from the backend dashboard. Make sure the backend is running first and provider keys are configured at **Settings > API Keys**.
 
 ## Troubleshooting
 
@@ -110,9 +106,10 @@ The agent connects directly to LiveKit Cloud and joins rooms when dispatched.
     - Check CORS: `FRONTEND_URL` in backend `.env` should match your frontend URL
   </Accordion>
   <Accordion title="Agent doesn't connect to calls">
-    - Verify LiveKit credentials match across all three services
-    - Ensure the LiveKit URL uses `wss://` protocol
-    - Check that at least one STT provider key is set in `agent/.env`
+    - Ensure the backend is running and all provider keys are configured at **Settings > API Keys**
+    - Verify LiveKit credentials are set and the URL uses `wss://` protocol
+    - Check that at least one STT provider key is configured in the dashboard
+    - Check the agent terminal for "Injected N keys from backend dashboard" on startup
   </Accordion>
   <Accordion title="Migrations fail">
     - Ensure PostgreSQL is running and accessible

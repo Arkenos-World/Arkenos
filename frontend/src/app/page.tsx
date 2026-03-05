@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import { AgentComputerDiagram } from "@/components/ui/agent-computer-diagram";
-import { LiveCallDemo } from "@/components/ui/live-call-demo";
+import { AgentBuilderDemo } from "@/components/ui/agent-builder-demo";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 
@@ -365,7 +365,7 @@ export default function Home() {
                 transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
                 className="relative order-first lg:order-last flex items-center justify-center"
               >
-                <LiveCallDemo className="w-full max-w-[320px] sm:max-w-[360px] lg:max-w-[400px]" />
+                <AgentBuilderDemo className="w-full max-w-[320px] sm:max-w-[360px] lg:max-w-[400px]" />
               </motion.div>
             </div>
           </div>

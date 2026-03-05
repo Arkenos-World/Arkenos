@@ -18,20 +18,18 @@ import {
 } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
 
-function resolveSessionLabel(session: { agent_name?: string | null; room_name: string }): {
+function resolveSessionLabel(session: { agent_name?: string | null; room_name: string; outbound_phone_number?: string | null }): {
     primary: string
     secondary: string
 } {
     const room = session.room_name || ''
-    const sipMatch = room.match(/^_?(\+\d{7,15})/)
-    if (session.agent_name) {
-        if (sipMatch) return { primary: session.agent_name, secondary: `SIP via ${sipMatch[1]}` }
-        const shortId = room.replace(/^(preview-|arkenos-)/, '').slice(0, 18)
-        return { primary: session.agent_name, secondary: `ID: ${shortId}` }
-    }
-    if (sipMatch) return { primary: 'SIP Call', secondary: `via ${sipMatch[1]}` }
-    if (room.startsWith('preview-')) return { primary: 'Preview', secondary: room.replace('preview-', '').slice(0, 18) }
-    return { primary: 'Unassigned Call', secondary: room.replace(/^arkenos-/, '').slice(0, 18) }
+    const sipMatch = room.match(/(?:sip-)?_?(\+?\d{7,15})_?/)
+    const name = session.agent_name || 'Call'
+    if (session.outbound_phone_number) return { primary: name, secondary: `Outbound ${session.outbound_phone_number}` }
+    if (sipMatch) return { primary: name, secondary: `Inbound ${sipMatch[1].startsWith('+') ? sipMatch[1] : '+' + sipMatch[1]}` }
+    if (room.startsWith('preview-')) return { primary: session.agent_name || 'Preview', secondary: room.replace('preview-', '').slice(0, 18) }
+    const shortId = room.replace(/^(preview-|arkenos-)/, '').slice(0, 18)
+    return { primary: name, secondary: `ID: ${shortId}` }
 }
 
 function formatDuration(seconds: number | null): string {
@@ -57,6 +55,7 @@ interface Session {
     agent_name?: string;
     analysis?: SessionAnalysis | null;
     direction?: "inbound" | "outbound" | null;
+    outbound_phone_number?: string | null;
 }
 
 interface PaginatedResponse {

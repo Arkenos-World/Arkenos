@@ -67,9 +67,8 @@ function ComparisonTable({
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className={`px-4 py-3 ${
-                    j === 0 ? "font-medium" : "text-muted-foreground"
-                  }`}
+                  className={`px-4 py-3 ${j === 0 ? "font-medium" : "text-muted-foreground"
+                    }`}
                 >
                   {cell}
                 </td>
@@ -91,11 +90,10 @@ function Callout({
 }) {
   return (
     <div
-      className={`my-6 border-l-4 px-5 py-4 text-sm ${
-        type === "warning"
+      className={`my-6 border-l-4 px-5 py-4 text-sm ${type === "warning"
           ? "border-chart-5 bg-chart-5/5"
           : "border-primary bg-primary/5"
-      }`}
+        }`}
     >
       {children}
     </div>

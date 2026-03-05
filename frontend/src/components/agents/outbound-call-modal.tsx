@@ -111,20 +111,20 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = setInterval(async () => {
             try {
-                const res = await fetch(`${apiUrl}/telephony/outbound/call/${id}/status`, {
+                const res = await fetch(`${apiUrl}/calls/${id}/status`, {
                     headers: { "x-user-id": userId },
                 });
                 if (!res.ok) return;
                 const data = await res.json();
-                const status = data.status as string;
+                const callStatusRaw = (data.call_status || "").toLowerCase();
 
-                if (status === "answered" || status === "in-progress") {
+                if (callStatusRaw === "answered") {
                     setCallStatus("answered");
-                } else if (status === "completed") {
+                } else if (callStatusRaw === "completed") {
                     setCallStatus("completed");
                     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
                     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-                } else if (status === "failed" || status === "busy" || status === "no-answer" || status === "canceled") {
+                } else if (callStatusRaw === "failed" || callStatusRaw === "no_answer") {
                     setCallStatus("failed");
                     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
                     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
@@ -158,7 +158,7 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
         setDuration(0);
 
         try {
-            const res = await fetch(`${apiUrl}/telephony/outbound/call`, {
+            const res = await fetch(`${apiUrl}/calls/outbound`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -190,7 +190,7 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
         if (!callId) return;
 
         try {
-            await fetch(`${apiUrl}/telephony/outbound/call/${callId}/end`, {
+            await fetch(`${apiUrl}/calls/${callId}/end`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

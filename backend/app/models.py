@@ -69,6 +69,17 @@ class UsageEventType(enum.Enum):
     TTS_CHARACTERS = "tts_characters"
 
 
+class InstanceSettings(Base):
+    """Single-row-per-key store for encrypted API keys (instance-level, not per-user)."""
+    __tablename__ = "instance_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    encrypted_value: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 

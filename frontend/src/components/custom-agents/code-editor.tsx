@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, useEffect } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
-import { File } from "lucide-react";
+import { File, FileCode } from "lucide-react";
 
 interface CodeEditorProps {
     filePath: string | null;
@@ -87,9 +87,12 @@ export function CodeEditor({
 
     if (!filePath) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <File className="h-12 w-12 mb-3 opacity-30" />
-                <p className="text-sm">Select a file to edit</p>
+            <div className="flex flex-col items-center justify-center h-full">
+                <div className="h-14 w-14 rounded-xl bg-muted/40 flex items-center justify-center mb-4">
+                    <FileCode className="h-7 w-7 text-muted-foreground/30" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">No file open</p>
+                <p className="text-xs text-muted-foreground/50">Select a file from the explorer or create a new one</p>
             </div>
         );
     }
@@ -99,10 +102,10 @@ export function CodeEditor({
     return (
         <div className="flex flex-col h-full">
             {/* Tab bar */}
-            <div className="flex items-center h-9 border-b bg-muted/30 px-2">
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-background border border-b-0 rounded-t text-xs font-medium">
-                    <File className="h-3 w-3" />
-                    {fileName}
+            <div className="flex items-center h-9 border-b bg-muted/20 px-1">
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-background border border-b-background rounded-t text-xs font-medium -mb-px relative z-10">
+                    <File className="h-3 w-3 text-muted-foreground" />
+                    <span className="truncate max-w-[200px]">{fileName}</span>
                 </div>
             </div>
 

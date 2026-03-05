@@ -328,19 +328,19 @@ function PreviewContent({
                         <div style={{ width: '200px', height: '200px' }}>
                             <AbstractBall
                                 key="preview-glob"
-                                perlinTime={isAgentSpeaking ? 30.0 : isUserSpeaking ? 20.0 : 50.0}
-                                perlinMorph={isAgentSpeaking ? 25.0 : isUserSpeaking ? 20.0 : 5.5}
-                                perlinDNoise={2.5}
-                                chromaRGBr={10.0}
-                                chromaRGBg={10.0}
-                                chromaRGBb={10.0}
-                                chromaRGBn={isAgentSpeaking || isUserSpeaking ? 0.5 : 0}
+                                perlinTime={isAgentSpeaking ? 25.0 : isUserSpeaking ? 18.0 : 40.0}
+                                perlinMorph={isAgentSpeaking ? 8.0 : isUserSpeaking ? 6.0 : 3.0}
+                                perlinDNoise={1.2}
+                                chromaRGBr={8.0}
+                                chromaRGBg={8.0}
+                                chromaRGBb={8.0}
+                                chromaRGBn={isAgentSpeaking || isUserSpeaking ? 0.4 : 0}
                                 chromaRGBm={1.0}
                                 cameraZoom={140}
                                 spherePoints={true}
                                 spherePsize={1.0}
-                                cameraSpeedY={0.5}
-                                cameraSpeedX={0.2}
+                                cameraSpeedY={0.4}
+                                cameraSpeedX={0.15}
                             />
                         </div>
                         <p className="text-foreground text-base font-medium mt-4">{agentName}</p>

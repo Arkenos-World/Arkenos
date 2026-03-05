@@ -31,6 +31,33 @@ logger = logging.getLogger("voice-agent")
 # Backend API URL
 BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api")
 
+
+def fetch_and_inject_keys():
+    """Fetch API keys from backend and inject into os.environ (env takes precedence)."""
+    import httpx as _httpx
+    try:
+        resp = _httpx.get(f"{BACKEND_API_URL}/settings/keys/agent", timeout=5)
+        if resp.status_code == 200:
+            keys = resp.json()
+            injected = []
+            for key_name, value in keys.items():
+                env_name = key_name.upper()
+                if not os.environ.get(env_name):
+                    os.environ[env_name] = value
+                    injected.append(env_name)
+            if injected:
+                logger.info(f"Injected {len(injected)} keys from backend dashboard: {', '.join(injected)}")
+            else:
+                logger.info("All keys already set via .env, no injection needed")
+        else:
+            logger.warning(f"Failed to fetch keys from backend: {resp.status_code}")
+    except Exception as e:
+        logger.warning(f"Could not fetch keys from backend (will use .env): {e}")
+
+
+# Fetch keys from backend dashboard (non-blocking fallback to .env)
+fetch_and_inject_keys()
+
 # Default system prompt if no agent config found
 DEFAULT_INSTRUCTIONS = """You are Dylan, a professional and courteous virtual customer service assistant for Qatar National Bank (QNB) — the largest financial institution in the Middle East and Africa region, headquartered in Doha, Qatar, founded in 1964. You handle inbound customer calls with warmth, clarity, and efficiency.
 
@@ -439,7 +466,7 @@ class VoiceAssistant(Agent):
 server = AgentServer()
 
 
-@server.rtc_session()
+@server.rtc_session(agent_name="arkenos-agent")
 async def entrypoint(ctx: agents.JobContext):
     """Main entrypoint for the voice agent session."""
     

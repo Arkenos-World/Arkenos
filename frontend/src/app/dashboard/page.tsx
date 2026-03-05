@@ -8,23 +8,21 @@ import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { MicrophoneIcon, PhoneIcon } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
-import type { VoiceSession, SessionsPage } from "@/lib/api";
+import type { VoiceSession, SessionsPage, KeyStatusResponse } from "@/lib/api";
 
 // ─── Session label resolver ──────────────────────────────────────────────────
-function resolveSessionLabel(session: { agent_name?: string | null; room_name: string }): {
+function resolveSessionLabel(session: { agent_name?: string | null; room_name: string; outbound_phone_number?: string | null }): {
     primary: string
     secondary: string
 } {
     const room = session.room_name || ''
-    const sipMatch = room.match(/^_?(\+\d{7,15})/)
-    if (session.agent_name) {
-        if (sipMatch) return { primary: session.agent_name, secondary: `SIP via ${sipMatch[1]}` }
-        const shortId = room.replace(/^(preview-|arkenos-)/, '').slice(0, 18)
-        return { primary: session.agent_name, secondary: `ID: ${shortId}` }
-    }
-    if (sipMatch) return { primary: 'SIP Call', secondary: `via ${sipMatch[1]}` }
-    if (room.startsWith('preview-')) return { primary: 'Preview', secondary: room.replace('preview-', '').slice(0, 18) }
-    return { primary: 'Unassigned Call', secondary: room.replace(/^arkenos-/, '').slice(0, 18) }
+    const sipMatch = room.match(/(?:sip-)?_?(\+?\d{7,15})_?/)
+    const name = session.agent_name || 'Call'
+    if (session.outbound_phone_number) return { primary: name, secondary: `Outbound ${session.outbound_phone_number}` }
+    if (sipMatch) return { primary: name, secondary: `Inbound ${sipMatch[1].startsWith('+') ? sipMatch[1] : '+' + sipMatch[1]}` }
+    if (room.startsWith('preview-')) return { primary: session.agent_name || 'Preview', secondary: room.replace('preview-', '').slice(0, 18) }
+    const shortId = room.replace(/^(preview-|arkenos-)/, '').slice(0, 18)
+    return { primary: name, secondary: `ID: ${shortId}` }
 }
 
 export default async function DashboardPage() {
@@ -39,7 +37,12 @@ export default async function DashboardPage() {
     const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
     const headers = { 'x-user-id': userId };
 
-    const recentRes = await fetch(`${apiUrl}/sessions/?limit=5`, { headers, cache: 'no-store' });
+    const [recentRes, keyStatusRes] = await Promise.all([
+        fetch(`${apiUrl}/sessions/?limit=5`, { headers, cache: 'no-store' }),
+        fetch(`${apiUrl}/settings/keys`, { cache: 'no-store' }).catch(() => null),
+    ]);
+    const keyStatus: KeyStatusResponse | null = keyStatusRes?.ok ? await keyStatusRes.json().catch(() => null) : null;
+    const allConfigured = keyStatus?.all_required_set ?? false;
 
     const recentData: SessionsPage | null = recentRes.ok ? await recentRes.json().catch(() => null) : null;
     const recentSessions: VoiceSession[] = recentData?.sessions ?? [];
@@ -126,12 +129,19 @@ export default async function DashboardPage() {
 
                 {/* Quick Actions */}
                 <div className="flex gap-4">
-                    <Link href="/preview">
-                        <Button size="lg" className="gap-2">
+                    {allConfigured ? (
+                        <Link href="/preview">
+                            <Button size="lg" className="gap-2">
+                                <MicrophoneIcon className="h-5 w-5" />
+                                Start Voice Session
+                            </Button>
+                        </Link>
+                    ) : (
+                        <Button size="lg" className="gap-2" disabled title="Configure API keys first">
                             <MicrophoneIcon className="h-5 w-5" />
                             Start Voice Session
                         </Button>
-                    </Link>
+                    )}
                 </div>
             </div>
         </DashboardLayout>

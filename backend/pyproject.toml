@@ -19,6 +19,7 @@ dependencies = [
     "minio>=7.2.0",
     "docker>=7.0.0",
     "google-generativeai>=0.8.0",
+    "cryptography>=44.0.0",
 ]
 
 [project.optional-dependencies]

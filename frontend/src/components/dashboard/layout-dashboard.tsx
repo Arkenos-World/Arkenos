@@ -3,6 +3,7 @@ import { Sidebar } from "./sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { DocsIcon } from "@/components/icons";
+import { MissingKeysBanner } from "./missing-keys-banner";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -38,6 +39,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
                 {/* Page Content */}
                 <div className="p-6">
+                    <MissingKeysBanner />
                     {children}
                 </div>
             </main>

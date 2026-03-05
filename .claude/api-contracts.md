@@ -27,17 +27,6 @@ Session: { id, agentId, startedAt, endedAt, transcript, duration, analysis?, dir
 
 CallAnalysis: { summary, sentiment, sentiment_score, topics, outcome, action_items }
 
-### Outbound Calls
-POST /api/telephony/outbound/call → { call_id, status }
-  Body: { agent_id, phone_number }
-  Initiates an outbound call from the agent to the given phone number.
-
-GET  /api/telephony/outbound/call/:call_id/status → { call_id, status, duration, phone_number }
-  Returns current call status: ringing | answered | completed | failed
-
-POST /api/telephony/outbound/call/:call_id/end → { success: boolean }
-  Ends an active outbound call.
-
 ### Call Transfer
 POST /api/sessions/:id/transfer → TransferResponse
 Body: { phone_number: string (E.164), type: "warm" | "cold" }
@@ -78,6 +67,15 @@ GET /api/calls/:id/status  → CallStatusResponse
 CallStatusResponse: { call_id, status, call_status, call_direction,
                       outbound_phone_number, room_name, started_at,
                       ended_at, duration }
+
+POST /api/calls/:id/end   → { success: boolean, call_id: string }
+Headers: x-user-id (Clerk ID)
+Ends an active outbound call.
+
+### Phone Numbers
+Note: buy/assign/release endpoints auto-provision both LiveKit SIP infrastructure
+(inbound trunk, dispatch rule) and Twilio Elastic SIP Trunk (origination to LiveKit).
+No webhook or BACKEND_URL needed — Twilio routes directly to LiveKit via SIP.
 
 Session (updated): { ..., call_direction?: "INBOUND"|"OUTBOUND",
                      outbound_phone_number?: string,

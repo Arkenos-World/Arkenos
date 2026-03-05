@@ -19,6 +19,7 @@ export interface VoiceSession {
   agent_name?: string | null;
   analysis?: CallAnalysis | null;
   direction?: "inbound" | "outbound" | null;
+  outbound_phone_number?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -180,4 +181,64 @@ export interface FileTreeNode {
   path: string;
   type: "file" | "directory";
   children?: FileTreeNode[];
+}
+
+// --- Settings / API Keys ---
+
+export interface KeyInfo {
+  status: "set" | "missing";
+  source: "db" | "env" | null;
+}
+
+export interface ProviderStatus {
+  label: string;
+  required: boolean;
+  configured: boolean;
+  keys: Record<string, KeyInfo>;
+}
+
+export interface KeyStatusResponse {
+  providers: Record<string, ProviderStatus>;
+  all_required_set: boolean;
+  stt_configured: boolean;
+}
+
+export interface TestResult {
+  provider: string;
+  success: boolean;
+  message: string;
+}
+
+export async function getKeyStatus(): Promise<KeyStatusResponse> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const res = await fetch(`${apiUrl}/settings/keys`);
+  if (!res.ok) throw new Error("Failed to fetch key status");
+  return res.json();
+}
+
+export async function saveKeys(keys: Record<string, string>): Promise<void> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const res = await fetch(`${apiUrl}/settings/keys/bulk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keys }),
+  });
+  if (!res.ok) throw new Error("Failed to save keys");
+}
+
+export async function deleteKey(keyName: string): Promise<void> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const res = await fetch(`${apiUrl}/settings/keys/${keyName}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete key");
+}
+
+export async function testProvider(provider: string, keys?: Record<string, string>): Promise<TestResult> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const res = await fetch(`${apiUrl}/settings/test/${provider}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keys: keys || null }),
+  });
+  if (!res.ok) throw new Error("Failed to test provider");
+  return res.json();
 }

@@ -72,6 +72,21 @@ function formatTimer(seconds: number): string {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
+function formatPhoneDisplay(digits: string, countryCode: string): string {
+    if (!digits) return "";
+    if (countryCode === "+1" && digits.length === 10) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+    if (countryCode === "+1" && digits.length > 3 && digits.length <= 6) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    }
+    if (countryCode === "+1" && digits.length > 6) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    }
+    // Generic: group in chunks of 3-4
+    return digits.replace(/(\d{3})(\d{3})(\d+)/, "$1 $2 $3");
+}
+
 interface OutboundCallModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -268,9 +283,9 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
                                     </SelectContent>
                                 </Select>
                                 <Input
-                                    value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
-                                    placeholder="2125551234"
+                                    value={formatPhoneDisplay(phoneNumber, countryCode)}
+                                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                                    placeholder="(212) 555-1234"
                                     className="flex-1 font-mono"
                                     type="tel"
                                 />
@@ -282,7 +297,7 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
                             )}
                             {isValidNumber && (
                                 <p className="text-xs text-muted-foreground font-mono">
-                                    Will call: {fullNumber}
+                                    Will call: {countryCode} {formatPhoneDisplay(phoneNumber, countryCode)}
                                 </p>
                             )}
                         </div>
@@ -295,7 +310,9 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
                         {/* Called number */}
                         <div className="text-center">
                             <p className="text-sm text-muted-foreground">Calling</p>
-                            <p className="text-2xl font-bold font-mono tracking-wide">{calledNumber}</p>
+                            <p className="text-2xl font-bold font-mono tracking-wide">
+                                {countryCode} {formatPhoneDisplay(calledNumber.replace(countryCode, ""), countryCode)}
+                            </p>
                         </div>
 
                         {/* Status */}

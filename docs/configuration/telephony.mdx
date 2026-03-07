@@ -57,7 +57,7 @@ You need two accounts:
 
 ### Step 2: Add API Keys via Dashboard
 
-Open the **Arkenos Dashboard** → **Settings** → **API Keys** and configure:
+Open the **Arkenos Dashboard** → **API Keys** (under Build in the sidebar) and configure:
 
 1. **LiveKit** — API Key, API Secret, Server URL (from [LiveKit Cloud](https://cloud.livekit.io))
 2. **Twilio** — Account SID, Auth Token (from [Twilio Console](https://console.twilio.com))
@@ -190,7 +190,7 @@ curl -X POST http://localhost:8000/api/telephony/numbers/provision \
   <Accordion title="Call immediately disconnects">
     The agent is crashing on startup. Check the agent terminal for errors:
 
-    - **Missing API keys**: AssemblyAI, Google (Gemini), or Resemble AI key not configured at **Settings > API Keys**
+    - **Missing API keys**: AssemblyAI, Google (Gemini), or Resemble AI key not configured at **API Keys**
     - **TTS credits exhausted**: Check your Resemble AI balance at [app.resemble.ai/hub/billing](https://app.resemble.ai/hub/billing)
     - **Key fetch failed**: Check the agent terminal for "Could not fetch keys from backend" — ensure the backend is running
   </Accordion>

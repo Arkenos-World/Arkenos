@@ -33,7 +33,11 @@ BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api")
 
 
 def fetch_and_inject_keys():
-    """Fetch API keys from backend and inject into os.environ (env takes precedence)."""
+    """Fetch API keys from backend and inject into os.environ.
+
+    Dashboard values always overwrite existing env vars so that key
+    changes in the UI take effect without restarting the agent.
+    """
     import httpx as _httpx
     try:
         resp = _httpx.get(f"{BACKEND_API_URL}/settings/keys/agent", timeout=5)
@@ -42,13 +46,13 @@ def fetch_and_inject_keys():
             injected = []
             for key_name, value in keys.items():
                 env_name = key_name.upper()
-                if not os.environ.get(env_name):
+                if value:  # Only overwrite if dashboard has a non-empty value
                     os.environ[env_name] = value
                     injected.append(env_name)
             if injected:
                 logger.info(f"Injected {len(injected)} keys from backend dashboard: {', '.join(injected)}")
             else:
-                logger.info("All keys already set via .env, no injection needed")
+                logger.info("No keys returned from backend dashboard")
         else:
             logger.warning(f"Failed to fetch keys from backend: {resp.status_code}")
     except Exception as e:
@@ -471,7 +475,10 @@ async def entrypoint(ctx: agents.JobContext):
     """Main entrypoint for the voice agent session."""
     
     logger.info(f"Starting voice agent session for room: {ctx.room.name}")
-    
+
+    # Re-fetch keys from dashboard so new/changed keys take effect without restart
+    fetch_and_inject_keys()
+
     # Wait for room to be fully connected
     await ctx.connect()
     logger.info("Room connected, waiting for participant...")

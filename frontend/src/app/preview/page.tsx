@@ -624,7 +624,9 @@ function SidebarContent({
     );
 }
 
-export default function PreviewPage() {
+import { Suspense } from "react";
+
+function PreviewPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { userId } = useAuth();
@@ -894,5 +896,13 @@ export default function PreviewPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function PreviewPage() {
+    return (
+        <Suspense>
+            <PreviewPageContent />
+        </Suspense>
     );
 }

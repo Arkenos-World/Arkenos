@@ -1,6 +1,14 @@
 # Arkenos Docker Compose
-# Usage: docker-compose up -d --build
-version: "3.8"
+#
+# Setup:
+#   cp .env.example .env    # edit with your values
+#   docker-compose up -d --build
+#
+# Only 3 env vars required (POSTGRES_PASSWORD, Clerk keys).
+# All provider keys (LiveKit, Google, Resemble, Twilio, STT) are
+# configured via API Keys in the dashboard after first boot.
+
+name: arkenos
 
 services:
   # ============================================
@@ -9,17 +17,16 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: arkenos-db
-    env_file:
-      - ./backend/.env
     environment:
       POSTGRES_DB: arkenos
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -55,10 +62,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: arkenos-backend
-    env_file:
-      - ./backend/.env
     environment:
-      - DB_HOST=postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: postgres
+      MINIO_ENDPOINT: minio:9000
     ports:
       - "8000:8000"
     depends_on:
@@ -74,10 +81,8 @@ services:
       context: ./agent
       dockerfile: Dockerfile
     container_name: arkenos-agent
-    env_file:
-      - ./agent/.env
     environment:
-      - BACKEND_API_URL=http://backend:8000/api
+      BACKEND_API_URL: http://backend:8000/api
     depends_on:
       - backend
     restart: unless-stopped
@@ -89,13 +94,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY in .env}
     container_name: arkenos-frontend
-    env_file:
-      - ./frontend/.env
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
-      # Server-side fetches inside Docker need the internal hostname
-      - INTERNAL_API_URL=http://backend:8000/api
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:?Set CLERK_SECRET_KEY in .env}
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      INTERNAL_API_URL: http://backend:8000/api
     ports:
       - "3000:3000"
     depends_on:

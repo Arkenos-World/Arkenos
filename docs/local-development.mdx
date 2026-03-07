@@ -91,7 +91,7 @@ pip install -r requirements.txt
 python agent.py dev
 ```
 
-The agent requires **no `.env` file**. On startup it fetches all API keys (LiveKit, Google, Resemble, STT providers) from the backend dashboard. Make sure the backend is running first and provider keys are configured at **Settings > API Keys**.
+The agent requires **no `.env` file**. On startup it fetches all API keys (LiveKit, Google, Resemble, STT providers) from the backend dashboard. Make sure the backend is running first and provider keys are configured at **API Keys**.
 
 ## Troubleshooting
 
@@ -106,7 +106,7 @@ The agent requires **no `.env` file**. On startup it fetches all API keys (LiveK
     - Check CORS: `FRONTEND_URL` in backend `.env` should match your frontend URL
   </Accordion>
   <Accordion title="Agent doesn't connect to calls">
-    - Ensure the backend is running and all provider keys are configured at **Settings > API Keys**
+    - Ensure the backend is running and all provider keys are configured at **API Keys**
     - Verify LiveKit credentials are set and the URL uses `wss://` protocol
     - Check that at least one STT provider key is configured in the dashboard
     - Check the agent terminal for "Injected N keys from backend dashboard" on startup

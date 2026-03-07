@@ -5,7 +5,7 @@ description: Complete reference for all configuration variables across services.
 
 # Environment Variables
 
-Arkenos manages most API keys through the **Settings > API Keys** dashboard page (encrypted in the database). Only a few infrastructure variables need `.env` files.
+Arkenos manages most API keys through the **API Keys** dashboard page (encrypted in the database). Only a few infrastructure variables need `.env` files.
 
 ## Backend (`backend/.env`)
 
@@ -46,7 +46,7 @@ All provider keys — LiveKit, Google, Resemble, STT providers — are fetched f
 
 ## Dashboard-Managed Keys
 
-These keys are configured at **Settings > API Keys** in the dashboard. They are encrypted with AES-256-GCM and stored in the database.
+These keys are configured at **API Keys** in the dashboard. They are encrypted with AES-256-GCM and stored in the database.
 
 | Provider | Keys | Purpose |
 |----------|------|---------|

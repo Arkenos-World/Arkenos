@@ -24,7 +24,7 @@ export function PublicFooter() {
           Open source voice AI platform.
         </p>
         <a
-          href="https://github.com/dhruv0206/VoxArena"
+          href="https://github.com/Arkenos-World/Arkenos"
           className="text-muted-foreground hover:text-foreground transition-colors"
           target="_blank"
           rel="noopener noreferrer"

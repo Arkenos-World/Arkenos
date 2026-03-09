@@ -67,9 +67,8 @@ function ComparisonTable({
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className={`px-4 py-3 whitespace-nowrap ${
-                    j === 0 ? "font-medium" : "text-muted-foreground"
-                  }`}
+                  className={`px-4 py-3 whitespace-nowrap ${j === 0 ? "font-medium" : "text-muted-foreground"
+                    }`}
                 >
                   {cell}
                 </td>
@@ -499,7 +498,7 @@ export default function WhyOpenSourceBlogPost() {
                 read the docs to get started.
               </p>
               <div className="flex gap-3">
-                <Link href="https://github.com/dhruv0206/VoxArena" target="_blank">
+                <Link href="https://github.com/Arkenos-World/Arkenos" target="_blank">
                   <Button variant="outline">GitHub</Button>
                 </Link>
                 <Link href="https://arkenos.mintlify.app/">

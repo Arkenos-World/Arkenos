@@ -569,7 +569,7 @@ export default function HiddenCostBlogPost() {
                   Open source, self-hosted, $0 platform fee.
                 </p>
                 <div className="flex gap-3">
-                  <Link href="https://github.com/dhruv0206/VoxArena" target="_blank">
+                  <Link href="https://github.com/Arkenos-World/Arkenos" target="_blank">
                     <Button variant="outline">GitHub</Button>
                   </Link>
                   <Link href="https://arkenos.mintlify.app/">

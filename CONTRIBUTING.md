@@ -25,14 +25,14 @@ Use the following conventions:
 
 ```bash
 # Clone
-git clone https://github.com/arkenos-ai/arkenos.git
-cd arkenos
+git clone https://github.com/dhruv0206/Arkenos.git
+cd Arkenos
 
 # Backend
 cd backend
 python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
+pip install -e .
 cp .env.example .env
 # Edit .env with your keys
 uvicorn app.main:app --reload
@@ -48,9 +48,8 @@ npm run dev
 cd agent
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your keys
+pip install -e .
+# No .env needed — the agent fetches keys from the backend dashboard
 python agent.py dev
 ```
 
@@ -65,7 +64,7 @@ python agent.py dev
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/arkenos-ai/arkenos/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
+Use [GitHub Issues](https://github.com/dhruv0206/Arkenos/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
 
 ## Code Style
 

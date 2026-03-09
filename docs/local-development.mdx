@@ -10,9 +10,9 @@ Run each service individually for development with hot-reload.
 ## Prerequisites
 
 - Python 3.10+
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL running locally
-- Clerk keys (frontend), Postgres password (backend). All other provider keys are configured via the dashboard.
+- Better Auth credentials and Postgres password in the root `.env`. All other provider keys are configured via the dashboard.
 
 ## Database Setup
 
@@ -37,7 +37,7 @@ venv\Scripts\activate
 source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 
 # Configure environment
 cp .env.example .env
@@ -85,7 +85,7 @@ venv\Scripts\activate
 source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 
 # Start the agent
 python agent.py dev
@@ -98,7 +98,7 @@ The agent requires **no `.env` file**. On startup it fetches all API keys (LiveK
 <AccordionGroup>
   <Accordion title="Backend can't connect to database">
     - Ensure PostgreSQL is running
-    - Verify `POSTGRES_PASSWORD` in `backend/.env` matches your PostgreSQL credentials
+    - Verify `POSTGRES_PASSWORD` in the root `.env` matches your PostgreSQL credentials
     - For Docker: the database takes a few seconds to initialize on first run
   </Accordion>
   <Accordion title="Frontend shows 'Failed to fetch' errors">

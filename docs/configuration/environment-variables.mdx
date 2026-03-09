@@ -7,12 +7,24 @@ description: Complete reference for all configuration variables across services.
 
 Arkenos manages most API keys through the **API Keys** dashboard page (encrypted in the database). Only a few infrastructure variables need `.env` files.
 
+## Root `.env` (Docker Compose)
+
+When using Docker Compose, the root `.env` only needs one variable:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `POSTGRES_PASSWORD` | Yes | PostgreSQL password |
+| `BETTER_AUTH_SECRET` | No | Session encryption secret (has a default, override for production) |
+
 ## Backend (`backend/.env`)
+
+For local development (without Docker), configure the backend directly:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `POSTGRES_PASSWORD` | Yes | PostgreSQL password (used to build `DATABASE_URL`) |
 | `DATABASE_URL` | No | Full PostgreSQL connection string (overrides auto-built URL if set) |
+| `DB_HOST` | No | Database host (default: `localhost`, set to `postgres` in Docker) |
 
 All provider API keys (LiveKit, Google, Resemble, Twilio, Deepgram, AssemblyAI, ElevenLabs) are configured via the dashboard and stored encrypted in the database. You can still set them in `.env` as a fallback — the dashboard takes priority.
 
@@ -24,9 +36,10 @@ All provider API keys (LiveKit, Google, Resemble, Twilio, Deepgram, AssemblyAI, 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes | From [Clerk](https://clerk.com) |
-| `CLERK_SECRET_KEY` | Yes | From [Clerk](https://clerk.com) |
-| `NEXT_PUBLIC_API_URL` | Yes | Backend API URL (e.g., `http://localhost:8000/api`) |
+| `NEXT_PUBLIC_API_URL` | Yes | Backend API URL (e.g., `http://localhost:4201/api`) |
+| `BETTER_AUTH_SECRET` | Yes (Docker) | Better Auth secret (set via docker-compose, or manually for local dev) |
+| `BETTER_AUTH_URL` | Yes (Docker) | Better Auth URL (set via docker-compose) |
+| `DATABASE_URL` | Yes (Docker) | Database connection for Better Auth (set via docker-compose) |
 
 <Note>
 LiveKit, Google, Resemble, and Deepgram keys are no longer needed in the frontend `.env`. The frontend fetches provider data through the backend API, which resolves keys from the dashboard.
@@ -70,3 +83,27 @@ These were previously environment variables but are now fully automated:
 | `FRONTEND_URL` | Defaults to `http://localhost:3000` |
 | `PORT` | Defaults to `8000` |
 | `DEBUG` | Defaults to `true` |
+
+## Custom Agent Infrastructure
+
+These variables are only needed if you use custom Python agents:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MINIO_ENDPOINT` | `localhost:9000` | MinIO server address |
+| `MINIO_ACCESS_KEY` | `minioadmin` | MinIO access key |
+| `MINIO_SECRET_KEY` | `minioadmin` | MinIO secret key |
+| `MINIO_BUCKET` | `arkenos` | MinIO bucket name |
+| `DOCKER_SOCKET` | `unix:///var/run/docker.sock` | Docker socket path |
+| `BASE_AGENT_IMAGE` | `arkenos-agent-base:latest` | Base Docker image for custom agents |
+| `CONTAINER_NETWORK` | `arkenos_default` | Docker network for agent containers |
+| `CONTAINER_TIMEOUT_SECONDS` | `3600` | Timeout for custom agent containers |
+| `CODING_AGENT_PROVIDER` | `gemini` | AI provider for the coding assistant |
+
+## Telemetry
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_TELEMETRY` | `true` | Set to `false` to disable anonymous product telemetry (PostHog) |
+
+Arkenos collects anonymous usage telemetry (page views, feature usage) via PostHog to help improve the product. No personal data or conversation content is collected. Set `NEXT_PUBLIC_TELEMETRY=false` to opt out.

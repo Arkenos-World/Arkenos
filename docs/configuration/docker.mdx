@@ -11,10 +11,11 @@ Arkenos uses Docker Compose to orchestrate all four services.
 
 ```yaml
 services:
-  postgres:       # PostgreSQL 15 — port 5432
-  backend:        # FastAPI — port 8000 (depends on postgres)
+  postgres:       # PostgreSQL 16 — port 5434 (host) → 5432 (container)
+  minio:          # MinIO object storage — port 9002/9003
+  backend:        # FastAPI — port 4201 (depends on postgres)
   agent:          # LiveKit agent (depends on backend)
-  frontend:       # Next.js — port 3000 (depends on backend)
+  frontend:       # Next.js — port 4200 (depends on backend)
 ```
 
 ## Networking
@@ -24,28 +25,29 @@ When running in Docker, services communicate on an internal network:
 | From → To | URL | Reason |
 |-----------|-----|--------|
 | Frontend (server) → Backend | `http://backend:8000/api` | Server-side rendering (internal) |
-| Frontend (client) → Backend | `http://localhost:8000/api` | Browser requests (host-mapped) |
+| Frontend (client) → Backend | `http://localhost:4201/api` | Browser requests (host-mapped) |
 | Agent → Backend | `http://backend:8000/api` | Config fetch, transcripts, usage |
 | Backend → PostgreSQL | `postgres:5432` | Database queries |
+| Backend → MinIO | `minio:9000` | Custom agent file storage |
 
 <Warning>
 The frontend uses two different API URLs:
 - **`INTERNAL_API_URL`** (`http://backend:8000/api`) — used by server components inside Docker
-- **`NEXT_PUBLIC_API_URL`** (`http://localhost:8000/api`) — used by client components in the browser
+- **`NEXT_PUBLIC_API_URL`** (`http://localhost:4201/api`) — used by client components in the browser
 
-Do not remove `INTERNAL_API_URL` from docker-compose.yml — server components cannot reach `localhost:8000` from inside the container.
+Do not remove `INTERNAL_API_URL` from docker-compose.yml — server components cannot reach `localhost:4201` from inside the container.
 </Warning>
 
 ## Database Password
 
-The database password is configured via `POSTGRES_PASSWORD` in `backend/.env`:
+The database password is configured via `POSTGRES_PASSWORD` in the root `.env`:
 
 ```bash
-# backend/.env
+# .env (project root)
 POSTGRES_PASSWORD=your_password_here
 ```
 
-Both the PostgreSQL container and the backend read this variable from `backend/.env` via Docker Compose's `env_file` directive. The backend uses it to construct `DATABASE_URL` automatically.
+Both the PostgreSQL container and the backend read this variable via Docker Compose. The backend uses it to construct `DATABASE_URL` automatically.
 
 ## Commands
 

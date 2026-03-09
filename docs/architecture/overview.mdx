@@ -58,7 +58,7 @@ Outbound Call:  Dashboard --> Backend --> LiveKit SIP --> Twilio --> Phone
 
 The web dashboard built with Next.js 16, React 19, Tailwind CSS, and shadcn/ui. Handles:
 
-- User authentication via Clerk
+- User authentication via Better Auth
 - Agent configuration and management
 - Custom agent code editor with AI coding assistant
 - Voice session interface (LiveKit WebRTC)
@@ -95,6 +95,10 @@ A LiveKit Agents SDK worker that runs the real-time voice pipeline:
 
 Stores all persistent data: users, agents (with config JSON), sessions, transcripts, usage events, encrypted API keys (`instance_settings`), custom agent files, and coding agent conversations.
 
+### MinIO
+
+Object storage for custom agent code files. Stores versioned file content for custom Python agents.
+
 ## Communication Patterns
 
 | From | To | Protocol | Purpose |
@@ -117,6 +121,7 @@ Stores all persistent data: users, agents (with config JSON), sessions, transcri
 When running in Docker Compose, services communicate on an internal network:
 
 - Frontend server components call `http://backend:8000/api` (internal)
-- Frontend client components call `http://localhost:8000/api` (host-mapped)
+- Frontend client components call `http://localhost:4201/api` (host-mapped)
 - Agent calls `http://backend:8000/api` (internal)
 - Backend connects to `postgres:5432` (internal)
+- Backend connects to `minio:9000` (internal)

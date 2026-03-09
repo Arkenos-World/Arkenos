@@ -71,7 +71,7 @@ Track spend across every provider, every agent, every call. Per-session cost bre
 
 ```
 arkenos/
-├── frontend/          Next.js 16 · React 19 · Tailwind · Clerk Auth
+├── frontend/          Next.js 16 · React 19 · Tailwind · Better Auth
 ├── backend/           FastAPI · SQLAlchemy · PostgreSQL
 ├── agent/             Python · LiveKit Agents SDK
 └── docker-compose.yml
@@ -87,7 +87,7 @@ Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Arkenos Agent
                           │                    ▲
                           ▼                    │
                      LLM Engine ──→ Tool Execution ──→ MCP / Webhooks / APIs
-                    (Gemini 3)         │
+                   (Gemini 2.5 Flash)    │
                                        ▼
                                   Memory & State
 ```
@@ -97,22 +97,24 @@ Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Arkenos Agent
 ## Quick Start
 
 ```bash
-git clone https://github.com/arkenos-ai/arkenos.git
-cd arkenos
+git clone https://github.com/dhruv0206/Arkenos.git
+cd Arkenos
 
 # Configure environment
+cp .env.example .env
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
-cp agent/.env.example agent/.env
-# Edit each .env with your API keys
+# Edit each .env with your values
 
 # Launch
 docker-compose up -d --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
+Open [http://localhost:4200](http://localhost:4200) to access the dashboard.
 
 For local development setup, see the [Development Guide](https://docs.arkenos.ai/local-development).
+
+> **Note:** The agent service requires no `.env` file — it fetches all API keys from the backend dashboard on startup.
 
 ---
 

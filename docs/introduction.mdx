@@ -41,7 +41,7 @@ Arkenos is an open-source orchestration layer for enterprise-grade conversationa
 | Component | Technology |
 |-----------|------------|
 | Frontend | Next.js 16, React 19, Tailwind CSS, shadcn/ui |
-| Auth | Clerk |
+| Auth | Better Auth |
 | Backend | FastAPI, SQLAlchemy, PostgreSQL |
 | Agent | Python, LiveKit Agents SDK |
 | STT | AssemblyAI, ElevenLabs, Deepgram |
@@ -54,23 +54,24 @@ Arkenos is an open-source orchestration layer for enterprise-grade conversationa
 
 ```
 Arkenos/
-├── frontend/       # Next.js 16 dashboard
+├── frontend/       # Next.js 16 dashboard (Better Auth)
 ├── backend/        # FastAPI REST API + encrypted key store
 ├── agent/          # Python voice agent (LiveKit Agents SDK)
-└── docker-compose.yml
+└── docker-compose.yml  # 5 services: frontend, backend, agent, postgres, minio
 ```
 
-Four services run together:
+Five services run together:
 
 | Service | Description | URL |
 |---------|-------------|-----|
-| Frontend | Next.js dashboard with Clerk auth | http://localhost:3000 |
-| Backend | FastAPI API server + encrypted key store | http://localhost:8000 |
+| Frontend | Next.js dashboard with Better Auth | http://localhost:4200 |
+| Backend | FastAPI API server + encrypted key store | http://localhost:4201 |
 | Agent | LiveKit voice agent worker | Connected to LiveKit Cloud |
-| PostgreSQL | Database (agents, sessions, keys, costs) | localhost:5432 |
+| PostgreSQL | Database (agents, sessions, keys, costs) | localhost:5434 |
+| MinIO | Object storage for custom agent files | http://localhost:9002 |
 
 <Note>
-The agent requires **no `.env` file** — it fetches all API keys from the backend dashboard on startup. Only the backend needs a Postgres password, and the frontend needs Clerk keys.
+The agent requires **no `.env` file** — it fetches all API keys from the backend dashboard on startup. Auth is handled by Better Auth using your Postgres database directly — no external auth keys needed.
 </Note>
 
 ## Next Steps

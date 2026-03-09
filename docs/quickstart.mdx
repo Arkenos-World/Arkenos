@@ -10,7 +10,7 @@ The easiest way to run Arkenos. All 4 services start with one command.
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- API keys for: Clerk (frontend auth), plus provider keys (LiveKit, Google Gemini, Resemble AI, STT) configured via the dashboard after first boot
+- Provider keys (LiveKit, Google Gemini, Resemble AI, STT) are configured via the dashboard after first boot
 
 ## 1. Clone the Repository
 
@@ -22,6 +22,7 @@ cd Arkenos
 ## 2. Configure Environment Variables
 
 ```bash
+cp .env.example .env
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
@@ -29,7 +30,7 @@ cp frontend/.env.example frontend/.env.local
 Edit each file and add your credentials. See [Environment Variables](/configuration/environment-variables) for the full reference.
 
 <Note>
-The agent needs **no `.env` file** — it fetches all API keys from the backend dashboard on startup. Only `backend/.env` (Postgres password) and `frontend/.env.local` (Clerk + API URL) are required.
+The agent needs **no `.env` file** — it fetches all API keys from the backend dashboard on startup. Auth is handled by Better Auth using your Postgres database — no external auth keys needed. The root `.env` only needs `POSTGRES_PASSWORD`.
 </Note>
 
 ## 3. Run
@@ -38,18 +39,19 @@ The agent needs **no `.env` file** — it fetches all API keys from the backend 
 docker-compose up -d --build
 ```
 
-This starts 4 services:
+This starts 5 services:
 
 | Service | URL |
 |---------|-----|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:8000 |
+| Frontend | http://localhost:4200 |
+| Backend API | http://localhost:4201 |
 | Voice Agent | Connected to LiveKit |
-| PostgreSQL | localhost:5432 |
+| PostgreSQL | localhost:5434 |
+| MinIO | http://localhost:9002 |
 
 ## 4. Open the Dashboard
 
-Visit [http://localhost:3000](http://localhost:3000) and sign in with Clerk.
+Visit [http://localhost:4200](http://localhost:4200) and sign in.
 
 ## 5. Configure API Keys
 

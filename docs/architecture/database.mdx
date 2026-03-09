@@ -21,12 +21,12 @@ Encrypted API key store (instance-level, not per-user). Managed via **API Keys**
 
 ### users
 
-Stores Clerk-authenticated users.
+Stores authenticated users.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | String(36) | Primary key |
-| clerk_id | String(255) | Clerk user ID (unique, indexed) |
+| auth_id | String(255) | Auth provider user ID (unique, indexed) |
 | email | String(255) | User email (unique) |
 | name | String(255) | User display name (nullable) |
 | created_at | DateTime | Account creation time |

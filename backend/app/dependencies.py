@@ -12,10 +12,10 @@ def get_current_user(
     x_user_id: Optional[str] = Header(None),
     db: Session = Depends(get_db),
 ) -> User:
-    """Resolve the authenticated user from the X-User-Id header (Clerk ID)."""
+    """Resolve the authenticated user from the X-User-Id header (auth provider ID)."""
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
-    user = db.query(User).filter(User.clerk_id == x_user_id).first()
+    user = db.query(User).filter(User.auth_id == x_user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
@@ -34,7 +34,7 @@ def verify_agent_ownership(
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
 
-    user = db.query(User).filter(User.clerk_id == x_user_id).first()
+    user = db.query(User).filter(User.auth_id == x_user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 

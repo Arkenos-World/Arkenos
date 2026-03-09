@@ -62,6 +62,32 @@ except Exception as e:
     logger.error(f"Failed to run migrations: {e}")
 
 
+def _ensure_instance_id():
+    """Generate and store a unique instance ID on first boot."""
+    import uuid
+    from app.database import SessionLocal
+    from app.models import InstanceSettings
+
+    db = SessionLocal()
+    try:
+        row = db.query(InstanceSettings).filter(InstanceSettings.key == "instance_id").first()
+        if not row:
+            row = InstanceSettings(key="instance_id", encrypted_value=str(uuid.uuid4()))
+            db.add(row)
+            db.commit()
+            logger.info(f"Generated instance ID: {row.encrypted_value}")
+        else:
+            logger.info(f"Instance ID: {row.encrypted_value}")
+    except Exception as e:
+        logger.error(f"Failed to ensure instance ID: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+_ensure_instance_id()
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "arkenos-api"}

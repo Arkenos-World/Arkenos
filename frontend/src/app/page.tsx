@@ -1,9 +1,10 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
+import { AuthModal } from "@/components/auth-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -268,6 +269,9 @@ const stagger = {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const { data: session } = useSession();
+  const [authOpen, setAuthOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
@@ -314,22 +318,19 @@ export default function Home() {
                   variants={fadeUp}
                   className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4"
                 >
-                  <SignedOut>
-                    <SignInButton mode="modal">
-                      <Button size="lg" className="gap-2 h-12 px-8 text-base">
-                        Get Started Free
-                        <ArrowRightIcon className="h-4 w-4" />
-                      </Button>
-                    </SignInButton>
-                  </SignedOut>
-                  <SignedIn>
+                  {session ? (
                     <Link href="/dashboard">
                       <Button size="lg" className="gap-2 h-12 px-8 text-base">
                         Go to Dashboard
                         <ArrowRightIcon className="h-4 w-4" />
                       </Button>
                     </Link>
-                  </SignedIn>
+                  ) : (
+                    <Button size="lg" className="gap-2 h-12 px-8 text-base" onClick={() => setAuthOpen(true)}>
+                      Get Started Free
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button variant="outline" size="lg" className="gap-2 h-12 px-8 text-base" asChild>
                     <a href="https://github.com" target="_blank" rel="noopener noreferrer">
                       <GithubIcon className="h-5 w-5" />
@@ -848,22 +849,19 @@ export default function Home() {
                   Create your first voice AI agent in minutes. Free forever. No credit card required.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <SignedOut>
-                    <SignInButton mode="modal">
-                      <Button size="lg" className="gap-2 h-12 px-8 text-base">
-                        Get Started Free
-                        <ArrowRightIcon className="h-4 w-4" />
-                      </Button>
-                    </SignInButton>
-                  </SignedOut>
-                  <SignedIn>
+                  {session ? (
                     <Link href="/dashboard">
                       <Button size="lg" className="gap-2 h-12 px-8 text-base">
                         Go to Dashboard
                         <ArrowRightIcon className="h-4 w-4" />
                       </Button>
                     </Link>
-                  </SignedIn>
+                  ) : (
+                    <Button size="lg" className="gap-2 h-12 px-8 text-base" onClick={() => setAuthOpen(true)}>
+                      Get Started Free
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button variant="outline" size="lg" className="gap-2 h-12 px-8 text-base" asChild>
                     <a href="https://github.com" target="_blank" rel="noopener noreferrer">
                       <GithubIcon className="h-5 w-5" />
@@ -878,6 +876,7 @@ export default function Home() {
       </main>
 
       <PublicFooter />
+      <AuthModal open={authOpen} onOpenChange={setAuthOpen} defaultMode="sign-up" />
     </div>
   );
 }

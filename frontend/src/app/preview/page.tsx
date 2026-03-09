@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -629,7 +629,8 @@ import { Suspense } from "react";
 function PreviewPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { userId } = useAuth();
+    const { data: session } = useSession();
+    const userId = session?.user?.id;
     const [connectionState, setConnectionState] = useState<ConnectionStateType>("idle");
     const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
     const [connectionData, setConnectionData] = useState<{

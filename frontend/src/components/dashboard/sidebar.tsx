@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserButton } from "@clerk/nextjs";
+import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -145,9 +145,28 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
                     {!collapsed && "Settings"}
                 </Link>
                 <div className={cn("flex items-center py-2", collapsed ? "justify-center px-2" : "gap-3 px-3")}>
-                    <UserButton />
-                    {!collapsed && <span className="text-sm truncate">{userName || "User"}</span>}
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                        {userName?.[0]?.toUpperCase() || userEmail?.[0]?.toUpperCase() || "U"}
+                    </div>
+                    {!collapsed && (
+                        <div className="flex-1 min-w-0">
+                            <span className="text-sm truncate block">{userName || "User"}</span>
+                        </div>
+                    )}
                 </div>
+                <button
+                    onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })}
+                    className={cn(
+                        "flex items-center py-2 text-sm transition-colors w-full text-muted-foreground hover:bg-muted hover:text-foreground",
+                        collapsed ? "justify-center px-2" : "gap-3 px-3"
+                    )}
+                    title={collapsed ? "Sign out" : undefined}
+                >
+                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                    </svg>
+                    {!collapsed && "Sign out"}
+                </button>
             </div>
         </>
     );

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { trackApiKeyConfigured, trackProviderTestConnection } from "@/lib/tracking";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,6 +173,7 @@ function ProviderCard({
             }
             // Test passed — save to DB
             await saveKeys(keysToSave);
+            trackApiKeyConfigured(providerId);
             toast.success(`${provider.label} keys saved`);
             setValues({});
             setTestResult({ success: true, message: "Connected and saved" });
@@ -190,6 +192,7 @@ function ProviderCard({
             // Test with form values if entered, otherwise test existing keys
             const keysToTest = getKeysToSave();
             const result = await testProvider(providerId, Object.keys(keysToTest).length > 0 ? keysToTest : undefined);
+            trackProviderTestConnection(providerId, result.success);
             setTestResult(result);
             if (result.success) {
                 toast.success(result.message);
@@ -458,6 +461,7 @@ function SelectedSTTProvider({
                 return;
             }
             await saveKeys(keysToSave);
+            trackApiKeyConfigured(providerId);
             toast.success(`${provider.label} key saved`);
             setValues({});
             setTestResult({ success: true, message: "Connected and saved" });
@@ -475,6 +479,7 @@ function SelectedSTTProvider({
         try {
             const keysToTest = getKeysToSave();
             const result = await testProvider(providerId, Object.keys(keysToTest).length > 0 ? keysToTest : undefined);
+            trackProviderTestConnection(providerId, result.success);
             setTestResult(result);
             if (result.success) {
                 toast.success(result.message);

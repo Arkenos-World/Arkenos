@@ -47,6 +47,16 @@ class TestResult(BaseModel):
 # --- Endpoints ---
 
 
+@router.get("/instance-id")
+async def get_instance_id(db: Session = Depends(get_db)):
+    """Public endpoint: returns the unique instance ID for telemetry."""
+    from app.models import InstanceSettings
+    row = db.query(InstanceSettings).filter(InstanceSettings.key == "instance_id").first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Instance ID not found")
+    return {"instance_id": row.encrypted_value}
+
+
 @router.get("/keys")
 async def get_key_status(db: Session = Depends(get_db)):
     """Get status of all API keys (set/missing, source). Never returns actual values."""

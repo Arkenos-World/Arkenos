@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
+import { trackCallStarted, trackCallEnded } from "@/lib/tracking";
 import Link from "next/link";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -43,7 +44,8 @@ const defaultAgent: Agent = { id: "default", name: "Arkenos Agent", type: "PIPEL
 
 export default function VoicePage() {
     const router = useRouter();
-    const { userId } = useAuth();
+    const { data: session } = useSession();
+    const userId = session?.user?.id;
     const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
     const [selectedAgent, setSelectedAgent] = useState("default");
     const [agents, setAgents] = useState<Agent[]>([defaultAgent]);
@@ -110,6 +112,7 @@ export default function VoicePage() {
                 roomName: data.roomName,
             });
             setConnectionState("connected");
+            trackCallStarted(selectedAgent);
             toast.success("Connected to voice session", {
                 description: `Room: ${data.roomName}`,
             });
@@ -134,10 +137,11 @@ export default function VoicePage() {
             }
         }
 
+        trackCallEnded(selectedAgent);
         setConnectionState("idle");
         setConnectionData(null);
         toast.info("Disconnected from voice session");
-    }, [connectionData]);
+    }, [connectionData, selectedAgent]);
 
     // Shared sidebar content used by both desktop and mobile sidebars
     const sidebarContent = (

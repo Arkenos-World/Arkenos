@@ -1,4 +1,5 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { CustomAgentEditor } from "@/components/custom-agents/custom-agent-editor";
 import { Sidebar } from "@/components/dashboard/sidebar";
@@ -8,12 +9,12 @@ interface PageProps {
 }
 
 export default async function CustomAgentCodePage({ params }: PageProps) {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
     const resolvedParams = await params;
 
     if (!userId) {
-        redirect("/sign-in");
+        redirect("/");
     }
 
     let agent = null;
@@ -47,8 +48,8 @@ export default async function CustomAgentCodePage({ params }: PageProps) {
     return (
         <div className="flex h-screen bg-background">
             <Sidebar
-                userEmail={user?.emailAddresses[0]?.emailAddress}
-                userName={user?.firstName || undefined}
+                userEmail={session?.user?.email || undefined}
+                userName={session?.user?.name || undefined}
                 collapsed
             />
             <div className="flex-1 min-w-0">

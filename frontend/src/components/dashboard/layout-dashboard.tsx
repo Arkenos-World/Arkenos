@@ -1,4 +1,5 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { Sidebar } from "./sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,13 @@ interface DashboardLayoutProps {
 }
 
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {
-    const user = await currentUser();
+    const session = await auth.api.getSession({ headers: await headers() });
 
     return (
         <div className="flex min-h-screen bg-background">
             <Sidebar
-                userEmail={user?.emailAddresses[0]?.emailAddress}
-                userName={user?.firstName || undefined}
+                userEmail={session?.user?.email || undefined}
+                userName={session?.user?.name || undefined}
             />
 
             <main className="flex-1 min-w-0">

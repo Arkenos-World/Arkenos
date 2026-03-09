@@ -20,8 +20,8 @@ from app.schemas import (
 router = APIRouter()
 
 
-def _resolve_user(db: Session, clerk_id: str) -> User | None:
-    return db.query(User).filter(User.clerk_id == clerk_id).first()
+def _resolve_user(db: Session, auth_id: str) -> User | None:
+    return db.query(User).filter(User.auth_id == auth_id).first()
 
 
 @router.get("/summary", response_model=CostSummaryResponse)

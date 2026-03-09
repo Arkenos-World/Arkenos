@@ -29,14 +29,14 @@ from app.services.config_resolver import get_key, require_providers
 router = APIRouter()
 
 
-def get_or_create_user(db: Session, clerk_id: str) -> User:
-    """Get or create a user by Clerk ID."""
-    user = db.query(User).filter(User.clerk_id == clerk_id).first()
+def get_or_create_user(db: Session, auth_id: str) -> User:
+    """Get or create a user by auth provider ID."""
+    user = db.query(User).filter(User.auth_id == auth_id).first()
     if not user:
         user = User(
             id=str(uuid.uuid4()),
-            clerk_id=clerk_id,
-            email=f"{clerk_id}@placeholder.com",
+            auth_id=auth_id,
+            email=f"{auth_id}@placeholder.com",
         )
         db.add(user)
         db.commit()
@@ -57,7 +57,7 @@ async def get_sessions(
     if not x_user_id:
         raise HTTPException(status_code=401, detail="User ID required")
     
-    user = db.query(User).filter(User.clerk_id == x_user_id).first()
+    user = db.query(User).filter(User.auth_id == x_user_id).first()
     if not user:
         return {"sessions": [], "total": 0, "page": page, "limit": limit}
     
@@ -181,20 +181,20 @@ async def create_session(
     """Create a new voice session.
 
     user_id can be either:
-    - A Clerk ID (browser sessions): looked up or created via get_or_create_user
+    - An auth provider ID (browser sessions): looked up or created via get_or_create_user
     - An internal DB user UUID (SIP sessions): looked up directly by primary key
     """
     incoming_user_id = session_data.user_id
     
     # Check if the incoming user_id is an internal DB UUID (36-char UUID format)
-    # vs a Clerk ID (e.g. "user_2abc..." or "sip-caller")
+    # vs an auth provider ID (e.g. "user_2abc..." or "sip-caller")
     user = None
     if len(incoming_user_id) == 36 and incoming_user_id.count('-') == 4:
         # Looks like a UUID — try to find the user by internal primary key first
         user = db.query(User).filter(User.id == incoming_user_id).first()
     
     if user is None:
-        # Fall back to Clerk ID lookup / creation
+        # Fall back to auth provider ID lookup / creation
         user = get_or_create_user(db, incoming_user_id)
 
     # If a session with this room_name already exists, return it (don't duplicate)

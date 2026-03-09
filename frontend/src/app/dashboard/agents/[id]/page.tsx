@@ -1,4 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { AgentSettings } from "@/components/agents/agent-settings";
@@ -8,11 +9,12 @@ interface PageProps {
 }
 
 export default async function AgentDetailPage({ params }: PageProps) {
-    const { userId } = await auth();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
     const resolvedParams = await params;
 
     if (!userId) {
-        redirect("/sign-in");
+        redirect("/");
     }
 
     // Fetch agent from backend API

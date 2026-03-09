@@ -1,13 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { CallLogsClient } from "./client";
 
 export default async function CallLogsPage() {
-    const { userId } = await auth();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
 
     if (!userId) {
-        redirect("/sign-in");
+        redirect("/");
     }
 
     return (

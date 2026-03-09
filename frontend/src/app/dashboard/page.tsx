@@ -1,4 +1,5 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 // Dashboard layout and analytics
@@ -27,19 +28,18 @@ function resolveSessionLabel(session: { agent_name?: string | null; room_name: s
 }
 
 export default async function DashboardPage() {
-    const { userId } = await auth();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
 
     if (!userId) {
-        redirect("/sign-in");
+        redirect("/");
     }
 
-    const user = await currentUser();
-
     const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-    const headers = { 'x-user-id': userId };
+    const reqHeaders = { 'x-user-id': userId };
 
     const [recentRes, keyStatusRes] = await Promise.all([
-        fetch(`${apiUrl}/sessions/?limit=5`, { headers, cache: 'no-store' }),
+        fetch(`${apiUrl}/sessions/?limit=5`, { headers: reqHeaders, cache: 'no-store' }),
         fetch(`${apiUrl}/settings/keys`, { cache: 'no-store' }).catch(() => null),
     ]);
     const keyStatus: KeyStatusResponse | null = keyStatusRes?.ok ? await keyStatusRes.json().catch(() => null) : null;
@@ -59,8 +59,8 @@ export default async function DashboardPage() {
             <div className="space-y-6">
                 {/* Welcome */}
                 <div>
-                    <p className="text-sm text-muted-foreground">{user?.emailAddresses[0]?.emailAddress}</p>
-                    <h1 className="text-2xl font-bold">Welcome {user?.firstName || "back"}!</h1>
+                    <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
+                    <h1 className="text-2xl font-bold">Welcome {session?.user?.name || "back"}!</h1>
                 </div>
 
                 {/* Stat Row + Call Volume Chart */}

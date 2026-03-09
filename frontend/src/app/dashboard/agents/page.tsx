@@ -1,13 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { AgentList } from "@/components/agents/agent-list";
 
 export default async function AgentsPage() {
-    const { userId } = await auth();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
 
     if (!userId) {
-        redirect("/sign-in");
+        redirect("/");
     }
 
     // Fetch agents from backend API

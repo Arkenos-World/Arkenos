@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { trackAgentCreated } from "@/lib/tracking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -199,6 +200,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
             }
 
             const newAgent = await response.json();
+            trackAgentCreated("standard");
             setAgents([newAgent, ...agents]);
             setIsOpen(false);
             setSelectedTemplate(null);
@@ -242,6 +244,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
             );
             if (!response.ok) throw new Error('Failed to create agent');
             const newAgent = await response.json();
+            trackAgentCreated("custom");
             setAgents([newAgent, ...agents]);
             setIsOpen(false);
             setSelectedTemplate(null);

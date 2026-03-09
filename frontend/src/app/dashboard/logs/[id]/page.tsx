@@ -1,4 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
@@ -42,11 +43,12 @@ export default async function CallDetailsPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { userId } = await auth();
+    const authSession = await auth.api.getSession({ headers: await headers() });
+    const userId = authSession?.user?.id;
     const { id } = await params;
 
     if (!userId) {
-        redirect("/sign-in");
+        redirect("/");
     }
 
     // Fetch session details

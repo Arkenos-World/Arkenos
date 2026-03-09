@@ -84,7 +84,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    clerk_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    auth_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -320,7 +320,7 @@ class CodingAgentConversation(Base):
     agent_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("agents.id", ondelete="CASCADE")
     )
-    user_id: Mapped[str] = mapped_column(String(255))  # Clerk user ID
+    user_id: Mapped[str] = mapped_column(String(255))  # Auth provider user ID
 
     # Relationships
     agent: Mapped["Agent"] = relationship()

@@ -1,11 +1,12 @@
 import { AccessToken, RoomServiceClient, AgentDispatchClient } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    
+    const session = await auth.api.getSession({ headers: request.headers });
+    const userId = session?.user?.id;
+
     if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },

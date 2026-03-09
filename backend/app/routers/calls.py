@@ -83,7 +83,7 @@ async def create_outbound_call(
     phone = _validate_e164(request.phone_number)
 
     # --- Authenticate user ---
-    user = db.query(User).filter(User.clerk_id == x_user_id).first()
+    user = db.query(User).filter(User.auth_id == x_user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
@@ -214,7 +214,7 @@ async def end_call(
         raise HTTPException(status_code=404, detail="Call not found")
 
     # Verify user owns this call
-    user = db.query(User).filter(User.clerk_id == x_user_id).first()
+    user = db.query(User).filter(User.auth_id == x_user_id).first()
     if not user or session.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 

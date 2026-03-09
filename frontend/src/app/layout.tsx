@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans, Noto_Sans_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
+import { PostHogProvider } from "@/components/posthog-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -33,17 +33,17 @@ export default function RootLayout({
         className={`${notoSans.variable} ${notoSansMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <ClerkProvider>
-          <ThemeProvider
+        <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <PostHogProvider>
+              {children}
+            </PostHogProvider>
             <Toaster position="bottom-right" />
           </ThemeProvider>
-        </ClerkProvider>
       </body>
     </html>
   );

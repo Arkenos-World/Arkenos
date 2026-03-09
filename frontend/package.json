@@ -12,7 +12,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.36.5",
     "@livekit/components-react": "^2.9.17",
     "@livekit/components-styles": "^1.2.0",
     "@monaco-editor/react": "^4.7.0",
@@ -24,6 +23,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@types/three": "^0.182.0",
+    "better-auth": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.4",
@@ -33,6 +33,8 @@
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "next-themes": "^0.4.6",
+    "pg": "^8.13.0",
+    "posthog-js": "^1.359.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^2.15.4",
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",

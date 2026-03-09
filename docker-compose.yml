@@ -4,7 +4,7 @@
 #   cp .env.example .env    # edit with your values
 #   docker-compose up -d --build
 #
-# Only 3 env vars required (POSTGRES_PASSWORD, Clerk keys).
+# Only 1 env var required (POSTGRES_PASSWORD).
 # All provider keys (LiveKit, Google, Resemble, Twilio, STT) are
 # configured via API Keys in the dashboard after first boot.
 
@@ -20,11 +20,11 @@ services:
     environment:
       POSTGRES_DB: arkenos
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arkenos}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "5434:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -63,11 +63,12 @@ services:
       dockerfile: Dockerfile
     container_name: arkenos-backend
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arkenos}
       DB_HOST: postgres
       MINIO_ENDPOINT: minio:9000
+      FRONTEND_URL: http://localhost:4200
     ports:
-      - "8000:8000"
+      - "4201:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,17 +96,22 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000/api
-        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY in .env}
+        NEXT_PUBLIC_API_URL: http://localhost:4201/api
     container_name: arkenos-frontend
     environment:
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:?Set CLERK_SECRET_KEY in .env}
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_API_URL: http://localhost:4201/api
       INTERNAL_API_URL: http://backend:8000/api
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-arkenos}@postgres:5432/arkenos
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-arkenos-default-secret-change-in-production}
+      BETTER_AUTH_URL: http://localhost:4200
+      NEXT_PUBLIC_TELEMETRY: ${TELEMETRY:-true}
     ports:
-      - "3000:3000"
+      - "4200:3000"
     depends_on:
-      - backend
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
     restart: unless-stopped
 
 volumes:

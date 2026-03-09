@@ -1,4 +1,5 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,13 +7,12 @@ import { Separator } from "@/components/ui/separator";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 
 export default async function SettingsPage() {
-    const { userId } = await auth();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
 
     if (!userId) {
-        redirect("/sign-in");
+        redirect("/");
     }
-
-    const user = await currentUser();
 
     return (
         <DashboardLayout>
@@ -32,11 +32,11 @@ export default async function SettingsPage() {
                     <CardContent className="space-y-4">
                         <div className="flex items-center gap-4">
                             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
-                                {user?.firstName?.[0] || user?.emailAddresses[0]?.emailAddress[0]?.toUpperCase()}
+                                {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase()}
                             </div>
                             <div>
-                                <p className="font-medium">{user?.firstName} {user?.lastName}</p>
-                                <p className="text-sm text-muted-foreground">{user?.emailAddresses[0]?.emailAddress}</p>
+                                <p className="font-medium">{session?.user?.name || "User"}</p>
+                                <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
                             </div>
                         </div>
                     </CardContent>

@@ -12,14 +12,14 @@ from app.dependencies import verify_agent_ownership
 router = APIRouter()
 
 
-def get_or_create_user(db: Session, clerk_id: str) -> User:
-    """Get or create a user by Clerk ID."""
-    user = db.query(User).filter(User.clerk_id == clerk_id).first()
+def get_or_create_user(db: Session, auth_id: str) -> User:
+    """Get or create a user by auth provider ID."""
+    user = db.query(User).filter(User.auth_id == auth_id).first()
     if not user:
         user = User(
             id=str(uuid.uuid4()),
-            clerk_id=clerk_id,
-            email=f"{clerk_id}@placeholder.com",
+            auth_id=auth_id,
+            email=f"{auth_id}@placeholder.com",
         )
         db.add(user)
         db.commit()
@@ -36,7 +36,7 @@ async def get_agents(
     if not x_user_id:
         raise HTTPException(status_code=401, detail="User ID required")
     
-    user = db.query(User).filter(User.clerk_id == x_user_id).first()
+    user = db.query(User).filter(User.auth_id == x_user_id).first()
     if not user:
         return []
     

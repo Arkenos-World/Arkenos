@@ -1,9 +1,11 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { AuthModal } from "@/components/auth-modal";
 import { Badge } from "@/components/ui/badge";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
@@ -157,6 +159,9 @@ const SPECS = [
 // ─── Page ───────────────────────────────────────────────────────────────────────
 
 export default function ProductPage() {
+  const { data: session } = useSession();
+  const [authOpen, setAuthOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
@@ -626,22 +631,19 @@ export default function ProductPage() {
                 Describe your agent. We build it. You own it. Free forever.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <SignedOut>
-                  <SignInButton mode="modal">
-                    <Button size="lg" className="gap-2 h-12 px-8 text-base">
-                      Start Building
-                      <ArrowRightIcon className="h-4 w-4" />
-                    </Button>
-                  </SignInButton>
-                </SignedOut>
-                <SignedIn>
+                {session ? (
                   <Link href="/dashboard">
                     <Button size="lg" className="gap-2 h-12 px-8 text-base">
                       Go to Dashboard
                       <ArrowRightIcon className="h-4 w-4" />
                     </Button>
                   </Link>
-                </SignedIn>
+                ) : (
+                  <Button size="lg" className="gap-2 h-12 px-8 text-base" onClick={() => setAuthOpen(true)}>
+                    Start Building
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </motion.div>
           </div>
@@ -649,6 +651,7 @@ export default function ProductPage() {
       </main>
 
       <PublicFooter />
+      <AuthModal open={authOpen} onOpenChange={setAuthOpen} defaultMode="sign-up" />
     </div>
   );
 }

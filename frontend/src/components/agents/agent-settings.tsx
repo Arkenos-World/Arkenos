@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { trackAgentDeleted } from "@/lib/tracking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -448,6 +449,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 throw new Error('Failed to delete agent');
             }
 
+            trackAgentDeleted();
             toast.success("Agent deleted successfully");
             router.push("/dashboard/agents");
         } catch (error) {

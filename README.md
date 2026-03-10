@@ -10,7 +10,7 @@ Build, deploy, and manage production voice agents with runtime compute, persiste
 [![GitHub Stars](https://img.shields.io/github/stars/Arkenos-World/Arkenos?style=social)](https://github.com/Arkenos-World/Arkenos)
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/ws9rwm?referralCode=EqdcFH)
 
-[Website](https://arkenos.ai) · [Documentation](https://docs.arkenos.ai) · [Discord](https://discord.gg/arkenos) · [Twitter](https://twitter.com/arkenosai)
+[Website](https://arkenos.ai) · [Documentation](https://arkenos.mintlify.app) · [Discord](https://discord.gg/arkenos) · [Twitter](https://twitter.com/arkenosai)
 
 </div>
 
@@ -113,7 +113,7 @@ docker-compose up -d --build
 
 Open [http://localhost:4200](http://localhost:4200) to access the dashboard.
 
-For local development setup, see the [Development Guide](https://docs.arkenos.ai/local-development).
+For local development setup, see the [Development Guide](https://arkenos.mintlify.app/local-development).
 
 > **Note:** The agent service requires no `.env` file — it fetches all API keys from the backend dashboard on startup.
 
@@ -144,9 +144,9 @@ Render deployment is also supported via the included [`render.yaml`](render.yaml
 
 ## Documentation
 
-Full documentation is available at **[docs.arkenos.ai](https://docs.arkenos.ai)** — quickstart, local development, configuration guides, architecture deep-dives, and interactive API reference.
+Full documentation is available at **[arkenos.mintlify.app](https://arkenos.mintlify.app)** — quickstart, local development, configuration guides, architecture deep-dives, and interactive API reference.
 
-The backend exposes 32+ REST endpoints across 8 routers covering agents, sessions, telephony, costs, usage tracking, voice management, and real-time communication. See the [API Reference](https://docs.arkenos.ai/api-reference) for the full interactive playground.
+The backend exposes 32+ REST endpoints across 8 routers covering agents, sessions, telephony, costs, usage tracking, voice management, and real-time communication. See the [API Reference](https://arkenos.mintlify.app/api-reference) for the full interactive playground.
 
 ---
 

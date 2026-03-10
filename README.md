@@ -8,7 +8,7 @@ Build, deploy, and manage production voice agents with runtime compute, persiste
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![GitHub Stars](https://img.shields.io/github/stars/Arkenos-World/Arkenos?style=social)](https://github.com/Arkenos-World/Arkenos)
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/ws9rwm?referralCode=EqdcFH)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/arkenos)
 
 [Website](https://arkenos.ai) · [Documentation](https://arkenos.mintlify.app) · [Discord](https://discord.gg/arkenos) · [Twitter](https://twitter.com/arkenosai)
 
@@ -123,7 +123,7 @@ For local development setup, see the [Development Guide](https://arkenos.mintlif
 
 ### Railway (One-Click)
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template?template=https://github.com/Arkenos-World/Arkenos&referralCode=arkenos)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/arkenos)
 
 The Railway template provides a true **zero-configuration** deployment. It automatically:
 - Provisions the PostgreSQL database (`arkenos-db`)

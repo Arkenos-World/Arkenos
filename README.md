@@ -7,7 +7,7 @@
 Build, deploy, and manage production voice agents with runtime compute, persistent memory, MCP tool integration, and full infrastructure control — all from a single platform.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![GitHub Stars](https://img.shields.io/github/stars/arkenos-ai/arkenos?style=social)](https://github.com/arkenos-ai/arkenos)
+[![GitHub Stars](https://img.shields.io/github/stars/Arkenos-World/Arkenos?style=social)](https://github.com/Arkenos-World/Arkenos)
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/ws9rwm?referralCode=EqdcFH)
 
 [Website](https://arkenos.ai) · [Documentation](https://docs.arkenos.ai) · [Discord](https://discord.gg/arkenos) · [Twitter](https://twitter.com/arkenosai)

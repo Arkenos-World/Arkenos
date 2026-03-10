@@ -98,7 +98,7 @@ Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Arkenos Agent
 ## Quick Start
 
 ```bash
-git clone https://github.com/dhruv0206/Arkenos.git
+git clone https://github.com/Arkenos-World/Arkenos.git
 cd Arkenos
 
 # Configure environment
@@ -125,21 +125,16 @@ For local development setup, see the [Development Guide](https://docs.arkenos.ai
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template?template=https://github.com/Arkenos-World/Arkenos&referralCode=arkenos)
 
-1. Click the button above — Railway will fork the repo and create services for the backend, frontend, and agent
-2. Add a **PostgreSQL** database from the Railway dashboard (click **+ New → Database → PostgreSQL**)
-3. Set the following environment variables for each service:
+The Railway template provides a true **zero-configuration** deployment. It automatically:
+- Provisions the PostgreSQL database (`arkenos-db`)
+- Deploys the Backend (`arkenos-backend`), Frontend (`arkenos-frontend`), and Agent (`arkenos-agent`) services
+- Wires all internal routing, ports, and database credentials securely
 
-| Variable | Service | How to set |
-|----------|---------|------------|
-| `DATABASE_URL` | Backend, Frontend | Reference the PostgreSQL service (`${{Postgres.DATABASE_URL}}`) |
-| `BETTER_AUTH_SECRET` | Frontend | Generate a random string (`openssl rand -hex 32`) |
-| `BETTER_AUTH_URL` | Frontend | Your frontend's Railway URL |
-| `NEXT_PUBLIC_API_URL` | Frontend | Your backend's Railway URL + `/api` |
-| `INTERNAL_API_URL` | Frontend | Private networking URL of backend (`http://arkenos-backend.railway.internal:8000/api`) |
-| `FRONTEND_URL` | Backend | Your frontend's Railway URL |
-| `BACKEND_API_URL` | Agent | Your backend's Railway URL + `/api` |
-
-4. All provider keys (LiveKit, Google, Resemble, Twilio, STT) can be configured via the dashboard after first boot
+1. Click the button above and click **Deploy**
+2. Wait for all 4 services to show as "Online" (the backend will automatically run database migrations)
+3. Open your deployed Frontend URL (`https://arkenos-frontend-....up.railway.app`)
+4. Sign up for a new account on the dashboard
+5. Navigate to the **Settings** page in your dashboard to plug in your provider API keys (LiveKit, Resemble, Twilio, Google, STT, etc.)
 
 ### Render
 

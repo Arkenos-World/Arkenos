@@ -25,7 +25,7 @@ Use the following conventions:
 
 ```bash
 # Clone
-git clone https://github.com/dhruv0206/Arkenos.git
+git clone https://github.com/Arkenos-World/Arkenos.git
 cd Arkenos
 
 # Backend
@@ -64,7 +64,7 @@ python agent.py dev
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/dhruv0206/Arkenos/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
+Use [GitHub Issues](https://github.com/Arkenos-World/Arkenos/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
 
 ## Code Style
 

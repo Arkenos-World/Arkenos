@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir .
 # Expose port
 EXPOSE 8000
 
-# Copy and prepare startup script
-RUN chmod +x /app/start.sh
+# Copy startup script and fix line endings (handles Windows CRLF)
+RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
 
 CMD ["/app/start.sh"]

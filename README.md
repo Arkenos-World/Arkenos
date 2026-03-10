@@ -8,7 +8,7 @@ Build, deploy, and manage production voice agents with runtime compute, persiste
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![GitHub Stars](https://img.shields.io/github/stars/arkenos-ai/arkenos?style=social)](https://github.com/arkenos-ai/arkenos)
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/Gqv_ZV?referralCode=EqdcFH)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/pv3JyA?referralCode=EqdcFH)
 
 [Website](https://arkenos.ai) · [Documentation](https://docs.arkenos.ai) · [Discord](https://discord.gg/arkenos) · [Twitter](https://twitter.com/arkenosai)
 

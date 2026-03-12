@@ -13,6 +13,15 @@ if [ -n "$DB_HOST" ]; then
     echo "PostgreSQL ready!"
 fi
 
+# Wait for MinIO if MINIO_ENDPOINT is set (Docker Compose mode)
+if [ -n "$MINIO_ENDPOINT" ]; then
+    MINIO_HOST=$(echo "$MINIO_ENDPOINT" | cut -d: -f1)
+    MINIO_PORT=$(echo "$MINIO_ENDPOINT" | cut -d: -f2)
+    echo "Waiting for MinIO at $MINIO_HOST:$MINIO_PORT..."
+    while ! nc -z $MINIO_HOST $MINIO_PORT; do sleep 1; done
+    echo "MinIO ready!"
+fi
+
 # Test database connection with retries (handles Railway cold starts)
 echo "Testing database connection..."
 MAX_RETRIES=30

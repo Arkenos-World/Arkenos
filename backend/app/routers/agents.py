@@ -1,13 +1,17 @@
+import logging
+import uuid
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
-from typing import Optional
-import uuid
 
 from app.database import get_db
 from app.models import Agent, AgentMode, User
 from app.schemas import AgentCreate, AgentUpdate, AgentResponse
 from app.services.scaffold_templates import scaffold_agent
 from app.dependencies import verify_agent_ownership
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -82,8 +86,8 @@ async def create_agent(agent_data: AgentCreate, db: Session = Depends(get_db)):
     if mode == AgentMode.CUSTOM:
         try:
             scaffold_agent(agent_id, db)
-        except Exception:
-            pass  # Non-fatal — user can scaffold manually
+        except Exception as e:
+            logger.error(f"Failed to scaffold custom agent {agent_id}: {e}")
 
     return agent
 

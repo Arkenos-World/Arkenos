@@ -88,6 +88,19 @@ def _ensure_instance_id():
 _ensure_instance_id()
 
 
+def _ensure_minio_bucket():
+    """Ensure the MinIO bucket exists on startup."""
+    from app.services.minio_client import ensure_bucket
+    ensure_bucket()
+    logger.info("MinIO bucket ensured")
+
+
+try:
+    _ensure_minio_bucket()
+except Exception as e:
+    logger.error(f"Failed to ensure MinIO bucket: {e}")
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "arkenos-api"}

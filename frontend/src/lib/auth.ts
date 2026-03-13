@@ -5,11 +5,14 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || "postgresql://postgres:arkenos@localhost:5433/arkenos",
 });
 
+const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+
 export const auth = betterAuth({
   database: pool,
   emailAndPassword: { enabled: true },
   secret: process.env.BETTER_AUTH_SECRET || "arkenos-default-secret-change-in-production",
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL,
+  trustedOrigins: [baseURL],
 });
 
 // Auto-create BetterAuth tables if they don't exist

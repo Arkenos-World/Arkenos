@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { AgentSettings } from "@/components/agents/agent-settings";
+import { getApiUrl } from "@/lib/api";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -20,7 +21,7 @@ export default async function AgentDetailPage({ params }: PageProps) {
     // Fetch agent from backend API
     let agent = null;
     try {
-        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const apiUrl = getApiUrl();
         const response = await fetch(
             `${apiUrl}/agents/${resolvedParams.id}`,
             {

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { getApiUrl } from "@/lib/api";
 import type { Transfer, TransferType } from "@/lib/api";
 
 function PhoneIcon({ className }: { className?: string }) {
@@ -60,8 +61,7 @@ export function TransferCallDialog({
     setError(null);
 
     try {
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/sessions/${sessionId}/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

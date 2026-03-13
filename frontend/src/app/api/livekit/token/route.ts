@@ -1,6 +1,7 @@
 import { AccessToken, RoomServiceClient, AgentDispatchClient } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getApiUrl } from "@/lib/api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch LiveKit keys from backend dashboard (DB → env fallback)
-    const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const backendUrl = getApiUrl();
     let apiKey = process.env.LIVEKIT_API_KEY;
     let apiSecret = process.env.LIVEKIT_API_SECRET;
     let wsUrl = process.env.LIVEKIT_URL;
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Check if agent is custom to determine dispatch strategy
     let agentMode = "STANDARD";
-    const backendApiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const backendApiUrl = getApiUrl();
 
     if (agentId && agentId !== "default") {
       try {

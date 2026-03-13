@@ -10,6 +10,7 @@ import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { MicrophoneIcon, PhoneIcon } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
+import { getApiUrl } from "@/lib/api";
 import type { VoiceSession, SessionsPage, KeyStatusResponse } from "@/lib/api";
 
 // ─── Session label resolver ──────────────────────────────────────────────────
@@ -35,7 +36,7 @@ export default async function DashboardPage() {
         redirect("/");
     }
 
-    const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const apiUrl = getApiUrl();
     const reqHeaders = { 'x-user-id': userId };
 
     const [recentRes, keyStatusRes] = await Promise.all([

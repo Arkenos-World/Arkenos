@@ -1,8 +1,29 @@
-# Arkenos — Render Infrastructure as Code
-# Docs: https://docs.render.com/infrastructure-as-code
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  Arkenos — Render 1-Click Deploy                            ║
+# ║  https://docs.render.com/infrastructure-as-code             ║
+# ╚══════════════════════════════════════════════════════════════╝
 #
-# SETUP: After first deploy, update placeholder URLs with actual Render URLs
-# and set all secrets (sync: false) via the Render dashboard.
+# WHAT THIS DEPLOYS (all in one project):
+#   1. PostgreSQL 16 (managed)     — shared by backend + frontend
+#   2. arkenos-backend (FastAPI)   — API server, runs migrations on boot
+#   3. arkenos-frontend (Next.js)  — dashboard UI
+#   4. arkenos-agent (LiveKit)     — voice agent background worker
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │  ZERO-CONFIG DEPLOY                                         │
+# │                                                             │
+# │  1. Click "Deploy to Render" — everything auto-wires        │
+# │  2. Wait for all services to go green (~3-5 min)            │
+# │  3. Open the frontend URL → Dashboard → API Keys            │
+# │  4. Add your provider keys (LiveKit, Google, etc.)          │
+# │                                                             │
+# │  No secrets or env vars needed at deploy time.              │
+# │  All provider keys are configured from the dashboard UI.    │
+# └─────────────────────────────────────────────────────────────┘
+#
+# NOTE: Custom Agents (code editor + Docker containers) are not
+#       supported on Render. That feature requires self-hosted
+#       deployment with Docker socket access.
 
 databases:
   - name: arkenos-db
@@ -23,32 +44,24 @@ services:
     region: oregon
     healthCheckPath: /health
     envVars:
+      # Database — auto-wired from managed PostgreSQL
       - key: DATABASE_URL
         fromDatabase:
           name: arkenos-db
           property: connectionString
+      # CORS — auto-wired from frontend service URL
       - key: FRONTEND_URL
-        sync: false
-      - key: LIVEKIT_API_KEY
-        sync: false
-      - key: LIVEKIT_API_SECRET
-        sync: false
-      - key: LIVEKIT_URL
-        sync: false
-      - key: RESEMBLE_API_KEY
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_SIP_DOMAIN
-        sync: false
-      - key: LIVEKIT_SIP_TRUNK_ID
-        sync: false
+        fromService:
+          type: web
+          name: arkenos-frontend
+          property: hostport
+      # Production defaults
       - key: DEBUG
         value: "false"
+      # Provider keys (LiveKit, Google, Resemble, Twilio, STT) are all
+      # configured via Dashboard → API Keys. No env vars needed here.
 
-  # ── Frontend (Next.js — native Node runtime) ──────────────
+  # ── Frontend (Next.js) ────────────────────────────────────
   - type: web
     name: arkenos-frontend
     runtime: node
@@ -58,28 +71,35 @@ services:
     plan: starter
     region: oregon
     envVars:
+      # Backend URL — auto-wired. The app auto-appends /api.
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        fromService:
+          type: web
+          name: arkenos-backend
+          property: hostport
       - key: INTERNAL_API_URL
-        sync: false
+        fromService:
+          type: web
+          name: arkenos-backend
+          property: hostport
+      # Auth — secret auto-generated, callback URL auto-wired
       - key: BETTER_AUTH_SECRET
-        sync: false
+        generateValue: true
       - key: BETTER_AUTH_URL
-        sync: false
+        fromService:
+          type: web
+          name: arkenos-frontend
+          property: hostport
+      # Database — auto-wired (Better Auth session storage)
       - key: DATABASE_URL
-        sync: false
-      - key: LIVEKIT_API_KEY
-        sync: false
-      - key: LIVEKIT_API_SECRET
-        sync: false
-      - key: LIVEKIT_URL
-        sync: false
-      - key: DEEPGRAM_API_KEY
-        sync: false
-      - key: GOOGLE_API_KEY
-        sync: false
+        fromDatabase:
+          name: arkenos-db
+          property: connectionString
+      # Runtime
       - key: NODE_VERSION
         value: "20"
+      # Provider keys (LiveKit, Deepgram, Google) are configured
+      # via Dashboard → API Keys. No env vars needed here.
 
   # ── Voice Agent (LiveKit Background Worker) ───────────────
   - type: worker
@@ -91,25 +111,11 @@ services:
     plan: starter
     region: oregon
     envVars:
+      # Backend URL — auto-wired. The agent auto-appends /api.
       - key: BACKEND_API_URL
-        sync: false
-      - key: LIVEKIT_API_KEY
-        sync: false
-      - key: LIVEKIT_API_SECRET
-        sync: false
-      - key: LIVEKIT_URL
-        sync: false
-      - key: ASSEMBLYAI_API_KEY
-        sync: false
-      - key: DEEPGRAM_API_KEY
-        sync: false
-      - key: ELEVENLABS_API_KEY
-        sync: false
-      - key: GOOGLE_API_KEY
-        sync: false
-      - key: RESEMBLE_API_KEY
-        sync: false
-      - key: RESEMBLE_PROJECT_UUID
-        sync: false
-      - key: RESEMBLE_VOICE_UUID
-        sync: false
+        fromService:
+          type: web
+          name: arkenos-backend
+          property: hostport
+      # Provider keys (LiveKit, STT, LLM, TTS) are fetched from the
+      # backend dashboard on startup. No env vars needed here.

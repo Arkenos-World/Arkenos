@@ -28,8 +28,9 @@ from usage_logger import log_stt_usage, log_llm_usage, log_tts_usage
 load_dotenv()
 logger = logging.getLogger("voice-agent")
 
-# Backend API URL
-BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api")
+# Backend API URL — auto-append /api if not present (for Render fromService URLs)
+_raw_backend_url = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api")
+BACKEND_API_URL = _raw_backend_url if _raw_backend_url.endswith("/api") else f"{_raw_backend_url.rstrip('/')}/api"
 
 
 def fetch_and_inject_keys():

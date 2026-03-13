@@ -3,13 +3,14 @@
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { useEffect } from "react";
+import { getApiUrl } from "@/lib/api";
 
 const POSTHOG_KEY = "phc_EpJEHZU7Hmnyl8bhhefL4IT6ETktgXYlwO9D6PIQ2A6";
 const POSTHOG_HOST = "https://us.i.posthog.com";
 
 async function fetchInstanceId(): Promise<string | null> {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const apiUrl = getApiUrl();
     const res = await fetch(`${apiUrl}/settings/instance-id`);
     if (!res.ok) return null;
     const data = await res.json();

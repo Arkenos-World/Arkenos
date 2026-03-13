@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Rocket } from "lucide-react";
 import { toast } from "sonner";
+import { getApiUrl } from "@/lib/api";
 
 interface DeployDialogProps {
     open: boolean;
@@ -32,7 +33,7 @@ export function DeployDialog({
     onDeployed,
 }: DeployDialogProps) {
     const [isDeploying, setIsDeploying] = useState(false);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const apiUrl = getApiUrl();
 
     const handleDeploy = async () => {
         setIsDeploying(true);

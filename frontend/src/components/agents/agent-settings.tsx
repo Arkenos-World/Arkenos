@@ -23,6 +23,7 @@ import { WebhookConfig, WebhookConfigState } from "./webhook-config";
 import { FunctionConfig, FunctionDefinition } from "./function-config";
 import { OutboundCallModal } from "./outbound-call-modal";
 import { useKeyStatus } from "@/hooks/use-key-status";
+import { getApiUrl } from "@/lib/api";
 import {
     BrainCircuit,
     AudioLines,
@@ -186,7 +187,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [systemPrompt, setSystemPrompt] = useState(agent.config?.system_prompt || "");
     const [sttProvider, setSttProvider] = useState(agent.config?.stt_provider || "assemblyai");
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const apiUrl = getApiUrl();
 
     const [voiceId, setVoiceId] = useState(agent.config?.voice_id || "");
     const [selectedVoiceName, setSelectedVoiceName] = useState<string>("");
@@ -386,7 +387,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         setIsSaving(true);
         try {
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/agents/${agent.id}`,
+                `${apiUrl}/agents/${agent.id}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -436,7 +437,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
         try {
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/agents/${agent.id}`,
+                `${apiUrl}/agents/${agent.id}`,
                 {
                     method: 'DELETE',
                     headers: {

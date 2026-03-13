@@ -36,6 +36,7 @@ import {
 import { Code2 } from "lucide-react";
 import { STATUS_BG } from "@/lib/design-tokens";
 import { useKeyStatus } from "@/hooks/use-key-status";
+import { getApiUrl } from "@/lib/api";
 
 interface ResembleVoice {
     id: string;
@@ -138,7 +139,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
     const [selectedMode, setSelectedMode] = useState<"STANDARD" | "CUSTOM" | null>(null);
     const { allConfigured } = useKeyStatus();
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const apiUrl = getApiUrl();
 
     useEffect(() => {
         const fetchVoices = async () => {
@@ -169,7 +170,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
         setIsLoading(true);
         try {
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/agents/`,
+                `${apiUrl}/agents/`,
                 {
                     method: 'POST',
                     headers: {

@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getApiUrl } from "@/lib/api";
 import type { CallAnalysis, SessionCosts } from "@/lib/api";
 import { TransferControls } from "@/components/sessions/transfer-controls";
 import { ArrowLeftIcon, ClockIcon, UserIcon, BotIcon } from "@/components/icons";
@@ -57,7 +58,7 @@ export default async function CallDetailsPage({
     let sessionCosts: SessionCosts | null = null;
 
     try {
-        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const apiUrl = getApiUrl();
         const sessionResponse = await fetch(
             `${apiUrl}/sessions/${id}`,
             { cache: 'no-store' }

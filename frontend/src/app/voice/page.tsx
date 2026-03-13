@@ -30,6 +30,7 @@ import {
 } from "@/components/icons";
 import { ArkenosLogo } from "@/components/ui/arkenos-logo";
 import { PIPELINE_COLORS, STATUS_COLORS } from "@/lib/design-tokens";
+import { getApiUrl } from "@/lib/api";
 
 type ConnectionState = "idle" | "connecting" | "connected" | "error";
 
@@ -67,7 +68,7 @@ export default function VoicePage() {
             }
             try {
                 const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/agents/`,
+                    `${getApiUrl()}/agents/`,
                     {
                         headers: {
                             'x-user-id': userId,
@@ -129,7 +130,7 @@ export default function VoicePage() {
         if (connectionData?.roomName) {
             try {
                 await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/sessions/by-room/${connectionData.roomName}/end`,
+                    `${getApiUrl()}/sessions/by-room/${connectionData.roomName}/end`,
                     { method: "POST" }
                 );
             } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Terminal } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface ContainerLogsProps {
     agentId: string;
@@ -12,7 +13,7 @@ interface ContainerLogsProps {
 export function ContainerLogs({ agentId, userId, containerRunning }: ContainerLogsProps) {
     const [logs, setLogs] = useState<string[]>([]);
     const logsEndRef = useRef<HTMLDivElement>(null);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const apiUrl = getApiUrl();
 
     useEffect(() => {
         if (!containerRunning) return;

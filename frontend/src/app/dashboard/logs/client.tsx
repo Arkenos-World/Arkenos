@@ -17,6 +17,7 @@ import {
     ArrowDownLeftIcon,
 } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
+import { getApiUrl } from "@/lib/api";
 
 function resolveSessionLabel(session: { agent_name?: string | null; room_name: string; outbound_phone_number?: string | null }): {
     primary: string
@@ -95,7 +96,7 @@ export function CallLogsClient({ userId }: CallLogsClientProps) {
             if (directionFilter !== "all") params.append("direction", directionFilter);
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/sessions/?${params}`,
+                `${getApiUrl()}/sessions/?${params}`,
                 {
                     headers: { 'x-user-id': userId },
                 }

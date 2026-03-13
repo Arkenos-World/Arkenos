@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { TransferCallDialog } from "./transfer-call-dialog";
 import { TransferStatusIndicator } from "./transfer-status";
 import { TransferHistory } from "./transfer-history";
+import { getApiUrl } from "@/lib/api";
 import type { Transfer } from "@/lib/api";
 
 function PhoneForwardIcon({ className }: { className?: string }) {
@@ -44,8 +45,7 @@ export function TransferControls({
   useEffect(() => {
     async function fetchTransfers() {
       try {
-        const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        const apiUrl = getApiUrl();
         const response = await fetch(
           `${apiUrl}/sessions/${sessionId}/transfers`
         );

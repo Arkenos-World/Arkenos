@@ -17,6 +17,7 @@ import { ContainerLogs } from "./container-logs";
 import { BuildStatusBadge } from "./build-status";
 import { DeployDialog } from "./deploy-dialog";
 import { PreviewPanel } from "./preview-panel";
+import { getApiUrl } from "@/lib/api";
 import type { Agent, AgentFile } from "@/lib/api";
 
 interface CustomAgentEditorProps {
@@ -26,7 +27,7 @@ interface CustomAgentEditorProps {
 
 export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
     const router = useRouter();
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const apiUrl = getApiUrl();
 
     const [files, setFiles] = useState<AgentFile[]>([]);
     const [activeFilePath, setActiveFilePath] = useState<string | null>(null);

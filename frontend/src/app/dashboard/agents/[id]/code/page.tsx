@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { CustomAgentEditor } from "@/components/custom-agents/custom-agent-editor";
 import { Sidebar } from "@/components/dashboard/sidebar";
+import { getApiUrl } from "@/lib/api";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -19,7 +20,7 @@ export default async function CustomAgentCodePage({ params }: PageProps) {
 
     let agent = null;
     try {
-        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        const apiUrl = getApiUrl();
         const response = await fetch(
             `${apiUrl}/agents/${resolvedParams.id}`,
             {

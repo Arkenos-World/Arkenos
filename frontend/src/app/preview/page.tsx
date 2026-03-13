@@ -38,6 +38,7 @@ import {
 } from "@/components/icons";
 import { ArkenosLogo } from "@/components/ui/arkenos-logo";
 import { PIPELINE_COLORS } from "@/lib/design-tokens";
+import { getApiUrl } from "@/lib/api";
 import "./preview.css";
 
 // Models configuration
@@ -204,7 +205,7 @@ function PreviewContent({
         if (!room?.name) return;
         try {
             await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/sessions/by-room/${room.name}/transcripts`,
+                `${getApiUrl()}/sessions/by-room/${room.name}/transcripts`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -669,7 +670,7 @@ function PreviewPageContent() {
             }
             try {
                 const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/agents/`,
+                    `${getApiUrl()}/agents/`,
                     {
                         headers: {
                             "Content-Type": "application/json",
@@ -735,7 +736,7 @@ function PreviewPageContent() {
         if (connectionData?.roomName) {
             try {
                 await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/sessions/by-room/${connectionData.roomName}/end`,
+                    `${getApiUrl()}/sessions/by-room/${connectionData.roomName}/end`,
                     { method: "POST" }
                 );
             } catch (error) {

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { getApiUrl } from "@/lib/api";
 
 // Icons
 function MicrophoneIcon({ className }: { className?: string }) {
@@ -237,7 +238,7 @@ function RoomContent({ onDisconnect, roomName, agentName }: { onDisconnect: () =
     const saveTranscriptToBackend = useCallback(async (text: string, speaker: "user" | "agent") => {
         try {
             await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/sessions/by-room/${roomName}/transcripts`,
+                `${getApiUrl()}/sessions/by-room/${roomName}/transcripts`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

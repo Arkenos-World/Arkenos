@@ -20,6 +20,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { getApiUrl } from "@/lib/api";
 
 function PhoneOutgoingIcon({ className }: { className?: string }) {
     return (
@@ -96,7 +97,7 @@ interface OutboundCallModalProps {
 }
 
 export function OutboundCallModal({ open, onOpenChange, agentId, agentName, userId }: OutboundCallModalProps) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const apiUrl = getApiUrl();
 
     // Dialer state
     const [countryCode, setCountryCode] = useState("+1");

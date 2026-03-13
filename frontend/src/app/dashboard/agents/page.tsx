@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { AgentList } from "@/components/agents/agent-list";
+import { getApiUrl } from "@/lib/api";
 
 export default async function AgentsPage() {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -15,7 +16,7 @@ export default async function AgentsPage() {
     // Fetch agents from backend API
     let agents: any[] = [];
     try {
-        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const apiUrl = getApiUrl();
         const response = await fetch(
             `${apiUrl}/agents/`,
             {

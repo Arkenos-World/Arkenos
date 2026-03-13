@@ -1,3 +1,16 @@
+/**
+ * Resolve the backend API base URL.
+ * Accepts URLs with or without the /api suffix so Render's fromService
+ * (which gives just the host) works automatically.
+ */
+export function getApiUrl(): string {
+  const raw =
+    (typeof window === "undefined"
+      ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL
+      : process.env.NEXT_PUBLIC_API_URL) || "http://localhost:8000/api";
+  return raw.endsWith("/api") ? raw : `${raw.replace(/\/+$/, "")}/api`;
+}
+
 export interface CallAnalysis {
   summary: string;
   sentiment: "positive" | "neutral" | "negative";
@@ -210,14 +223,14 @@ export interface TestResult {
 }
 
 export async function getKeyStatus(): Promise<KeyStatusResponse> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/settings/keys`);
   if (!res.ok) throw new Error("Failed to fetch key status");
   return res.json();
 }
 
 export async function saveKeys(keys: Record<string, string>): Promise<void> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/settings/keys/bulk`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -227,13 +240,13 @@ export async function saveKeys(keys: Record<string, string>): Promise<void> {
 }
 
 export async function deleteKey(keyName: string): Promise<void> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/settings/keys/${keyName}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete key");
 }
 
 export async function testProvider(provider: string, keys?: Record<string, string>): Promise<TestResult> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/settings/test/${provider}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

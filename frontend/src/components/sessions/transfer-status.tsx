@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { getApiUrl } from "@/lib/api";
 import type { Transfer, TransferStatus as TStatus } from "@/lib/api";
 
 const STATUS_CONFIG: Record<
@@ -78,8 +79,7 @@ export function TransferStatusIndicator({
 
     const interval = setInterval(async () => {
       try {
-        const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        const apiUrl = getApiUrl();
         const response = await fetch(
           `${apiUrl}/sessions/${sessionId}/transfers`
         );

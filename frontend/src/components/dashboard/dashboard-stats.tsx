@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { CallsAreaChart } from "@/components/dashboard/calls-area-chart"
 import { SkeletonStatRow, SkeletonChart } from "@/components/ui/skeleton"
 import { deltaColor } from "@/lib/design-tokens"
+import { getApiUrl } from "@/lib/api"
 import type { VoiceSession, Agent, SessionsPage } from "@/lib/api"
 
 type Period = "7d" | "30d" | "90d"
@@ -66,7 +67,7 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
     const [agents, setAgents] = useState<Agent[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+    const apiBase = getApiUrl()
     const headers = { "x-user-id": userId }
 
     const fetchData = useCallback(async () => {

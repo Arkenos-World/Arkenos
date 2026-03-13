@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Square, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { getApiUrl } from "@/lib/api";
 import type { ContainerInfo } from "@/lib/api";
 
 interface PreviewPanelProps {
@@ -21,7 +22,7 @@ export function PreviewPanel({
     const [container, setContainer] = useState<ContainerInfo | null>(null);
     const [isStarting, setIsStarting] = useState(false);
     const [isStopping, setIsStopping] = useState(false);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const apiUrl = getApiUrl();
 
     const handleStart = async () => {
         setIsStarting(true);

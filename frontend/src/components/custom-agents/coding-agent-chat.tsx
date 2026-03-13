@@ -21,6 +21,7 @@ import {
     AlertCircle,
     History,
 } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 import type { CodingAgentMessage, ConversationListItem } from "@/lib/api";
 
 interface FileChange {
@@ -274,7 +275,7 @@ export function CodingAgentChat({
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const fullContentRef = useRef("");
     const detectedChangesRef = useRef<DetectedFileChange[]>([]);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const apiUrl = getApiUrl();
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -46,6 +46,20 @@ class AssignNumberRequest(BaseModel):
     phone_number: str  # An already-owned Twilio number (E.164 format, e.g. +1234567890)
 
 
+class ReassignNumberRequest(BaseModel):
+    phone_number: str  # The number to reassign (E.164)
+    target_agent_id: str  # Agent to assign the number TO
+
+
+class ReassignNumberResponse(BaseModel):
+    phone_number: str
+    twilio_sid: Optional[str] = None
+    target_agent_id: str
+    source_agent_id: Optional[str] = None
+    source_agent_name: Optional[str] = None
+    pipeline_result: Optional[dict] = None
+
+
 # --- Endpoints ---
 
 @router.get("/numbers/search", response_model=list[NumberSearchResult])
@@ -387,6 +401,199 @@ async def provision_pipeline(
         "agent_id": agent.id,
         "steps": steps,
     }
+
+
+@router.get("/numbers/check")
+async def check_number_assignment(
+    phone_number: str = Query(..., description="Phone number to check (E.164)"),
+    db: Session = Depends(get_db),
+):
+    """Check if a phone number is currently assigned to any agent globally."""
+    normalized_input = normalize_phone(phone_number)
+    if not normalized_input:
+        raise HTTPException(status_code=400, detail="Invalid phone number")
+
+    agents = (
+        db.query(models.Agent)
+        .filter(models.Agent.phone_number.isnot(None))
+        .all()
+    )
+
+    for a in agents:
+        if normalize_phone(a.phone_number) == normalized_input:
+            return {
+                "assigned": True,
+                "agent_id": a.id,
+                "agent_name": a.name,
+                "user_id": a.user_id,
+            }
+
+    return {"assigned": False}
+
+
+@router.post("/numbers/reassign", response_model=ReassignNumberResponse)
+async def reassign_number(
+    request: ReassignNumberRequest,
+    db: Session = Depends(get_db),
+    _=Depends(require_providers("twilio", "livekit")),
+):
+    """Reassign a phone number to a different agent, releasing it from the current owner if any."""
+    normalized_phone = normalize_phone(request.phone_number)
+    if not normalized_phone:
+        raise HTTPException(status_code=400, detail="Invalid phone number")
+
+    # Verify target agent exists
+    target_agent = db.query(models.Agent).filter(models.Agent.id == request.target_agent_id).first()
+    if not target_agent:
+        raise HTTPException(status_code=404, detail="Target agent not found")
+
+    # Check target agent doesn't already have a different number
+    if target_agent.phone_number and target_agent.twilio_sid:
+        target_normalized = normalize_phone(target_agent.phone_number)
+        if target_normalized != normalized_phone:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Agent already has number {target_agent.phone_number}. Release it first.",
+            )
+
+    # Global check: find if ANY agent currently has this number
+    source_agent = None
+    all_agents_with_phone = (
+        db.query(models.Agent)
+        .filter(models.Agent.phone_number.isnot(None))
+        .all()
+    )
+    for a in all_agents_with_phone:
+        if normalize_phone(a.phone_number) == normalized_phone:
+            source_agent = a
+            break
+
+    # Prevent self-reassign
+    if source_agent and source_agent.id == target_agent.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Number is already assigned to this agent",
+        )
+
+    source_agent_id = None
+    source_agent_name = None
+    twilio_sid = None
+
+    if source_agent:
+        # Release from source agent
+        source_agent_id = source_agent.id
+        source_agent_name = source_agent.name
+        twilio_sid = source_agent.twilio_sid  # carry over to avoid redundant lookup
+
+        from app.services.telephony_provisioning import (
+            disassociate_number_from_twilio_trunk,
+            remove_number_from_inbound_trunk,
+        )
+
+        try:
+            await remove_number_from_inbound_trunk(source_agent.phone_number)
+        except Exception as e:
+            logger.warning(f"Could not remove number from LiveKit trunk during reassign: {e}")
+
+        if source_agent.twilio_sid:
+            try:
+                await disassociate_number_from_twilio_trunk(source_agent.twilio_sid)
+            except Exception as e:
+                logger.warning(f"Could not disassociate from Twilio trunk during reassign: {e}")
+
+        source_agent.phone_number = None
+        source_agent.twilio_sid = None
+        db.commit()
+        logger.info(f"Released number {normalized_phone} from agent {source_agent_name} for reassignment")
+    else:
+        # Number not assigned to anyone — do Twilio lookup for twilio_sid
+        try:
+            tw_account_sid = get_key(db, "twilio_account_sid")
+            tw_auth_token = get_key(db, "twilio_auth_token")
+            if tw_account_sid and tw_auth_token:
+                from twilio.rest import Client
+                client = Client(tw_account_sid, tw_auth_token)
+                numbers = client.incoming_phone_numbers.list(phone_number=normalized_phone)
+                if numbers:
+                    twilio_sid = numbers[0].sid
+                else:
+                    logger.warning(f"Number {normalized_phone} not found in Twilio account during reassign")
+        except Exception as e:
+            logger.warning(f"Could not verify number in Twilio during reassign: {e}")
+
+    # Assign to target agent
+    target_agent.phone_number = normalized_phone
+    target_agent.twilio_sid = twilio_sid
+    db.commit()
+    db.refresh(target_agent)
+
+    # Auto-provision pipeline
+    from app.services.telephony_provisioning import (
+        add_number_to_inbound_trunk,
+        associate_number_with_twilio_trunk,
+        ensure_dispatch_rule,
+        ensure_inbound_trunk,
+        ensure_outbound_trunk,
+    )
+
+    steps = []
+
+    # Step 1: LiveKit inbound trunk
+    try:
+        trunk_id = await ensure_inbound_trunk(normalized_phone)
+        steps.append({"step": "LiveKit Inbound Trunk", "status": "ok", "detail": f"Trunk ID: {trunk_id}"})
+    except Exception as e:
+        steps.append({"step": "LiveKit Inbound Trunk", "status": "error", "detail": str(e)})
+
+    # Step 2: LiveKit dispatch rule
+    try:
+        rule_id = await ensure_dispatch_rule()
+        steps.append({"step": "LiveKit Dispatch Rule", "status": "ok", "detail": f"Rule ID: {rule_id}"})
+    except Exception as e:
+        steps.append({"step": "LiveKit Dispatch Rule", "status": "error", "detail": str(e)})
+
+    # Step 3: Add number to inbound trunk
+    try:
+        await add_number_to_inbound_trunk(normalized_phone)
+        steps.append({"step": "Number on Inbound Trunk", "status": "ok", "detail": normalized_phone})
+    except Exception as e:
+        steps.append({"step": "Number on Inbound Trunk", "status": "error", "detail": str(e)})
+
+    # Step 4: Twilio Elastic SIP Trunk association
+    if twilio_sid:
+        try:
+            await associate_number_with_twilio_trunk(twilio_sid)
+            steps.append({"step": "Twilio SIP Trunk", "status": "ok", "detail": f"Number SID: {twilio_sid}"})
+        except Exception as e:
+            steps.append({"step": "Twilio SIP Trunk", "status": "error", "detail": str(e)})
+    else:
+        steps.append({"step": "Twilio SIP Trunk", "status": "warning", "detail": "No Twilio SID available — skipped"})
+
+    # Step 5: LiveKit outbound trunk
+    try:
+        outbound_id = await ensure_outbound_trunk()
+        steps.append({"step": "LiveKit Outbound Trunk", "status": "ok", "detail": f"Trunk ID: {outbound_id}"})
+    except Exception as e:
+        steps.append({"step": "LiveKit Outbound Trunk", "status": "error", "detail": str(e)})
+
+    all_ok = all(s["status"] == "ok" for s in steps)
+    has_errors = any(s["status"] == "error" for s in steps)
+
+    pipeline_result = {
+        "status": "ready" if all_ok else ("partial" if not has_errors else "error"),
+        "steps": steps,
+    }
+
+    logger.info(f"Reassigned number {normalized_phone} to agent {target_agent.name} (from {source_agent_name or 'unassigned'})")
+
+    return ReassignNumberResponse(
+        phone_number=normalized_phone,
+        twilio_sid=twilio_sid,
+        target_agent_id=target_agent.id,
+        source_agent_id=source_agent_id,
+        source_agent_name=source_agent_name,
+        pipeline_result=pipeline_result,
+    )
 
 
 # --- Utility ---

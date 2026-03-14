@@ -34,7 +34,16 @@ import {
     BarChart3,
     ShieldCheck,
     Settings2,
+    AlertTriangle,
 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 function ArrowLeftIcon({ className }: { className?: string }) {
     return (
@@ -275,6 +284,16 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [isReleasing, setIsReleasing] = useState(false);
     const [isProvisioning, setIsProvisioning] = useState(false);
     const [pipelineResult, setPipelineResult] = useState<{ status: string; steps: { step: string; status: string; detail: string }[] } | null>(null);
+    const [isCheckingNumber, setIsCheckingNumber] = useState(false);
+    const [reassignInfo, setReassignInfo] = useState<{
+        assigned: boolean;
+        agent_id?: string;
+        agent_name?: string;
+        user_id?: string;
+    } | null>(null);
+    const [showReassignDialog, setShowReassignDialog] = useState(false);
+    const [isReassigning, setIsReassigning] = useState(false);
+    const [reassignPipelineResult, setReassignPipelineResult] = useState<{ status: string; steps: { step: string; status: string; detail: string }[] } | null>(null);
 
     const handleSearchNumbers = useCallback(async () => {
         setIsSearching(true);
@@ -315,8 +334,23 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         const digits = assignPhone.replace(/\D/g, "");
         if (digits.length < 11) return;
         const e164 = "+" + digits;
-        setIsAssigning(true);
+        setIsCheckingNumber(true);
         try {
+            // First check if number is assigned to another agent
+            const checkRes = await fetch(`${apiUrl}/telephony/numbers/check?phone_number=${encodeURIComponent(e164)}`);
+            if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                if (checkData.assigned) {
+                    // Number is assigned to another agent — show warning dialog
+                    setReassignInfo(checkData);
+                    setShowReassignDialog(true);
+                    setIsCheckingNumber(false);
+                    return;
+                }
+            }
+            // Not assigned to anyone — proceed with normal assign
+            setIsCheckingNumber(false);
+            setIsAssigning(true);
             const res = await fetch(`${apiUrl}/telephony/numbers/assign`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -332,8 +366,44 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             toast.success(`Number ${data.phone_number} assigned!`);
         } catch (error: any) {
             toast.error(error.message || "Failed to assign number");
+            setIsCheckingNumber(false);
         } finally {
             setIsAssigning(false);
+        }
+    }, [apiUrl, agent.id, assignPhone]);
+
+    const handleReassignConfirm = useCallback(async () => {
+        const digits = assignPhone.replace(/\D/g, "");
+        const e164 = "+" + digits;
+        setIsReassigning(true);
+        setReassignPipelineResult(null);
+        try {
+            const res = await fetch(`${apiUrl}/telephony/numbers/reassign`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone_number: e164, target_agent_id: agent.id }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Reassign failed");
+            }
+            const data = await res.json();
+            setPhoneNumber(data.phone_number);
+            setAssignPhone("");
+            setShowReassignDialog(false);
+            setReassignInfo(null);
+            if (data.pipeline_result) {
+                setPipelineResult(data.pipeline_result);
+            }
+            toast.success(
+                data.source_agent_name
+                    ? `Number reassigned from "${data.source_agent_name}" to this agent!`
+                    : `Number ${data.phone_number} assigned!`
+            );
+        } catch (error: any) {
+            toast.error(error.message || "Failed to reassign number");
+        } finally {
+            setIsReassigning(false);
         }
     }, [apiUrl, agent.id, assignPhone]);
 
@@ -958,9 +1028,9 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                         />
                                         <Button
                                             onClick={handleAssignNumber}
-                                            disabled={isAssigning || assignPhone.replace(/\D/g, "").length < 11}
+                                            disabled={isAssigning || isCheckingNumber || assignPhone.replace(/\D/g, "").length < 11}
                                         >
-                                            {isAssigning ? "Assigning..." : "Assign"}
+                                            {isCheckingNumber ? "Checking..." : isAssigning ? "Assigning..." : "Assign"}
                                         </Button>
                                     </div>
                                 </div>
@@ -1066,6 +1136,61 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </TabsContent>
                 </div>
             </Tabs>
+
+            {/* Reassign Warning Dialog */}
+            <Dialog open={showReassignDialog} onOpenChange={(open) => {
+                if (!open) {
+                    setShowReassignDialog(false);
+                    setReassignInfo(null);
+                }
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-amber-500" />
+                            Number Already Assigned
+                        </DialogTitle>
+                        <DialogDescription>
+                            This phone number is currently assigned to another agent. Reassigning will remove it from that agent.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-3">
+                        <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
+                            <p className="text-sm">
+                                <span className="font-mono font-medium">
+                                    {assignPhone}
+                                </span>{" "}
+                                is currently assigned to{" "}
+                                <span className="font-semibold">
+                                    {reassignInfo?.agent_name || "another agent"}
+                                </span>.
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Reassigning will remove this number from that agent and its SIP pipeline will stop working.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowReassignDialog(false);
+                                setReassignInfo(null);
+                            }}
+                            disabled={isReassigning}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleReassignConfirm}
+                            disabled={isReassigning}
+                        >
+                            {isReassigning ? "Reassigning..." : "Reassign Number"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Outbound Call Modal */}
             <OutboundCallModal

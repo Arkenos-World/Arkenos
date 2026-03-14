@@ -442,7 +442,7 @@ async def provision_pipeline(
     # Step 5: LiveKit outbound trunk (for making outbound calls)
     try:
         # Force-delete stale outbound trunk if requested (e.g. after credential connection recreation)
-        if request.force_outbound:
+        if request.force_outbound and provider_name == "telnyx":
             from app.services.telephony_provisioning import _get_lk, _state
             from livekit.api import ListSIPOutboundTrunkRequest
             from livekit.protocol.sip import DeleteSIPTrunkRequest

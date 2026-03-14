@@ -298,8 +298,16 @@ async def transfer_call(
     # Get outbound SIP trunk ID (auto-provisioned or fallback)
     from app.services.telephony_provisioning import ensure_outbound_trunk
 
+    # Determine telephony provider from the session's agent
+    provider_name = "twilio"
+    if session.agent_id:
+        from app.models import Agent
+        agent = db.query(Agent).filter(Agent.id == session.agent_id).first()
+        if agent and agent.telephony_provider:
+            provider_name = agent.telephony_provider
+
     try:
-        sip_trunk_id = await ensure_outbound_trunk()
+        sip_trunk_id = await ensure_outbound_trunk(provider_name)
     except Exception:
         sip_trunk_id = get_key(db, "livekit_sip_trunk_id")
 

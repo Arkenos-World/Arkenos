@@ -31,7 +31,7 @@ export interface VoiceSession {
   agent_id: string | null;
   agent_name?: string | null;
   analysis?: CallAnalysis | null;
-  direction?: "inbound" | "outbound" | null;
+  call_direction?: "INBOUND" | "OUTBOUND" | null;
   outbound_phone_number?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -116,7 +116,8 @@ export interface Agent {
   is_active: boolean;
   user_id: string;
   phone_number: string | null;
-  twilio_sid: string | null;
+  provider_number_sid: string | null;
+  telephony_provider?: string | null;
   agent_mode: "STANDARD" | "CUSTOM";
   storage_path: string | null;
   image_tag: string | null;
@@ -214,6 +215,7 @@ export interface KeyStatusResponse {
   providers: Record<string, ProviderStatus>;
   all_required_set: boolean;
   stt_configured: boolean;
+  telephony_configured: boolean;
 }
 
 export interface TestResult {
@@ -254,4 +256,162 @@ export async function testProvider(provider: string, keys?: Record<string, strin
   });
   if (!res.ok) throw new Error("Failed to test provider");
   return res.json();
+}
+
+// --- Telephony ---
+
+export interface NumberSearchResult {
+  phone_number: string;
+  friendly_name: string;
+  locality?: string;
+  region?: string;
+  iso_country?: string;
+}
+
+export interface BuyNumberResponse {
+  phone_number: string;
+  provider_number_sid: string;
+  agent_id: string;
+}
+
+export interface NumberCheckResponse {
+  assigned: boolean;
+  agent_id?: string;
+  agent_name?: string;
+  user_id?: string;
+}
+
+export interface AssignNumberResponse {
+  status: string;
+  phone_number: string;
+  provider_number_sid?: string;
+  agent_id: string;
+}
+
+export interface ReassignNumberResponse {
+  phone_number: string;
+  provider_number_sid?: string;
+  target_agent_id: string;
+  source_agent_id?: string;
+  source_agent_name?: string;
+  pipeline_result?: {
+    status: string;
+    steps: { step: string; status: string; detail: string }[];
+  };
+}
+
+export interface ReleaseNumberResponse {
+  status: string;
+  phone_number: string;
+}
+
+export interface ProvisionResult {
+  status: "ready" | "partial" | "error";
+  phone_number: string;
+  agent_id: string;
+  steps: { step: string; status: string; detail: string }[];
+}
+
+export async function searchPhoneNumbers(
+  provider: string,
+  areaCode?: string,
+  limit?: number,
+): Promise<NumberSearchResult[]> {
+  const apiUrl = getApiUrl();
+  const params = new URLSearchParams({ provider });
+  if (areaCode) params.set("area_code", areaCode);
+  if (limit != null) params.set("limit", String(limit));
+  const res = await fetch(`${apiUrl}/telephony/numbers/search?${params}`);
+  if (!res.ok) throw new Error("Search failed");
+  return res.json();
+}
+
+export async function buyPhoneNumber(
+  agentId: string,
+  phoneNumber: string,
+  provider: string,
+): Promise<BuyNumberResponse> {
+  const apiUrl = getApiUrl();
+  const res = await fetch(`${apiUrl}/telephony/numbers/buy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agent_id: agentId, phone_number: phoneNumber, provider }),
+  });
+  if (!res.ok) throw new Error("Purchase failed");
+  return res.json();
+}
+
+export async function checkNumberAssignment(
+  phoneNumber: string,
+): Promise<NumberCheckResponse> {
+  const apiUrl = getApiUrl();
+  const res = await fetch(
+    `${apiUrl}/telephony/numbers/check?phone_number=${encodeURIComponent(phoneNumber)}`,
+  );
+  if (!res.ok) throw new Error("Number check failed");
+  return res.json();
+}
+
+export async function assignPhoneNumber(
+  agentId: string,
+  phoneNumber: string,
+  provider: string,
+): Promise<AssignNumberResponse> {
+  const apiUrl = getApiUrl();
+  const res = await fetch(`${apiUrl}/telephony/numbers/assign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agent_id: agentId, phone_number: phoneNumber, provider }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Assign failed");
+  }
+  return res.json();
+}
+
+export async function reassignPhoneNumber(
+  phoneNumber: string,
+  targetAgentId: string,
+  provider: string,
+): Promise<ReassignNumberResponse> {
+  const apiUrl = getApiUrl();
+  const res = await fetch(`${apiUrl}/telephony/numbers/reassign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone_number: phoneNumber, target_agent_id: targetAgentId, provider }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Reassign failed");
+  }
+  return res.json();
+}
+
+export async function releasePhoneNumber(
+  agentId: string,
+): Promise<ReleaseNumberResponse> {
+  const apiUrl = getApiUrl();
+  const res = await fetch(`${apiUrl}/telephony/numbers/release`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agent_id: agentId }),
+  });
+  if (!res.ok) throw new Error("Release failed");
+  return res.json();
+}
+
+export async function provisionPhoneNumber(
+  agentId: string,
+  provider: string,
+): Promise<ProvisionResult> {
+  const apiUrl = getApiUrl();
+  const res = await fetch(`${apiUrl}/telephony/numbers/provision`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agent_id: agentId, provider }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Pipeline check failed");
+  return data;
 }

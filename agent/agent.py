@@ -475,6 +475,8 @@ server = AgentServer()
 async def entrypoint(ctx: agents.JobContext):
     """Main entrypoint for the voice agent session."""
     
+    logger.info(f"=== AGENT ENTRYPOINT STARTED ===")
+    logger.info(f"Room name: {ctx.room.name}")
     logger.info(f"Starting voice agent session for room: {ctx.room.name}")
 
     # Re-fetch keys from dashboard so new/changed keys take effect without restart
@@ -483,7 +485,45 @@ async def entrypoint(ctx: agents.JobContext):
     # Wait for room to be fully connected
     await ctx.connect()
     logger.info("Room connected, waiting for participant...")
-    participant = await ctx.wait_for_participant()
+    logger.info(f"Room state after connect: name={ctx.room.name}, metadata={ctx.room.metadata}")
+    logger.info(f"Remote participants: {list(ctx.room.remote_participants.keys())}")
+    for pid, p in ctx.room.remote_participants.items():
+        logger.info(f"  Participant: identity={p.identity}, name={p.name}, attrs={p.attributes}")
+
+    # Track whether a phone participant has disconnected (used for early cleanup)
+    _phone_disconnected = asyncio.Event()
+
+    @ctx.room.on("participant_connected")
+    def on_participant_connected(participant):
+        logger.info(f">>> Participant CONNECTED: identity={participant.identity}, name={participant.name}, attrs={participant.attributes}")
+
+    @ctx.room.on("participant_disconnected")
+    def on_early_disconnect(participant):
+        logger.info(f">>> Participant DISCONNECTED (early): identity={participant.identity}, name={participant.name}")
+        if (participant.identity.startswith("sip_") or
+            participant.identity.startswith("phone-") or
+            participant.identity.startswith("+")):
+            logger.info("Phone participant left before session started — signaling cleanup")
+            _phone_disconnected.set()
+
+    @ctx.room.on("track_subscribed")
+    def on_track_subscribed(track, publication, participant):
+        logger.info(f">>> Track subscribed: {track.kind} from {participant.identity}")
+
+    # Wait for participant with a timeout so we don't hang forever if caller hangs up
+    try:
+        participant = await asyncio.wait_for(ctx.wait_for_participant(), timeout=30)
+    except asyncio.TimeoutError:
+        logger.warning("Timed out waiting for participant (30s) — ending session")
+        await end_backend_session(ctx.room.name)
+        return
+
+    # Check if the phone participant already left during setup
+    if _phone_disconnected.is_set():
+        logger.info("Phone participant already disconnected — ending session")
+        await end_backend_session(ctx.room.name)
+        return
+
     logger.info(f"Participant joined: {participant.identity}, reading metadata...")
     
     # Get agent ID from room metadata
@@ -749,14 +789,44 @@ async def entrypoint(ctx: agents.JobContext):
     else:
         logger.info("Assistant waiting for user to speak first")
 
+    # --- PARTICIPANT DISCONNECT HANDLER (session phase) ---
+    # Replace the early handler with one that also cleans up the session.
+    # The early handler (registered before wait_for_participant) only sets the event.
+    # Now that the session is running, we need to actually close it on disconnect.
+    @ctx.room.on("participant_disconnected")
+    def on_session_participant_disconnected(participant):
+        logger.info(f"Participant disconnected: identity={participant.identity}, name={participant.name}, sid={participant.sid}")
+        if (participant.identity.startswith("sip_") or
+            participant.identity.startswith("phone-") or
+            participant.identity.startswith("+")):
+            logger.info("Phone participant left — closing agent session")
+            _phone_disconnected.set()
+            asyncio.create_task(_cleanup_session())
+    logger.info("Session-phase disconnect handler registered")
+
+    async def _cleanup_session():
+        """Clean up session and end the call gracefully."""
+        logger.info("_cleanup_session called — closing agent session")
+        try:
+            await session.aclose()
+        except Exception as e:
+            logger.warning(f"Error closing session: {e}")
+
     # Wait for the session to run until shutdown (disconnection)
     try:
         await ctx.wait_for_shutdown()
     except Exception:
         pass
-    
+
+    # --- CLEANUP ---
+    try:
+        await session.aclose()
+    except Exception:
+        pass
+
     # --- END BACKEND SESSION ---
     await end_backend_session(ctx.room.name)
+    logger.info(f"=== AGENT SESSION ENDED for room {ctx.room.name} ===")
 
     # --- POST-CALL WEBHOOK EXECUTION ---
     # This runs after the room is disconnected/shutdown

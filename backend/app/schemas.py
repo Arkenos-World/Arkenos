@@ -50,7 +50,8 @@ class AgentResponse(AgentBase):
     is_active: bool
     user_id: str
     phone_number: Optional[str] = None
-    twilio_sid: Optional[str] = None
+    provider_number_sid: Optional[str] = None
+    telephony_provider: Optional[str] = None
     agent_mode: Optional[AgentMode] = None
     storage_path: Optional[str] = None
     image_tag: Optional[str] = None

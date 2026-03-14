@@ -1,10 +1,9 @@
 """
 Telephony Provisioning Service - Auto-provisions LiveKit SIP infrastructure.
-Manages inbound/outbound trunks and dispatch rules for Twilio <-> LiveKit routing.
+Manages inbound/outbound trunks and dispatch rules for provider <-> LiveKit routing.
 """
 
 import logging
-import secrets
 from dataclasses import dataclass, field
 
 from app.database import SessionLocal
@@ -17,12 +16,17 @@ logger = logging.getLogger("telephony_provisioning")
 class ProvisioningState:
     inbound_trunk_id: str | None = None
     inbound_sip_uri: str | None = None
-    outbound_trunk_id: str | None = None
+    outbound_trunk_ids: dict[str, str] = field(default_factory=dict)
     dispatch_rule_id: str | None = None
-    twilio_trunk_sid: str | None = None
 
 
 _state = ProvisioningState()
+
+
+def clear_sip_uri_cache() -> None:
+    """Clear cached SIP URI so it's re-read from DB on next use."""
+    _state.inbound_sip_uri = None
+    logger.info("[clear_sip_uri_cache] SIP URI cache cleared")
 
 
 def _get_lk():
@@ -36,17 +40,6 @@ def _get_lk():
             api_key=get_key(db, "livekit_api_key"),
             api_secret=get_key(db, "livekit_api_secret"),
         )
-    finally:
-        db.close()
-
-
-def _get_twilio_client():
-    """Create a Twilio client from DB/env keys."""
-    from twilio.rest import Client
-
-    db = SessionLocal()
-    try:
-        return Client(get_key(db, "twilio_account_sid"), get_key(db, "twilio_auth_token"))
     finally:
         db.close()
 
@@ -68,23 +61,44 @@ async def ensure_inbound_trunk(phone: str | None = None) -> str:
 
     lk = _get_lk()
     try:
+        from livekit.api import ListUpdate
+
         # Check for existing trunk
         resp = await lk.sip.list_sip_inbound_trunk(ListSIPInboundTrunkRequest())
+        logger.info(f"[ensure_inbound_trunk] Found {len(resp.items)} existing inbound trunks")
         for trunk in resp.items:
+            logger.info(
+                f"[ensure_inbound_trunk]   trunk id={trunk.sip_trunk_id}, name={trunk.name}, "
+                f"numbers={list(trunk.numbers) if trunk.numbers else []}, "
+                f"allowed_addresses={list(trunk.allowed_addresses) if trunk.allowed_addresses else []}"
+            )
             if trunk.name == "Arkenos Inbound":
                 _state.inbound_trunk_id = trunk.sip_trunk_id
-                logger.info(f"Reusing existing inbound trunk: {trunk.sip_trunk_id}")
+                # Ensure allowed_addresses includes 0.0.0.0/0 so all providers can reach it
+                # (security is handled by the numbers allowlist)
+                if not trunk.allowed_addresses or "0.0.0.0/0" not in trunk.allowed_addresses:
+                    await lk.sip.update_inbound_trunk_fields(
+                        trunk.sip_trunk_id,
+                        allowed_addresses=ListUpdate(set=["0.0.0.0/0"]),
+                    )
+                    logger.info(f"[ensure_inbound_trunk] Updated inbound trunk allowed_addresses to 0.0.0.0/0")
+                logger.info(f"[ensure_inbound_trunk] Reusing existing inbound trunk: {trunk.sip_trunk_id}")
                 return trunk.sip_trunk_id
 
         # Create new trunk — LiveKit requires at least one number for security
         numbers = [phone] if phone else []
+        logger.info(f"[ensure_inbound_trunk] Creating new inbound trunk with numbers={numbers}")
         new_trunk = await lk.sip.create_sip_inbound_trunk(
             CreateSIPInboundTrunkRequest(
-                trunk=SIPInboundTrunkInfo(name="Arkenos Inbound", numbers=numbers)
+                trunk=SIPInboundTrunkInfo(
+                    name="Arkenos Inbound",
+                    numbers=numbers,
+                    allowed_addresses=["0.0.0.0/0"],
+                )
             )
         )
         _state.inbound_trunk_id = new_trunk.sip_trunk_id
-        logger.info(f"Created inbound trunk: {new_trunk.sip_trunk_id}")
+        logger.info(f"[ensure_inbound_trunk] Created inbound trunk: {new_trunk.sip_trunk_id}")
         return new_trunk.sip_trunk_id
     finally:
         await lk.aclose()
@@ -110,13 +124,19 @@ async def ensure_dispatch_rule() -> str:
     try:
         # Check for existing rule
         resp = await lk.sip.list_sip_dispatch_rule(ListSIPDispatchRuleRequest())
+        logger.info(f"[ensure_dispatch_rule] Found {len(resp.items)} existing dispatch rules")
         for rule in resp.items:
+            logger.info(
+                f"[ensure_dispatch_rule]   rule id={rule.sip_dispatch_rule_id}, name={rule.name}, "
+                f"trunk_ids={list(rule.trunk_ids) if rule.trunk_ids else []}"
+            )
             if rule.name == "Arkenos Dispatch":
                 _state.dispatch_rule_id = rule.sip_dispatch_rule_id
-                logger.info(f"Reusing existing dispatch rule: {rule.sip_dispatch_rule_id}")
+                logger.info(f"[ensure_dispatch_rule] Reusing existing dispatch rule: {rule.sip_dispatch_rule_id}")
                 return rule.sip_dispatch_rule_id
 
         # Create new dispatch rule with individual rooms per call
+        logger.info("[ensure_dispatch_rule] No matching dispatch rule found, creating new one")
         new_rule = await lk.sip.create_sip_dispatch_rule(
             CreateSIPDispatchRuleRequest(
                 name="Arkenos Dispatch",
@@ -141,13 +161,15 @@ async def add_number_to_inbound_trunk(phone: str) -> None:
     """Add a phone number to the inbound SIP trunk."""
     from livekit.api import ListUpdate
 
+    logger.info(f"[add_number_to_inbound_trunk] Adding number {phone} to inbound trunk")
     trunk_id = await ensure_inbound_trunk(phone)
+    logger.info(f"[add_number_to_inbound_trunk] Resolved inbound trunk_id={trunk_id}")
     lk = _get_lk()
     try:
         await lk.sip.update_inbound_trunk_fields(
             trunk_id, numbers=ListUpdate(add=[phone])
         )
-        logger.info(f"Added {phone} to inbound trunk {trunk_id}")
+        logger.info(f"[add_number_to_inbound_trunk] Added {phone} to inbound trunk {trunk_id}")
     finally:
         await lk.aclose()
 
@@ -174,15 +196,20 @@ async def remove_number_from_inbound_trunk(phone: str) -> None:
         await lk.aclose()
 
 
-async def _sync_outbound_trunk_numbers(trunk_id: str) -> None:
-    """Sync agent phone numbers onto the LiveKit outbound trunk."""
+async def _sync_outbound_trunk_numbers(trunk_id: str, provider_name: str | None = None) -> None:
+    """Sync agent phone numbers onto the LiveKit outbound trunk.
+    If provider_name is given, only syncs numbers from agents using that provider.
+    """
     from app import models as _models
 
     db = SessionLocal()
     try:
-        agents_with_phones = db.query(_models.Agent).filter(
+        query = db.query(_models.Agent).filter(
             _models.Agent.phone_number.isnot(None)
-        ).all()
+        )
+        if provider_name:
+            query = query.filter(_models.Agent.telephony_provider == provider_name)
+        agents_with_phones = query.all()
         current_numbers = {a.phone_number for a in agents_with_phones if a.phone_number}
     except Exception:
         return
@@ -213,9 +240,10 @@ async def _sync_outbound_trunk_numbers(trunk_id: str) -> None:
         await lk.aclose()
 
 
-async def ensure_outbound_trunk() -> str:
-    """Ensure an outbound SIP trunk exists (Twilio Elastic SIP + LiveKit). Returns trunk ID.
-    Reuses the same Twilio Elastic SIP Trunk as inbound (trial accounts only allow one).
+async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
+    """Ensure an outbound SIP trunk exists for the given telephony provider. Returns trunk ID.
+    Uses the provider factory to get outbound SIP configuration, then creates a LiveKit
+    outbound trunk pointing to the provider.
     """
     global _state
 
@@ -225,78 +253,98 @@ async def ensure_outbound_trunk() -> str:
         SIPOutboundTrunkInfo,
     )
 
+    trunk_name = f"Arkenos Outbound ({provider_name})"
+    logger.info(f"[ensure_outbound_trunk] provider_name={provider_name}, trunk_name={trunk_name}")
+
     # Always sync numbers even if trunk ID is cached — new numbers may have been added
-    if _state.outbound_trunk_id:
-        await _sync_outbound_trunk_numbers(_state.outbound_trunk_id)
-        return _state.outbound_trunk_id
+    cached_id = _state.outbound_trunk_ids.get(provider_name)
+    if cached_id:
+        logger.info(f"[ensure_outbound_trunk] Using cached outbound trunk_id={cached_id} for provider={provider_name}")
+        await _sync_outbound_trunk_numbers(cached_id, provider_name)
+        return cached_id
 
     lk = _get_lk()
     try:
         # Check for existing LiveKit outbound trunk — reuse if valid
         resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
+        logger.info(f"[ensure_outbound_trunk] Found {len(resp.items)} existing outbound trunks")
         for trunk in resp.items:
-            if trunk.name == "Arkenos Outbound":
-                _state.outbound_trunk_id = trunk.sip_trunk_id
+            logger.info(
+                f"[ensure_outbound_trunk]   trunk id={trunk.sip_trunk_id}, name={trunk.name}, "
+                f"address={trunk.address}, numbers={list(trunk.numbers) if trunk.numbers else []}, "
+                f"auth_username={trunk.auth_username}"
+            )
+            if trunk.name == trunk_name:
+                _state.outbound_trunk_ids[provider_name] = trunk.sip_trunk_id
                 logger.info(f"Reusing existing outbound trunk: {trunk.sip_trunk_id}")
-                await _sync_outbound_trunk_numbers(trunk.sip_trunk_id)
+                await _sync_outbound_trunk_numbers(trunk.sip_trunk_id, provider_name)
                 return trunk.sip_trunk_id
 
-        client = _get_twilio_client()
-        password = secrets.token_urlsafe(32)
+            # Backward compat: match old "Arkenos Outbound" name for twilio
+            if provider_name == "twilio" and trunk.name == "Arkenos Outbound":
+                _state.outbound_trunk_ids[provider_name] = trunk.sip_trunk_id
+                logger.info(f"Reusing existing outbound trunk (legacy name): {trunk.sip_trunk_id}")
+                await _sync_outbound_trunk_numbers(trunk.sip_trunk_id, provider_name)
+                return trunk.sip_trunk_id
 
-        # Find or create credential list for LiveKit → Twilio auth
-        cred_list = None
-        for cl in client.sip.credential_lists.list():
-            if cl.friendly_name == "Arkenos LiveKit":
-                cred_list = cl
-                # Update password — recreate credential
-                for cred in cl.credentials.list():
-                    cred.delete()
-                cl.credentials.create(username="arkenos-lk", password=password)
-                logger.info(f"Reusing existing credential list: {cl.sid}")
-                break
+        # Use provider factory to get outbound SIP config
+        from app.services.telephony_providers import get_provider
 
-        if not cred_list:
-            cred_list = client.sip.credential_lists.create(
-                friendly_name="Arkenos LiveKit"
-            )
-            cred_list.credentials.create(username="arkenos-lk", password=password)
-
-        # Reuse existing Twilio Elastic SIP Trunk (trial allows only one)
-        twilio_trunk_sid = await ensure_twilio_elastic_trunk()
-        trunk_obj = client.trunking.v1.trunks(twilio_trunk_sid).fetch()
-
-        # Enable termination by setting a domain name if not already set
-        if not trunk_obj.domain_name:
-            db = SessionLocal()
-            try:
-                tw_sid = get_key(db, "twilio_account_sid")
-            finally:
-                db.close()
-            domain_name = f"arkenos-{tw_sid[-6:].lower()}.pstn.twilio.com"
-            client.trunking.v1.trunks(twilio_trunk_sid).update(
-                domain_name=domain_name
-            )
-            termination_uri = domain_name
-            logger.info(f"Set termination domain: {termination_uri}")
-        else:
-            termination_uri = trunk_obj.domain_name
-
-        # Add credential list for termination auth
+        logger.info(f"[ensure_outbound_trunk] No matching trunk found, requesting outbound config from provider '{provider_name}'")
+        db = SessionLocal()
         try:
-            client.trunking.v1.trunks(twilio_trunk_sid).credentials_lists.create(
-                credential_list_sid=cred_list.sid
-            )
-        except Exception as e:
-            logger.warning(f"Could not add credential list to trunk (may already exist): {e}")
+            provider = get_provider(provider_name, db)
+            outbound_config = await provider.configure_sip_outbound()
+        finally:
+            db.close()
 
-        # Collect all phone numbers assigned to agents for the outbound trunk
+        logger.info(
+            f"[ensure_outbound_trunk] Provider returned outbound_config: "
+            f"address={outbound_config.get('address')}, auth_username={outbound_config.get('auth_username')}, "
+            f"reused={outbound_config.get('reused')}, has_password={'auth_password' in outbound_config and outbound_config.get('auth_password') is not None}"
+        )
+
+        # If the provider reused an existing connection, the LiveKit trunk
+        # should already exist with the correct credentials. Just sync numbers.
+        if outbound_config.get("reused"):
+            logger.info(f"Provider '{provider_name}' reused existing outbound connection — "
+                        "checking for existing LiveKit trunk")
+            # Re-scan LiveKit trunks (may have been created in a previous run)
+            resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
+            for trunk in resp.items:
+                if trunk.name == trunk_name or (
+                    provider_name == "twilio" and trunk.name == "Arkenos Outbound"
+                ):
+                    _state.outbound_trunk_ids[provider_name] = trunk.sip_trunk_id
+                    logger.info(f"Found matching outbound trunk: {trunk.sip_trunk_id}")
+                    await _sync_outbound_trunk_numbers(trunk.sip_trunk_id, provider_name)
+                    return trunk.sip_trunk_id
+            # No existing LiveKit trunk found despite provider having credentials —
+            # this means the LiveKit trunk was deleted. Cannot recover without
+            # the original password, so raise a clear error.
+            raise ValueError(
+                f"Provider '{provider_name}' has an existing outbound credential "
+                "connection but no matching LiveKit trunk was found. Delete the "
+                "provider-side credential connection and retry to create fresh credentials."
+            )
+
+        # Validate required keys in outbound config (only for new connections)
+        required_keys = ("address", "auth_username", "auth_password")
+        missing_keys = [k for k in required_keys if k not in outbound_config or not outbound_config[k]]
+        if missing_keys:
+            raise ValueError(
+                f"Provider '{provider_name}' returned incomplete outbound config — "
+                f"missing keys: {', '.join(missing_keys)}"
+            )
+
+        # Collect all phone numbers assigned to agents using this provider
         from app import models
 
         db = SessionLocal()
         try:
             agents_with_phones = db.query(models.Agent).filter(
-                models.Agent.phone_number.isnot(None)
+                models.Agent.phone_number.isnot(None),
+                models.Agent.telephony_provider == provider_name,
             ).all()
             numbers = [a.phone_number for a in agents_with_phones if a.phone_number]
         finally:
@@ -305,129 +353,81 @@ async def ensure_outbound_trunk() -> str:
         if not numbers:
             raise ValueError("No phone numbers assigned to any agent — assign a number first")
 
-        # Create LiveKit outbound trunk pointing to Twilio
+        logger.info(
+            f"[ensure_outbound_trunk] Creating LiveKit outbound trunk: name={trunk_name}, "
+            f"address={outbound_config['address']}, numbers={numbers}, "
+            f"auth_username={outbound_config['auth_username']}"
+        )
+        # Create LiveKit outbound trunk pointing to the provider
         new_trunk = await lk.sip.create_sip_outbound_trunk(
             CreateSIPOutboundTrunkRequest(
                 trunk=SIPOutboundTrunkInfo(
-                    name="Arkenos Outbound",
-                    address=termination_uri,
+                    name=trunk_name,
+                    address=outbound_config["address"],
                     numbers=numbers,
-                    auth_username="arkenos-lk",
-                    auth_password=password,
+                    auth_username=outbound_config["auth_username"],
+                    auth_password=outbound_config["auth_password"],
                 )
             )
         )
-        _state.outbound_trunk_id = new_trunk.sip_trunk_id
+        _state.outbound_trunk_ids[provider_name] = new_trunk.sip_trunk_id
         logger.info(f"Created outbound trunk: {new_trunk.sip_trunk_id}")
         return new_trunk.sip_trunk_id
     finally:
         await lk.aclose()
 
 
-async def ensure_twilio_elastic_trunk() -> str:
-    """Ensure a Twilio Elastic SIP Trunk exists with LiveKit origination URI.
-    Routes inbound calls directly from Twilio to LiveKit SIP — no webhook needed.
-    Returns the Twilio trunk SID.
-    """
-    global _state
-
-    if _state.twilio_trunk_sid:
-        return _state.twilio_trunk_sid
-
-    client = _get_twilio_client()
-
-    # Check for existing trunk
-    trunks = client.trunking.v1.trunks.list()
-    for trunk in trunks:
-        if trunk.friendly_name == "Arkenos Inbound":
-            _state.twilio_trunk_sid = trunk.sid
-            logger.info(f"Reusing existing Twilio Elastic SIP Trunk: {trunk.sid}")
-            return trunk.sid
-
-    # Create new Elastic SIP Trunk
-    sip_uri = get_sip_uri()
-    if not sip_uri:
-        raise ValueError("Cannot determine LiveKit SIP URI — set LIVEKIT_URL or TWILIO_SIP_DOMAIN")
-
-    trunk = client.trunking.v1.trunks.create(friendly_name="Arkenos Inbound")
-
-    # Add origination URI pointing to LiveKit SIP
-    trunk.origination_urls.create(
-        friendly_name="LiveKit SIP",
-        sip_url=f"sip:{sip_uri}",
-        weight=10,
-        priority=10,
-        enabled=True,
-    )
-
-    _state.twilio_trunk_sid = trunk.sid
-    logger.info(f"Created Twilio Elastic SIP Trunk: {trunk.sid} → sip:{sip_uri}")
-    return trunk.sid
-
-
-async def associate_number_with_twilio_trunk(phone_sid: str) -> None:
-    """Associate a Twilio phone number with the Elastic SIP Trunk.
-    This makes inbound calls route directly to LiveKit via SIP origination.
-    """
-    trunk_sid = await ensure_twilio_elastic_trunk()
-
-    client = _get_twilio_client()
-
-    # Check if already associated
-    existing = client.trunking.v1.trunks(trunk_sid).phone_numbers.list()
-    for num in existing:
-        if num.sid == phone_sid:
-            logger.info(f"Number {phone_sid} already associated with trunk {trunk_sid}")
-            return
-
-    client.trunking.v1.trunks(trunk_sid).phone_numbers.create(
-        phone_number_sid=phone_sid,
-    )
-    logger.info(f"Associated number {phone_sid} with Twilio trunk {trunk_sid}")
-
-
-async def disassociate_number_from_twilio_trunk(phone_sid: str) -> None:
-    """Remove a phone number from the Twilio Elastic SIP Trunk."""
-    if not _state.twilio_trunk_sid:
-        await ensure_twilio_elastic_trunk()
-
-    if not _state.twilio_trunk_sid:
-        return
-
-    client = _get_twilio_client()
-
-    try:
-        client.trunking.v1.trunks(_state.twilio_trunk_sid).phone_numbers(phone_sid).delete()
-        logger.info(f"Disassociated number {phone_sid} from trunk {_state.twilio_trunk_sid}")
-    except Exception as e:
-        logger.warning(f"Could not disassociate number from trunk: {e}")
-
-
 def get_sip_uri() -> str:
     """Return the SIP URI for routing calls to LiveKit.
-    Extracts from livekit_url: wss://xyz.livekit.cloud -> xyz.sip.livekit.cloud
+
+    Resolution order:
+      1. livekit_sip_uri (explicit — most reliable, from LiveKit dashboard)
+      2. twilio_sip_domain (legacy explicit override)
+      3. Derive from livekit_url: wss://xyz.livekit.cloud -> xyz.sip.livekit.cloud
+         NOTE: This derivation is NOT always correct — LiveKit's SIP subdomain
+         can differ from the WebSocket subdomain. Users should set livekit_sip_uri
+         explicitly if calls don't route.
     """
     if _state.inbound_sip_uri:
+        logger.info(f"[get_sip_uri] Returning cached SIP URI: {_state.inbound_sip_uri}")
         return _state.inbound_sip_uri
 
     db = SessionLocal()
     try:
+        explicit_sip_uri = get_key(db, "livekit_sip_uri")
         sip_domain = get_key(db, "twilio_sip_domain")
         lk_url = get_key(db, "livekit_url")
     finally:
         db.close()
 
-    # If twilio_sip_domain is explicitly set, use it
-    if sip_domain:
-        _state.inbound_sip_uri = sip_domain
+    logger.info(f"[get_sip_uri] livekit_sip_uri={explicit_sip_uri}, twilio_sip_domain={sip_domain}, livekit_url={lk_url}")
+
+    # 1. Explicit livekit_sip_uri (from dashboard or .env)
+    if explicit_sip_uri:
+        # Strip sip: prefix if user included it
+        uri = explicit_sip_uri.replace("sip:", "").strip()
+        _state.inbound_sip_uri = uri
+        logger.info(f"[get_sip_uri] Using explicit livekit_sip_uri: {uri}")
         return _state.inbound_sip_uri
 
-    # Derive from livekit_url: wss://xyz.livekit.cloud -> xyz.sip.livekit.cloud
+    # 2. Legacy twilio_sip_domain override
+    if sip_domain:
+        _state.inbound_sip_uri = sip_domain
+        logger.info(f"[get_sip_uri] Using explicit twilio_sip_domain: {_state.inbound_sip_uri}")
+        return _state.inbound_sip_uri
+
+    # 3. Derive from livekit_url (may not match — LiveKit SIP subdomain can differ)
     if lk_url:
         host = lk_url.replace("wss://", "").replace("ws://", "").rstrip("/")
         parts = host.split(".", 1)
         if len(parts) == 2:
             _state.inbound_sip_uri = f"{parts[0]}.sip.{parts[1]}"
+            logger.warning(
+                f"[get_sip_uri] Derived SIP URI from livekit_url: {_state.inbound_sip_uri} — "
+                f"this may be WRONG if your LiveKit SIP subdomain differs. "
+                f"Set livekit_sip_uri in API Keys to fix."
+            )
             return _state.inbound_sip_uri
 
+    logger.warning("[get_sip_uri] Could not determine SIP URI — set livekit_sip_uri in API Keys")
     return ""

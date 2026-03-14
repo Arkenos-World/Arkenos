@@ -114,6 +114,17 @@ const PROVIDER_META: Record<string, {
             twilio_auth_token: "your_auth_token",
         },
     },
+    telnyx: {
+        icon: Phone,
+        description: "Phone number management and SIP telephony",
+        docsUrl: "https://portal.telnyx.com",
+        keyLabels: {
+            telnyx_api_key: "API Key",
+        },
+        keyPlaceholders: {
+            telnyx_api_key: "KEY...",
+        },
+    },
 };
 
 // STT providers for the dropdown
@@ -123,9 +134,15 @@ const STT_PROVIDERS = [
     { id: "elevenlabs", label: "ElevenLabs" },
 ];
 
-// Sections — STT is handled separately
+// Telephony providers for the dropdown
+const TELEPHONY_PROVIDERS = [
+    { id: "twilio", label: "Twilio" },
+    { id: "telnyx", label: "Telnyx" },
+];
+
+// Sections — STT and Telephony are handled separately with their own grouped cards
 const SECTIONS = [
-    { label: "Required", providers: ["livekit", "google", "resemble", "twilio"] },
+    { label: "Required", providers: ["livekit", "google", "resemble"] },
 ];
 
 function ProviderCard({
@@ -402,7 +419,7 @@ function STTCard({
                 </div>
 
                 {/* Render the selected provider's key inputs */}
-                <SelectedSTTProvider
+                <SelectedGroupedProvider
                     providerId={selectedProvider}
                     provider={provider}
                     meta={meta}
@@ -413,7 +430,84 @@ function STTCard({
     );
 }
 
-function SelectedSTTProvider({
+function TelephonyCard({
+    providers,
+    onSaved,
+}: {
+    providers: Record<string, ProviderStatus>;
+    onSaved: () => void;
+}) {
+    const [selectedProvider, setSelectedProvider] = useState(() => {
+        // Default to first configured provider, or twilio
+        const configured = TELEPHONY_PROVIDERS.find(p => providers[p.id]?.configured);
+        return configured?.id || "twilio";
+    });
+
+    const provider = providers[selectedProvider];
+    const meta = PROVIDER_META[selectedProvider];
+
+    if (!provider || !meta) return null;
+
+    return (
+        <Card className="relative">
+            <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                            <Phone className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-base">Telephony</CardTitle>
+                            <CardDescription className="text-xs mt-0.5">At least one telephony provider required</CardDescription>
+                        </div>
+                    </div>
+                    <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                    </a>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {/* Provider selector */}
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Provider</Label>
+                    <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {TELEPHONY_PROVIDERS.map(p => (
+                                <SelectItem key={p.id} value={p.id}>
+                                    <div className="flex items-center gap-2">
+                                        <Circle
+                                            className={`h-2 w-2 ${
+                                                providers[p.id]?.configured
+                                                    ? "fill-emerald-500 text-emerald-500"
+                                                    : "fill-muted-foreground/30 text-muted-foreground/30"
+                                            }`}
+                                        />
+                                        {p.label}
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Render the selected provider's key inputs */}
+                <SelectedGroupedProvider
+                    providerId={selectedProvider}
+                    provider={provider}
+                    meta={meta}
+                    onSaved={onSaved}
+                />
+            </CardContent>
+        </Card>
+    );
+}
+
+function SelectedGroupedProvider({
     providerId,
     provider,
     meta,
@@ -651,6 +745,7 @@ export function APIKeysClient() {
                         <p className="text-muted-foreground mt-0.5">
                             Configure all required provider keys below to enable voice features.
                             {!status.stt_configured && " You need at least one STT provider."}
+                            {!status.telephony_configured && " You need at least one telephony provider."}
                         </p>
                     </div>
                 </div>
@@ -680,6 +775,15 @@ export function APIKeysClient() {
                         <STTCard
                             providers={Object.fromEntries(
                                 STT_PROVIDERS.map(p => [p.id, status.providers[p.id]])
+                                    .filter(([, v]) => v)
+                            )}
+                            onSaved={fetchStatus}
+                        />
+
+                        {/* Telephony card in the grid */}
+                        <TelephonyCard
+                            providers={Object.fromEntries(
+                                TELEPHONY_PROVIDERS.map(p => [p.id, status.providers[p.id]])
                                     .filter(([, v]) => v)
                             )}
                             onSaved={fetchStatus}

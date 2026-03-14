@@ -74,8 +74,24 @@ Ends an active outbound call.
 
 ### Phone Numbers
 Note: buy/assign/release endpoints auto-provision both LiveKit SIP infrastructure
-(inbound trunk, dispatch rule) and Twilio Elastic SIP Trunk (origination to LiveKit).
-No webhook or BACKEND_URL needed — Twilio routes directly to LiveKit via SIP.
+(inbound trunk, dispatch rule) and telephony provider SIP trunk (origination to LiveKit).
+No webhook or BACKEND_URL needed — provider routes directly to LiveKit via SIP.
+All endpoints accept an optional `provider` parameter (default: "twilio"). Supported: twilio, telnyx.
+
+GET  /api/telephony/numbers/search?country=US&area_code=512&limit=10&provider=twilio → NumberSearchResult[]
+POST /api/telephony/numbers/buy → BuyNumberResponse
+Body: { agent_id, phone_number, provider?: "twilio" }
+BuyNumberResponse: { phone_number, provider_number_sid, agent_id }
+
+POST /api/telephony/numbers/assign → { status, phone_number, provider_number_sid?, agent_id }
+Body: { agent_id, phone_number (E.164), provider?: "twilio" }
+
+POST /api/telephony/numbers/release → { status, phone_number }
+Body: { agent_id }
+
+POST /api/telephony/numbers/provision → ProvisionResult
+Body: { agent_id }
+ProvisionResult: { status: "ready"|"partial"|"error", phone_number, agent_id, steps: [{ step, status, detail }] }
 
 Session (updated): { ..., call_direction?: "INBOUND"|"OUTBOUND",
                      outbound_phone_number?: string,
@@ -90,9 +106,9 @@ NumberCheckResponse: { assigned: boolean, agent_id?: string, agent_name?: string
 POST /api/telephony/numbers/reassign → ReassignNumberResponse
 Body: { phone_number: string (E.164), target_agent_id: string }
   Atomically releases number from source agent (if any) and assigns to target.
-  Auto-provisions full SIP pipeline after assignment.
+  Auto-provisions full SIP pipeline after assignment. Carries over source agent's provider.
 
-ReassignNumberResponse: { phone_number, twilio_sid?, target_agent_id, source_agent_id?, source_agent_name?, pipeline_result? }
+ReassignNumberResponse: { phone_number, provider_number_sid?, target_agent_id, source_agent_id?, source_agent_name?, pipeline_result? }
   pipeline_result: { status: "ready"|"partial"|"error", steps: [{ step, status, detail }] }
 
 ### Usage Events (agent worker → backend)
@@ -113,6 +129,51 @@ CostSummary: { total_cost, this_month_cost, by_provider: { [provider]: cost } }
 TimelinePoint: { date, total_cost, by_provider: { [provider]: cost } }
 AgentCost: { agent_id, agent_name, total_cost, session_count, event_count }
 SessionCostBreakdown: { session_id, total_cost, events: UsageEvent[], cost_by_type: { [event_type]: cost } }
+
+### Settings (API Key Management)
+
+GET /api/settings/keys → KeyStatusResponse
+  Returns status of all API keys (set/missing, source). Never returns actual secret values.
+
+KeyStatusResponse: {
+  providers: { [provider_id]: ProviderStatus },
+  all_required_set: boolean,
+  stt_configured: boolean,
+  telephony_configured: boolean
+}
+ProviderStatus: { label: string, required: boolean, configured: boolean, keys: { [key_name]: KeyInfo } }
+KeyInfo: { status: "set" | "missing", source: "db" | "env" | null }
+
+POST /api/settings/keys → { status: "saved", key: string }
+Body: { key_name: string, value: string }
+  Save a single API key (encrypted in DB). key_name must be a known key.
+
+POST /api/settings/keys/bulk → { status: "saved", keys: string[] }
+Body: { keys: { [key_name]: value } }
+  Save multiple API keys at once. Unknown key names are silently skipped. Empty values are skipped.
+
+DELETE /api/settings/keys/{key_name} → { status: "deleted", key: string }
+  Delete a key from the DB. Falls back to .env if one exists. Returns 404 if key not in DB.
+
+GET /api/settings/keys/agent → { [key_name]: decrypted_value }
+  Internal only. Returns all decrypted keys for agent worker boot. Do not call from frontend.
+
+POST /api/settings/test/{provider} → TestResult
+Body (optional): { keys?: { [key_name]: value } }
+  Test connection to a provider. If body.keys is provided, those values override DB/env keys
+  (allows testing before saving). Supported providers: livekit, google, resemble, assemblyai,
+  deepgram, elevenlabs, twilio, telnyx.
+
+TestResult: { provider: string, success: boolean, message: string }
+
+### Telephony Lookup (internal)
+
+GET /api/telephony/lookup?phone_number=+1234567890 → AgentLookup
+  Internal only. Used by the agent worker for SIP dispatch to find which agent owns a phone number.
+  Matches against all active agents using normalized phone comparison.
+
+AgentLookup: { agent_id: string, name: string, config: object }
+  Returns 404 if no active agent found for the number.
 
 ### Cost Rates (configurable)
 - Deepgram STT: $0.0043/min

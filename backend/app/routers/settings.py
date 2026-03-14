@@ -69,6 +69,10 @@ async def save_key(data: KeySave, db: Session = Depends(get_db)):
     if data.key_name not in ALL_KEY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown key: {data.key_name}")
     set_key(db, data.key_name, data.value)
+    # Clear SIP URI cache if a LiveKit key changed
+    if data.key_name.startswith("livekit_"):
+        from app.services.telephony_provisioning import clear_sip_uri_cache
+        clear_sip_uri_cache()
     return {"status": "saved", "key": data.key_name}
 
 
@@ -82,6 +86,10 @@ async def save_keys_bulk(data: BulkKeySave, db: Session = Depends(get_db)):
         if value:  # Skip empty strings
             set_key(db, key_name, value)
             saved.append(key_name)
+    # Clear SIP URI cache if any LiveKit key changed
+    if any(k.startswith("livekit_") for k in saved):
+        from app.services.telephony_provisioning import clear_sip_uri_cache
+        clear_sip_uri_cache()
     return {"status": "saved", "keys": saved}
 
 
@@ -96,6 +104,9 @@ async def delete_key(key_name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Key not found in dashboard")
     db.delete(row)
     db.commit()
+    if key_name.startswith("livekit_"):
+        from app.services.telephony_provisioning import clear_sip_uri_cache
+        clear_sip_uri_cache()
     return {"status": "deleted", "key": key_name}
 
 
@@ -135,6 +146,7 @@ async def test_provider_connection(
         "deepgram": _test_deepgram,
         "elevenlabs": _test_elevenlabs,
         "twilio": _test_twilio,
+        "telnyx": _test_telnyx,
     }
 
     tester = testers.get(provider)
@@ -269,3 +281,19 @@ async def _test_twilio(resolve_key) -> TestResult:
     if resp.status_code == 200:
         return TestResult(provider="twilio", success=True, message="Twilio credentials are valid")
     return TestResult(provider="twilio", success=False, message=f"Twilio returned {resp.status_code}")
+
+
+async def _test_telnyx(resolve_key) -> TestResult:
+    api_key = resolve_key("telnyx_api_key")
+    if not api_key:
+        return TestResult(provider="telnyx", success=False, message="Missing Telnyx API key")
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            "https://api.telnyx.com/v2/balance",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=10,
+        )
+    if resp.status_code == 200:
+        return TestResult(provider="telnyx", success=True, message="Telnyx API key is valid")
+    return TestResult(provider="telnyx", success=False, message=f"Telnyx returned {resp.status_code}")

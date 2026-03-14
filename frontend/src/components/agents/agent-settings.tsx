@@ -23,7 +23,16 @@ import { WebhookConfig, WebhookConfigState } from "./webhook-config";
 import { FunctionConfig, FunctionDefinition } from "./function-config";
 import { OutboundCallModal } from "./outbound-call-modal";
 import { useKeyStatus } from "@/hooks/use-key-status";
-import { getApiUrl } from "@/lib/api";
+import {
+    getApiUrl,
+    searchPhoneNumbers,
+    buyPhoneNumber,
+    checkNumberAssignment,
+    assignPhoneNumber,
+    reassignPhoneNumber,
+    releasePhoneNumber,
+    provisionPhoneNumber,
+} from "@/lib/api";
 import {
     BrainCircuit,
     AudioLines,
@@ -108,7 +117,8 @@ interface Agent {
     type: string;
     is_active: boolean;
     phone_number?: string | null;
-    twilio_sid?: string | null;
+    provider_number_sid?: string | null;
+    telephony_provider?: string | null;
     config: {
         system_prompt?: string;
         first_message?: string;
@@ -144,6 +154,11 @@ const STT_PROVIDERS = [
     { id: "deepgram", name: "Deepgram Nova 2" },
     { id: "assemblyai", name: "AssemblyAI" },
     { id: "elevenlabs", name: "ElevenLabs" },
+];
+
+const TELEPHONY_PROVIDERS = [
+    { id: "twilio", name: "Twilio" },
+    { id: "telnyx", name: "Telnyx" },
 ];
 
 interface ResembleVoice {
@@ -273,6 +288,16 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         agent.config?.functions || []
     );
 
+    // Telephony provider state
+    const configuredTelephonyProviders = TELEPHONY_PROVIDERS.filter(p => isProviderReady(p.id));
+    const [telephonyProvider, setTelephonyProvider] = useState(() => {
+        // Default to agent's current provider, or first configured, or "twilio"
+        if (agent.telephony_provider) return agent.telephony_provider;
+        const firstConfigured = configuredTelephonyProviders[0];
+        return firstConfigured?.id || "twilio";
+    });
+    const telephonyProviderLabel = TELEPHONY_PROVIDERS.find(p => p.id === telephonyProvider)?.name || telephonyProvider;
+
     // Phone number state
     const [phoneNumber, setPhoneNumber] = useState(agent.phone_number || "");
     const [assignPhone, setAssignPhone] = useState("");
@@ -298,28 +323,19 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const handleSearchNumbers = useCallback(async () => {
         setIsSearching(true);
         try {
-            const params = new URLSearchParams({ limit: "5" });
-            if (searchAreaCode) params.set("area_code", searchAreaCode);
-            const res = await fetch(`${apiUrl}/telephony/numbers/search?${params}`);
-            if (!res.ok) throw new Error("Search failed");
-            setSearchResults(await res.json());
+            const results = await searchPhoneNumbers(telephonyProvider, searchAreaCode || undefined, 5);
+            setSearchResults(results);
         } catch (error) {
             toast.error("Failed to search numbers");
         } finally {
             setIsSearching(false);
         }
-    }, [apiUrl, searchAreaCode]);
+    }, [searchAreaCode, telephonyProvider]);
 
     const handleBuyNumber = useCallback(async (number: string) => {
         setBuyingNumber(number);
         try {
-            const res = await fetch(`${apiUrl}/telephony/numbers/buy`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ agent_id: agent.id, phone_number: number }),
-            });
-            if (!res.ok) throw new Error("Purchase failed");
-            const data = await res.json();
+            const data = await buyPhoneNumber(agent.id, number, telephonyProvider);
             setPhoneNumber(data.phone_number);
             setSearchResults([]);
             toast.success(`Number ${data.phone_number} purchased and assigned!`);
@@ -328,7 +344,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setBuyingNumber(null);
         }
-    }, [apiUrl, agent.id]);
+    }, [agent.id, telephonyProvider]);
 
     const handleAssignNumber = useCallback(async () => {
         const digits = assignPhone.replace(/\D/g, "");
@@ -337,30 +353,18 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         setIsCheckingNumber(true);
         try {
             // First check if number is assigned to another agent
-            const checkRes = await fetch(`${apiUrl}/telephony/numbers/check?phone_number=${encodeURIComponent(e164)}`);
-            if (checkRes.ok) {
-                const checkData = await checkRes.json();
-                if (checkData.assigned) {
-                    // Number is assigned to another agent — show warning dialog
-                    setReassignInfo(checkData);
-                    setShowReassignDialog(true);
-                    setIsCheckingNumber(false);
-                    return;
-                }
+            const checkData = await checkNumberAssignment(e164);
+            if (checkData.assigned) {
+                // Number is assigned to another agent — show warning dialog
+                setReassignInfo(checkData);
+                setShowReassignDialog(true);
+                setIsCheckingNumber(false);
+                return;
             }
             // Not assigned to anyone — proceed with normal assign
             setIsCheckingNumber(false);
             setIsAssigning(true);
-            const res = await fetch(`${apiUrl}/telephony/numbers/assign`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ agent_id: agent.id, phone_number: e164 }),
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Assign failed");
-            }
-            const data = await res.json();
+            const data = await assignPhoneNumber(agent.id, e164, telephonyProvider);
             setPhoneNumber(data.phone_number);
             setAssignPhone("");
             toast.success(`Number ${data.phone_number} assigned!`);
@@ -370,7 +374,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsAssigning(false);
         }
-    }, [apiUrl, agent.id, assignPhone]);
+    }, [agent.id, assignPhone, telephonyProvider]);
 
     const handleReassignConfirm = useCallback(async () => {
         const digits = assignPhone.replace(/\D/g, "");
@@ -378,16 +382,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         setIsReassigning(true);
         setReassignPipelineResult(null);
         try {
-            const res = await fetch(`${apiUrl}/telephony/numbers/reassign`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phone_number: e164, target_agent_id: agent.id }),
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Reassign failed");
-            }
-            const data = await res.json();
+            const data = await reassignPhoneNumber(e164, agent.id, telephonyProvider);
             setPhoneNumber(data.phone_number);
             setAssignPhone("");
             setShowReassignDialog(false);
@@ -405,18 +400,13 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsReassigning(false);
         }
-    }, [apiUrl, agent.id, assignPhone]);
+    }, [agent.id, assignPhone, telephonyProvider]);
 
     const handleReleaseNumber = useCallback(async () => {
         if (!confirm("Are you sure you want to release this phone number?")) return;
         setIsReleasing(true);
         try {
-            const res = await fetch(`${apiUrl}/telephony/numbers/release`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ agent_id: agent.id }),
-            });
-            if (!res.ok) throw new Error("Release failed");
+            await releasePhoneNumber(agent.id);
             setPhoneNumber("");
             toast.success("Phone number released.");
         } catch (error) {
@@ -424,34 +414,25 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsReleasing(false);
         }
-    }, [apiUrl, agent.id]);
+    }, [agent.id]);
 
     const handleTestPipeline = useCallback(async () => {
         setIsProvisioning(true);
         setPipelineResult(null);
         try {
-            const res = await fetch(`${apiUrl}/telephony/numbers/provision`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ agent_id: agent.id }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                toast.error(data.detail || "Pipeline check failed");
-                return;
-            }
+            const data = await provisionPhoneNumber(agent.id, telephonyProvider);
             setPipelineResult(data);
             if (data.status === "ready") {
                 toast.success("Pipeline is fully configured!");
             } else {
                 toast.warning("Pipeline has issues — see details below");
             }
-        } catch {
-            toast.error("Failed to check pipeline");
+        } catch (error: any) {
+            toast.error(error.message || "Failed to check pipeline");
         } finally {
             setIsProvisioning(false);
         }
-    }, [apiUrl, agent.id]);
+    }, [agent.id, telephonyProvider]);
 
     const handleSave = useCallback(async () => {
         setIsSaving(true);
@@ -466,6 +447,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                     },
                     body: JSON.stringify({
                         name,
+                        telephony_provider: telephonyProvider,
                         config: {
                             ...agent.config,
                             system_prompt: systemPrompt,
@@ -558,8 +540,8 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                         size="sm"
                         className="gap-2"
                         onClick={() => setIsOutboundCallOpen(true)}
-                        disabled={!allConfigured || !isProviderReady("twilio")}
-                        title={!allConfigured ? "Configure API keys first" : !isProviderReady("twilio") ? "Configure Twilio keys first" : undefined}
+                        disabled={!allConfigured || configuredTelephonyProviders.length === 0}
+                        title={!allConfigured ? "Configure API keys first" : configuredTelephonyProviders.length === 0 ? "Configure a telephony provider first" : undefined}
                     >
                         <PhoneOutgoingIcon className="h-4 w-4" />
                         Make a Call
@@ -902,13 +884,36 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <PhoneIcon className="h-5 w-5" />
-                                Phone Number (Twilio SIP)
+                                Phone Number (SIP)
                             </CardTitle>
                             <CardDescription>
-                                Assign a Twilio phone number to this agent. Incoming calls to this number will be routed to this agent via SIP.
+                                Assign a phone number to this agent. Incoming calls to this number will be routed to this agent via SIP.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            {/* Telephony Provider Selector */}
+                            <div className="space-y-2">
+                                <Label>Telephony Provider</Label>
+                                {configuredTelephonyProviders.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        No telephony providers configured. <a href="/dashboard/keys" className="text-primary hover:underline">Configure API keys</a> for Twilio or Telnyx first.
+                                    </p>
+                                ) : (
+                                    <Select value={telephonyProvider} onValueChange={setTelephonyProvider}>
+                                        <SelectTrigger className="w-48">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {configuredTelephonyProviders.map((provider) => (
+                                                <SelectItem key={provider.id} value={provider.id}>
+                                                    {provider.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
+
                             {/* Current Number */}
                             {phoneNumber ? (
                                 <div className="flex items-center justify-between p-4 rounded-md border border-border bg-accent/50">
@@ -931,7 +936,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                 </div>
                             ) : (
                                 <div className="p-4 rounded-md border border-dashed border-border text-center text-sm text-muted-foreground">
-                                    No phone number assigned. Assign an existing Twilio number or search for a new one below.
+                                    No phone number assigned. Assign an existing number or search for a new one below.
                                 </div>
                             )}
 
@@ -942,7 +947,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                         <div>
                                             <p className="text-sm font-medium">SIP Pipeline</p>
                                             <p className="text-xs text-muted-foreground">
-                                                Test if LiveKit + Twilio SIP routing is correctly configured for this number.
+                                                Test if LiveKit + {telephonyProviderLabel} SIP routing is correctly configured for this number.
                                             </p>
                                         </div>
                                         <Button
@@ -999,7 +1004,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                 <div className="space-y-3">
                                     <Label className="text-sm font-medium">Assign Existing Number</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        Enter a Twilio number you already own.
+                                        Enter a {telephonyProviderLabel} number you already own.
                                     </p>
                                     <div className="flex gap-2">
                                         <Input

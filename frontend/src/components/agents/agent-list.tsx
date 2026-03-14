@@ -116,6 +116,7 @@ interface Agent {
         llm_model?: string;
         template?: string;
     };
+    telephony_provider?: string | null;
     calls?: number;
     avgDuration?: string;
 }
@@ -549,7 +550,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                                         {agent.phone_number && (
                                             <Badge variant="outline" className={`gap-1 ${STATUS_BG.positive}`}>
                                                 <PhoneIcon className="h-3 w-3" />
-                                                SIP
+                                                {agent.telephony_provider === "telnyx" ? "Telnyx" : "Twilio"}
                                             </Badge>
                                         )}
                                         <Badge variant={agent.is_active ? "default" : "secondary"}>

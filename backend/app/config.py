@@ -23,8 +23,12 @@ class Settings(BaseSettings):
     twilio_auth_token: str = ""
     twilio_sip_domain: str = ""  # e.g. arkenos.sip.livekit.cloud
 
+    # Telnyx
+    telnyx_api_key: str = ""
+
 
     # LiveKit SIP
+    livekit_sip_uri: str = ""  # e.g. abc123.sip.livekit.cloud (from LiveKit Telephony tab)
     livekit_sip_trunk_id: str = ""  # Outbound SIP trunk ID for call transfers
 
     # MinIO

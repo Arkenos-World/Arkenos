@@ -44,6 +44,12 @@ class ReleaseNumberRequest(BaseModel):
     agent_id: str
 
 
+class ProvisionRequest(BaseModel):
+    agent_id: str
+    provider: Optional[str] = None  # If set, updates agent's telephony_provider
+    force_outbound: Optional[bool] = False  # Delete and recreate outbound trunk
+
+
 class AssignNumberRequest(BaseModel):
     agent_id: str
     phone_number: str  # An already-owned number (E.164 format, e.g. +1234567890)
@@ -334,7 +340,7 @@ async def assign_existing_number(
 
 @router.post("/numbers/provision")
 async def provision_pipeline(
-    request: ReleaseNumberRequest,  # reuse schema — just needs agent_id
+    request: ProvisionRequest,
     db: Session = Depends(get_db),
     _=Depends(require_providers("livekit")),
 ):
@@ -345,6 +351,12 @@ async def provision_pipeline(
         raise HTTPException(status_code=404, detail="Agent not found")
     if not agent.phone_number:
         raise HTTPException(status_code=400, detail="Agent has no phone number to provision")
+
+    # Update telephony_provider if frontend sends it
+    if request.provider and request.provider != agent.telephony_provider:
+        agent.telephony_provider = request.provider
+        db.commit()
+        db.refresh(agent)
 
     provider_name = agent.telephony_provider or "twilio"
 
@@ -429,6 +441,38 @@ async def provision_pipeline(
 
     # Step 5: LiveKit outbound trunk (for making outbound calls)
     try:
+        # Force-delete stale outbound trunk if requested (e.g. after credential connection recreation)
+        if request.force_outbound:
+            from app.services.telephony_provisioning import _get_lk, _state
+            from livekit.api import ListSIPOutboundTrunkRequest
+            from livekit.protocol.sip import DeleteSIPTrunkRequest
+            trunk_name = f"Arkenos Outbound ({provider_name})"
+            # Delete LiveKit outbound trunk
+            lk = _get_lk()
+            try:
+                resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
+                for trunk in resp.items:
+                    if trunk.name == trunk_name:
+                        logger.info(f"[provision] force_outbound: deleting stale LK trunk {trunk.sip_trunk_id}")
+                        await lk.sip.delete_sip_trunk(DeleteSIPTrunkRequest(sip_trunk_id=trunk.sip_trunk_id))
+                        _state.outbound_trunk_ids.pop(provider_name, None)
+            finally:
+                await lk.aclose()
+            # Delete provider-side credential connection so fresh credentials are generated
+            if provider_name == "telnyx":
+                provider_impl = get_provider(provider_name, db)
+                import httpx
+                headers = provider_impl._headers()
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(f"https://api.telnyx.com/v2/credential_connections", headers=headers, timeout=15)
+                if resp.status_code == 200:
+                    for conn in resp.json().get("data", []):
+                        if conn.get("connection_name") == "Arkenos Outbound":
+                            conn_id = conn["id"]
+                            logger.info(f"[provision] force_outbound: deleting Telnyx credential connection {conn_id}")
+                            async with httpx.AsyncClient() as client:
+                                await client.delete(f"https://api.telnyx.com/v2/credential_connections/{conn_id}", headers=headers, timeout=15)
+
         outbound_id = await ensure_outbound_trunk(provider_name)
         steps.append({"step": "LiveKit Outbound Trunk", "status": "ok", "detail": f"Trunk ID: {outbound_id}"})
     except Exception as e:

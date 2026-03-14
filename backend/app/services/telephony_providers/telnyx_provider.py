@@ -383,6 +383,108 @@ class TelnyxProvider(TelephonyProvider):
         except Exception as e:
             logger.warning(f"Could not disassociate number from connection: {e}")
 
+    async def _ensure_outbound_voice_profile(self, connection_id: str) -> str:
+        """Create or reuse an Outbound Voice Profile and attach the connection to it.
+        Telnyx REQUIRES an outbound voice profile for any outbound calling.
+        Returns the profile ID.
+        """
+        headers = self._headers()
+        profile_name = "Arkenos Outbound"
+
+        # Check for ANY existing profile (reuse-first — many accounts are limited to 1)
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{TELNYX_API_BASE}/outbound_voice_profiles",
+                headers=headers,
+                timeout=15,
+            )
+
+        if resp.status_code == 200:
+            profiles = resp.json().get("data", [])
+            if profiles:
+                # Reuse the first available profile (prefer exact name match)
+                profile = next(
+                    (p for p in profiles if p.get("name") == profile_name),
+                    profiles[0],
+                )
+                profile_id = profile["id"]
+                logger.info(
+                    f"[_ensure_outbound_voice_profile] Reusing existing profile: "
+                    f"{profile_id} (name={profile.get('name')})"
+                )
+                await self._attach_connection_to_profile(profile_id, connection_id)
+                return profile_id
+
+        # Create new outbound voice profile
+        logger.info(f"[_ensure_outbound_voice_profile] Creating new outbound voice profile")
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{TELNYX_API_BASE}/outbound_voice_profiles",
+                headers=headers,
+                json={
+                    "name": profile_name,
+                    "traffic_type": "conversational",
+                    "service_plan": "global",
+                    "enabled": True,
+                    "whitelisted_destinations": ["US", "CA"],
+                    "concurrent_call_limit": None,
+                },
+                timeout=15,
+            )
+
+        if resp.status_code not in (200, 201):
+            raise ValueError(f"Failed to create outbound voice profile ({resp.status_code}): {resp.text}")
+
+        profile_data = resp.json().get("data", {})
+        profile_id = profile_data["id"]
+        logger.info(f"[_ensure_outbound_voice_profile] Created profile: {profile_id}")
+
+        # Attach connection to the new profile
+        await self._attach_connection_to_profile(profile_id, connection_id)
+
+        return profile_id
+
+    async def _attach_connection_to_profile(self, profile_id: str, connection_id: str) -> None:
+        """Set the outbound_voice_profile_id on a credential connection."""
+        headers = self._headers()
+
+        # Check current profile assignment
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{TELNYX_API_BASE}/credential_connections/{connection_id}",
+                headers=headers,
+                timeout=15,
+            )
+
+        if resp.status_code == 200:
+            conn_data = resp.json().get("data", {})
+            logger.info(f"[_attach_connection_to_profile] Current connection data outbound field: {conn_data.get('outbound')}")
+            current_profile = (conn_data.get("outbound", {}) or {}).get("outbound_voice_profile_id")
+            if current_profile == profile_id:
+                logger.info(f"[_attach_connection_to_profile] Connection {connection_id} already attached to profile {profile_id}")
+                return
+            logger.info(f"[_attach_connection_to_profile] Current profile: {current_profile}, target: {profile_id}")
+        else:
+            logger.warning(f"[_attach_connection_to_profile] GET connection failed ({resp.status_code}): {resp.text}")
+
+        # Update connection with the profile ID (must be nested under "outbound")
+        patch_body = {"outbound": {"outbound_voice_profile_id": profile_id}}
+        logger.info(f"[_attach_connection_to_profile] PATCH credential_connections/{connection_id} body={patch_body}")
+        async with httpx.AsyncClient() as client:
+            resp = await client.patch(
+                f"{TELNYX_API_BASE}/credential_connections/{connection_id}",
+                headers=headers,
+                json=patch_body,
+                timeout=15,
+            )
+
+        logger.info(f"[_attach_connection_to_profile] PATCH response ({resp.status_code}): {resp.text}")
+        if resp.status_code != 200:
+            raise ValueError(
+                f"Failed to attach connection {connection_id} to outbound voice profile {profile_id} "
+                f"({resp.status_code}): {resp.text}"
+            )
+
     async def configure_sip_outbound(self) -> dict:
         """Set up outbound calling via Telnyx.
         Returns {address, auth_username, auth_password, reused}.
@@ -391,7 +493,8 @@ class TelnyxProvider(TelephonyProvider):
         (FQDN connections are for inbound only). Flow:
           1. Create/reuse a credential connection ("Arkenos Outbound")
              with a username and password
-          2. LiveKit outbound trunk uses sip.telnyx.com with those credentials
+          2. Create/reuse an Outbound Voice Profile and attach the connection
+          3. LiveKit outbound trunk uses sip.telnyx.com with those credentials
 
         When reusing an existing connection, `reused=True` and
         `auth_password=None` — the existing LiveKit trunk already has
@@ -408,6 +511,7 @@ class TelnyxProvider(TelephonyProvider):
                 timeout=15,
             )
 
+        existing_conn_id = None
         if resp.status_code == 200:
             connections = resp.json().get("data", [])
             logger.info(f"[configure_sip_outbound] Found {len(connections)} existing credential connections")
@@ -417,16 +521,19 @@ class TelnyxProvider(TelephonyProvider):
                     f"user_name={conn.get('user_name')}, active={conn.get('active')}"
                 )
                 if conn.get("connection_name") == "Arkenos Outbound":
-                    conn_id = conn["id"]
-                    logger.info(f"[configure_sip_outbound] Reusing existing credential connection: {conn_id}")
-                    # Don't regenerate password — the existing LiveKit trunk
-                    # already has the credentials.
-                    return {
-                        "address": "sip.telnyx.com",
-                        "auth_username": username,
-                        "auth_password": None,
-                        "reused": True,
-                    }
+                    existing_conn_id = conn["id"]
+                    break
+
+        if existing_conn_id:
+            logger.info(f"[configure_sip_outbound] Reusing existing credential connection: {existing_conn_id}")
+            # Ensure outbound voice profile exists and connection is attached
+            await self._ensure_outbound_voice_profile(existing_conn_id)
+            return {
+                "address": "sip.telnyx.com",
+                "auth_username": username,
+                "auth_password": None,
+                "reused": True,
+            }
 
         # Create new credential connection for outbound
         logger.info(f"[configure_sip_outbound] No existing 'Arkenos Outbound' credential connection found, creating new one")
@@ -450,7 +557,11 @@ class TelnyxProvider(TelephonyProvider):
             raise ValueError(f"Failed to create credential connection ({resp.status_code}): {resp.text}")
 
         conn_data = resp.json().get("data", {})
-        logger.info(f"Created Telnyx credential connection: {conn_data.get('id')}")
+        new_conn_id = conn_data.get("id")
+        logger.info(f"Created Telnyx credential connection: {new_conn_id}")
+
+        # Ensure outbound voice profile exists and attach the new connection
+        await self._ensure_outbound_voice_profile(new_conn_id)
 
         return {
             "address": "sip.telnyx.com",

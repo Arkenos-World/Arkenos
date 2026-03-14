@@ -240,6 +240,20 @@ async def _sync_outbound_trunk_numbers(trunk_id: str, provider_name: str | None 
         await lk.aclose()
 
 
+async def _ensure_provider_outbound_setup(provider_name: str) -> None:
+    """Ensure provider-side outbound setup is complete (e.g. voice profile attached).
+    Called even on cached paths to guarantee provider config stays in sync.
+    """
+    if provider_name == "telnyx":
+        from app.services.telephony_providers import get_provider
+        db = SessionLocal()
+        try:
+            provider = get_provider(provider_name, db)
+            await provider.configure_sip_outbound()
+        finally:
+            db.close()
+
+
 async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
     """Ensure an outbound SIP trunk exists for the given telephony provider. Returns trunk ID.
     Uses the provider factory to get outbound SIP configuration, then creates a LiveKit
@@ -260,6 +274,8 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
     cached_id = _state.outbound_trunk_ids.get(provider_name)
     if cached_id:
         logger.info(f"[ensure_outbound_trunk] Using cached outbound trunk_id={cached_id} for provider={provider_name}")
+        # Ensure provider-side setup is complete (e.g. outbound voice profile)
+        await _ensure_provider_outbound_setup(provider_name)
         await _sync_outbound_trunk_numbers(cached_id, provider_name)
         return cached_id
 
@@ -268,6 +284,7 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
         # Check for existing LiveKit outbound trunk — reuse if valid
         resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
         logger.info(f"[ensure_outbound_trunk] Found {len(resp.items)} existing outbound trunks")
+        existing_lk_trunk = None
         for trunk in resp.items:
             logger.info(
                 f"[ensure_outbound_trunk]   trunk id={trunk.sip_trunk_id}, name={trunk.name}, "
@@ -275,22 +292,15 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
                 f"auth_username={trunk.auth_username}"
             )
             if trunk.name == trunk_name:
-                _state.outbound_trunk_ids[provider_name] = trunk.sip_trunk_id
-                logger.info(f"Reusing existing outbound trunk: {trunk.sip_trunk_id}")
-                await _sync_outbound_trunk_numbers(trunk.sip_trunk_id, provider_name)
-                return trunk.sip_trunk_id
-
+                existing_lk_trunk = trunk
             # Backward compat: match old "Arkenos Outbound" name for twilio
-            if provider_name == "twilio" and trunk.name == "Arkenos Outbound":
-                _state.outbound_trunk_ids[provider_name] = trunk.sip_trunk_id
-                logger.info(f"Reusing existing outbound trunk (legacy name): {trunk.sip_trunk_id}")
-                await _sync_outbound_trunk_numbers(trunk.sip_trunk_id, provider_name)
-                return trunk.sip_trunk_id
+            elif provider_name == "twilio" and trunk.name == "Arkenos Outbound":
+                existing_lk_trunk = trunk
 
         # Use provider factory to get outbound SIP config
         from app.services.telephony_providers import get_provider
 
-        logger.info(f"[ensure_outbound_trunk] No matching trunk found, requesting outbound config from provider '{provider_name}'")
+        logger.info(f"[ensure_outbound_trunk] Requesting outbound config from provider '{provider_name}'")
         db = SessionLocal()
         try:
             provider = get_provider(provider_name, db)
@@ -304,29 +314,34 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
             f"reused={outbound_config.get('reused')}, has_password={'auth_password' in outbound_config and outbound_config.get('auth_password') is not None}"
         )
 
-        # If the provider reused an existing connection, the LiveKit trunk
-        # should already exist with the correct credentials. Just sync numbers.
-        if outbound_config.get("reused"):
-            logger.info(f"Provider '{provider_name}' reused existing outbound connection — "
-                        "checking for existing LiveKit trunk")
-            # Re-scan LiveKit trunks (may have been created in a previous run)
-            resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
-            for trunk in resp.items:
-                if trunk.name == trunk_name or (
-                    provider_name == "twilio" and trunk.name == "Arkenos Outbound"
-                ):
-                    _state.outbound_trunk_ids[provider_name] = trunk.sip_trunk_id
-                    logger.info(f"Found matching outbound trunk: {trunk.sip_trunk_id}")
-                    await _sync_outbound_trunk_numbers(trunk.sip_trunk_id, provider_name)
-                    return trunk.sip_trunk_id
-            # No existing LiveKit trunk found despite provider having credentials —
-            # this means the LiveKit trunk was deleted. Cannot recover without
-            # the original password, so raise a clear error.
+        if outbound_config.get("reused") and existing_lk_trunk:
+            # Provider connection exists AND LiveKit trunk exists — reuse both
+            _state.outbound_trunk_ids[provider_name] = existing_lk_trunk.sip_trunk_id
+            logger.info(f"Reusing existing outbound trunk: {existing_lk_trunk.sip_trunk_id}")
+            await _sync_outbound_trunk_numbers(existing_lk_trunk.sip_trunk_id, provider_name)
+            return existing_lk_trunk.sip_trunk_id
+
+        if outbound_config.get("reused") and not existing_lk_trunk:
+            # Provider connection exists but LiveKit trunk is missing —
+            # cannot recover without the original password.
             raise ValueError(
                 f"Provider '{provider_name}' has an existing outbound credential "
                 "connection but no matching LiveKit trunk was found. Delete the "
                 "provider-side credential connection and retry to create fresh credentials."
             )
+
+        if not outbound_config.get("reused") and existing_lk_trunk:
+            # Fresh credentials from provider but stale LiveKit trunk exists —
+            # delete the stale trunk so we can recreate with new credentials.
+            logger.warning(
+                f"[ensure_outbound_trunk] Deleting stale LiveKit outbound trunk "
+                f"{existing_lk_trunk.sip_trunk_id} — provider issued fresh credentials"
+            )
+            from livekit.protocol.sip import DeleteSIPTrunkRequest
+            await lk.sip.delete_sip_trunk(
+                DeleteSIPTrunkRequest(sip_trunk_id=existing_lk_trunk.sip_trunk_id)
+            )
+            _state.outbound_trunk_ids.pop(provider_name, None)
 
         # Validate required keys in outbound config (only for new connections)
         required_keys = ("address", "auth_username", "auth_password")

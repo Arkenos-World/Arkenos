@@ -445,7 +445,7 @@ export default function WhyOpenSourceBlogPost() {
                 ["Self-hostable", "Yes", "No", "Yes"],
                 ["Open source", "Yes", "No", "Yes"],
                 ["Provider lock-in", "None", "High", "None"],
-                ["Platform fee", "$0", "$0.05–$0.07/min", "$0"],
+                ["Platform fee", "$0", "$0.05–$0.055/min", "$0"],
                 ["Data ownership", "Full", "Partial", "Full"],
               ]}
             />

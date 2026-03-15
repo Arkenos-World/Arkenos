@@ -130,7 +130,7 @@ export default function HiddenCostBlogPost() {
                 variants={fadeUp}
                 className="text-lg text-muted-foreground mb-4"
               >
-                Vapi advertises $0.05/min. Retell says $0.07/min. Your actual bill?
+                Vapi advertises $0.05/min. Retell says $0.055/min. Your actual bill?
                 Multiply by 3&ndash;5x. Here&apos;s the real math, with every number sourced.
               </motion.p>
 
@@ -310,16 +310,16 @@ export default function HiddenCostBlogPost() {
                   ["Vapi platform fee", "$0.050", "$0.250"],
                   ["Telephony (Twilio)", "$0.010", "$0.050"],
                   ["STT (Deepgram)", "$0.010", "$0.050"],
-                  ["TTS (ElevenLabs)", "$0.036", "$0.180"],
+                  ["TTS (ElevenLabs)", "$0.040", "$0.200"],
                   ["LLM (GPT-4o)", "~$0.030", "$0.150"],
-                  ["Total", "$0.136/min", "$0.680"],
+                  ["Total", "$0.140/min", "$0.700"],
                 ]}
               />
 
               <Paragraph>
-                That&apos;s <InlineCode>$0.68</InlineCode> for the same 5-minute call that costs
-                $0.077 self-assembled. An <strong>8.8x markup</strong>. And this is consistent
-                with independent analyses: real Vapi deployments run $0.13&ndash;$0.33/min,
+                That&apos;s <InlineCode>$0.70</InlineCode> for the same 5-minute call that costs
+                $0.077 self-assembled. A <strong>9.1x markup</strong>. And this is consistent
+                with independent analyses: real Vapi deployments run $0.14&ndash;$0.33/min,
                 not $0.05.
               </Paragraph>
 
@@ -341,14 +341,14 @@ export default function HiddenCostBlogPost() {
                 rows={[
                   ["Voice infra + STT", "$0.055", "$0.275"],
                   ["TTS (included voices)", "$0.015", "$0.075"],
-                  ["LLM (GPT-4o)", "$0.040", "$0.200"],
+                  ["LLM (GPT-4o)", "$0.030", "$0.150"],
                   ["Telephony", "$0.015", "$0.075"],
-                  ["Total", "$0.125/min", "$0.625"],
+                  ["Total", "$0.115/min", "$0.575"],
                 ]}
               />
 
               <Paragraph>
-                Better than Vapi, but still <strong>8.1x</strong> the self-assembled cost. And
+                Better than Vapi, but still <strong>7.5x</strong> the self-assembled cost. And
                 if you want ElevenLabs instead of their included voices, add another $0.025/min.
               </Paragraph>
 
@@ -454,7 +454,7 @@ export default function HiddenCostBlogPost() {
               <Paragraph>
                 At 20,000 min/month, the Vapi platform fee alone is $1,000/month. At 100,000
                 min/month, the raw API cost for a comparable stack is roughly $0.01&ndash;$0.02/min
-                vs. Vapi&apos;s $0.13&ndash;$0.18/min &mdash; a 5&ndash;8x difference that
+                vs. Vapi&apos;s $0.14&ndash;$0.18/min &mdash; a 5&ndash;8x difference that
                 compounds every month.
               </Paragraph>
 

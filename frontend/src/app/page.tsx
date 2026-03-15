@@ -2,42 +2,17 @@
 
 import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
-import { motion, useInView } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useState } from "react";
 import { AuthModal } from "@/components/auth-modal";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
-import { AgentComputerDiagram } from "@/components/ui/agent-computer-diagram";
-import { AgentBuilderDemo } from "@/components/ui/agent-builder-demo";
+import { HeroDashboardPreview } from "@/components/ui/hero-dashboard-preview";
+import { CustomAgentDemo } from "@/components/ui/custom-agent-demo";
 import { PublicHeader } from "@/components/public-header";
 import { PublicFooter } from "@/components/public-footer";
 
-// ─── Icons ─────────────────────────────────────────────────────────────────────
-
-function MicrophoneIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-    </svg>
-  );
-}
-
-function BrainIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-    </svg>
-  );
-}
-
-function SpeakerIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-    </svg>
-  );
-}
+// ─── Icons ──────────────────────────────────────────────────────────────────────
 
 function ArrowRightIcon({ className }: { className?: string }) {
   return (
@@ -55,210 +30,20 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
-function CodeBracketIcon({ className }: { className?: string }) {
+function CheckIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
     </svg>
   );
 }
 
-function BoltIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-    </svg>
-  );
-}
 
-function GlobeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-    </svg>
-  );
-}
-
-function ChartBarIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-    </svg>
-  );
-}
-
-function ShieldCheckIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-    </svg>
-  );
-}
-
-function CpuIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" />
-    </svg>
-  );
-}
-
-// ─── Utilities ─────────────────────────────────────────────────────────────────
-
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-}
-
-// ─── Animated Counter ──────────────────────────────────────────────────────────
-
-function AnimatedCounter({ target, prefix = "", suffix = "" }: { target: number; prefix?: string; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true });
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    if (!isInView) return;
-    const duration = 2000;
-    const startTime = performance.now();
-
-    function tick(now: number) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-
-    requestAnimationFrame(tick);
-  }, [isInView, target]);
-
-  return <span ref={ref}>{prefix}{value}{suffix}</span>;
-}
-
-// ─── Typing Terminal ───────────────────────────────────────────────────────────
-
-const SETUP_STEPS = [
-  { step: "1", label: "Sign up", desc: "Create your free account" },
-  { step: "2", label: "Describe your agent", desc: "Tell it what to do in plain English" },
-  { step: "3", label: "Go live", desc: "Your agent starts taking calls" },
-];
-
-function SetupSteps() {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true });
-
-  return (
-    <div ref={ref} className="flex items-center gap-3">
-      {SETUP_STEPS.map((s, i) => (
-        <motion.div
-          key={s.step}
-          initial={{ opacity: 0, y: 8 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.4, delay: 0.3 + i * 0.2 }}
-          className="flex-1 text-center p-3 rounded-lg bg-muted/50 border"
-        >
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2 text-sm font-bold text-primary">{s.step}</div>
-          <p className="text-sm font-medium">{s.label}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-// ─── 3D Tilt Card ──────────────────────────────────────────────────────────────
-
-function TiltCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  function handleMouseMove(e: React.MouseEvent) {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    ref.current.style.transform = `perspective(800px) rotateX(${y * -8}deg) rotateY(${x * 8}deg) scale3d(1.02, 1.02, 1.02)`;
-  }
-
-  function handleMouseLeave() {
-    if (!ref.current) return;
-    ref.current.style.transform = "perspective(800px) rotateX(0) rotateY(0) scale3d(1, 1, 1)";
-  }
-
-  return (
-    <div
-      ref={ref}
-      className={`transition-transform duration-300 ease-out ${className}`}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ transformStyle: "preserve-3d" }}
-    >
-      {children}
-    </div>
-  );
-}
-
-
-// ─── Mini Waveform (for pipeline illustrations) ────────────────────────────────
-
-function MiniWaveform({ seedOffset = 0 }: { seedOffset?: number }) {
-  return (
-    <div className="flex items-end gap-[2px] h-5">
-      {[8, 14, 10, 18, 12, 16, 8, 14].map((h, i) => (
-        <div
-          key={i}
-          className="w-[2px] rounded-full bg-primary/40 origin-bottom h-full"
-          style={{
-            "--wave-scale": (h / 18).toFixed(4),
-            animationName: "waveform-bar",
-            animationDuration: `${(0.8 + seededRandom(i + seedOffset) * 0.5).toFixed(4)}s`,
-            animationTimingFunction: "ease-in-out",
-            animationIterationCount: "infinite",
-            animationDelay: `${(i * 0.07).toFixed(4)}s`,
-          } as React.CSSProperties}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─── Waveform (full-size, CSS-animated) ────────────────────────────────────────
-
-function Waveform() {
-  const bars = 40;
-  return (
-    <div className="flex items-end justify-center gap-[2px] h-16">
-      {Array.from({ length: bars }).map((_, i) => {
-        const scale = 0.3 + Math.sin(i * 0.4) * 0.25 + seededRandom(i) * 0.35;
-        return (
-          <div
-            key={i}
-            className="w-[3px] h-full rounded-full bg-gradient-to-t from-primary/30 to-primary origin-bottom"
-            style={{
-              "--wave-scale": scale.toFixed(4),
-              animationName: "waveform-bar",
-              animationDuration: `${(1 + seededRandom(i + 100) * 0.8).toFixed(4)}s`,
-              animationTimingFunction: "ease-in-out",
-              animationIterationCount: "infinite",
-              animationDelay: `${(i * 0.04).toFixed(4)}s`,
-            } as React.CSSProperties}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Animation Variants ────────────────────────────────────────────────────────
+// ─── Animation Variants ─────────────────────────────────────────────────────────
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
-};
-
-const fadeUpScale = {
-  hidden: { opacity: 0, y: 24, scale: 0.96 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
 const stagger = {
@@ -266,7 +51,8 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.08 } },
 };
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+
+// ─── Page ───────────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { data: session } = useSession();
@@ -278,613 +64,384 @@ export default function Home() {
 
       <main>
         {/* ── Hero ───────────────────────────────────────────────────────── */}
-        <section className="relative overflow-x-clip overflow-y-visible min-h-[calc(100vh-4rem)]">
-          {/* Background glow — removed for cleaner diagram look */}
+        <section className="relative overflow-hidden min-h-[calc(100vh-4rem)] border-b">
+          {/* Subtle grid */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+            style={{
+              backgroundImage: "linear-gradient(var(--foreground) 1px, transparent 1px), linear-gradient(90deg, var(--foreground) 1px, transparent 1px)",
+              backgroundSize: "60px 60px",
+            }}
+          />
 
-          {/* Animated gradient mesh background */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-[100px] animate-[float_8s_ease-in-out_infinite]" />
-            <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/3 rounded-full blur-[120px] animate-[float_10s_ease-in-out_infinite_2s]" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/4 rounded-full blur-[80px] animate-[float_6s_ease-in-out_infinite_1s]" />
-          </div>
-
-          <div className="container mx-auto px-4 pt-16 pb-8 lg:pt-20 lg:pb-12 relative flex-1 flex flex-col justify-center min-h-[calc(100vh-4rem)]">
-            <div className="grid lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-10 items-center">
+          <div className="container mx-auto px-4 relative flex flex-col justify-center min-h-[calc(100vh-4rem)]">
+            <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-8 lg:gap-10 items-center max-w-[1400px] mx-auto px-2">
               {/* Left: Content */}
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={stagger}
-                className="text-center lg:text-left"
-              >
-                {/* Badge with pulse ring */}
-                <motion.div variants={fadeUp} className="inline-block mb-6">
-                  <Badge variant="outline" className="px-4 py-1.5 text-sm font-medium">
-                    Open Source Voice AI Platform
-                  </Badge>
-                </motion.div>
-
-                <motion.h1
-                  variants={fadeUp}
-                  className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]"
+              <motion.div initial="hidden" animate="visible" variants={stagger}>
+                <motion.h1 variants={fadeUp}
+                  className="text-4xl sm:text-5xl lg:text-[3.2rem] xl:text-6xl font-extrabold tracking-[-0.03em] leading-[1.1] mb-6"
                 >
-                  Build Voice Agents{" "}
-                  <span className="bg-gradient-to-r from-foreground via-foreground/80 to-muted-foreground bg-clip-text text-transparent bg-[length:200%_100%] animate-[gradient-x_6s_ease_infinite]">
-                    That Actually Work
-                  </span>
+                  The open-source <span className="text-muted-foreground">voice AI platform</span>
                 </motion.h1>
 
-                <motion.p
-                  variants={fadeUp}
-                  className="max-w-xl mx-auto lg:mx-0 text-lg sm:text-xl text-muted-foreground mb-10"
+                <motion.p variants={fadeUp}
+                  className="max-w-lg text-lg text-muted-foreground leading-relaxed mb-8"
                 >
-                  The open-source platform to create, deploy, and manage intelligent voice agents. Describe what you need, and your agent handles the rest.
+                  Build, deploy, and manage voice AI agents. Self-host or use our cloud. Zero platform fees. Your infrastructure, your rules.
                 </motion.p>
 
-                <motion.div
-                  variants={fadeUp}
-                  className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4"
-                >
+                <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-3 mb-8">
                   {session ? (
                     <Link href="/dashboard">
-                      <Button size="lg" className="gap-2 h-12 px-8 text-base">
-                        Go to Dashboard
-                        <ArrowRightIcon className="h-4 w-4" />
+                      <Button size="lg" className="gap-2 h-11 px-6">
+                        Go to Dashboard <ArrowRightIcon className="h-4 w-4" />
                       </Button>
                     </Link>
                   ) : (
-                    <Button size="lg" className="gap-2 h-12 px-8 text-base" onClick={() => setAuthOpen(true)}>
-                      Get Started Free
-                      <ArrowRightIcon className="h-4 w-4" />
+                    <Button size="lg" className="gap-2 h-11 px-6" onClick={() => setAuthOpen(true)}>
+                      Get Started Free <ArrowRightIcon className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button variant="outline" size="lg" className="gap-2 h-12 px-8 text-base" asChild>
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer">
-                      <GithubIcon className="h-5 w-5" />
-                      Star on GitHub
+                  <Button variant="outline" size="lg" className="gap-2 h-11 px-6" asChild>
+                    <a href="https://github.com/Arkenos-World/Arkenos" target="_blank" rel="noopener noreferrer">
+                      <GithubIcon className="h-4 w-4" /> Star on GitHub
                     </a>
                   </Button>
                 </motion.div>
 
-                {/* Trust signals */}
-                <motion.div
-                  variants={fadeUp}
-                  className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-10 text-xs text-muted-foreground"
-                >
-                  {["No credit card needed", "Free forever", "Setup in 3 minutes"].map((text, i) => (
-                    <motion.span
-                      key={text}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4, delay: 0.6 + i * 0.15 }}
-                      className="flex items-center gap-1.5"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-pulse" />
-                      {text}
-                    </motion.span>
+                <motion.div variants={fadeUp} className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                  {["No credit card required", "Free & open source", "Deploy in 3 minutes"].map((t) => (
+                    <span key={t} className="flex items-center gap-2">
+                      <CheckIcon className="h-3.5 w-3.5 text-chart-2" />
+                      {t}
+                    </span>
                   ))}
                 </motion.div>
               </motion.div>
 
-              {/* Right: Live Call Demo */}
+              {/* Right: Product Preview */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="relative order-first lg:order-last flex items-center justify-center"
+                className="relative lg:order-last"
               >
-                <AgentBuilderDemo className="w-full max-w-[320px] sm:max-w-[360px] lg:max-w-[400px]" />
+                <HeroDashboardPreview className="w-full" />
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* ── What Happens Inside ──────────────────────────────────────── */}
-        <section className="border-t bg-muted/30">
+        {/* ── Custom Agent IDE ─────────────────────────────────────────── */}
+        <section className="border-b">
           <div className="container mx-auto px-4 py-24">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              variants={stagger}
-              className="text-center mb-16"
-            >
-              <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4 animate-[slide-up-fade_0.5s_ease-out]">The Agent Computer</Badge>
-              </motion.div>
-              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                More than a pipeline.
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={stagger} className="text-center mb-16">
+              <motion.p variants={fadeUp} className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">Your Way</motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
+                Build custom agents
               </motion.h2>
               <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Other platforms just convert speech to text and back. Arkenos gives every agent its own brain — it can think, take actions, and remember past conversations.
+                Code in Python or design visually — with an AI assistant that builds alongside you.
               </motion.p>
             </motion.div>
 
-            {/* Three capability cards */}
             <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
-              variants={stagger}
-              className="grid md:grid-cols-3 gap-px max-w-5xl mx-auto bg-border rounded-lg overflow-hidden"
-            >
-              {/* Think */}
-              <motion.div variants={fadeUpScale} className="bg-card p-8 lg:p-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <BrainIcon className="h-7 w-7 text-primary" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-primary tracking-widest">THINK</span>
-                    <h3 className="text-xl font-bold">Reason & Respond</h3>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Your agent truly understands what callers mean — not just what they say. Powered by the latest AI, always improving.
-                </p>
-                <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border/50">
-                  <span className="text-xs font-mono text-primary/60 px-1.5 py-0.5 bg-primary/5 rounded">&quot;Book me a table&quot;</span>
-                  <ArrowRightIcon className="h-3 w-3 text-primary/30" />
-                  <div className="relative">
-                    <BrainIcon className="h-6 w-6 text-primary/40" />
-                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary/60 animate-ping" />
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Act */}
-              <motion.div variants={fadeUpScale} className="bg-card p-8 lg:p-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <BoltIcon className="h-7 w-7 text-primary" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-primary tracking-widest">ACT</span>
-                    <h3 className="text-xl font-bold">Execute Mid-Call</h3>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Your agent doesn&apos;t just talk — it does things. Book appointments, look up orders, send confirmations — all during the call.
-                </p>
-                <div className="mt-6 pt-4 border-t border-border/50">
-                  <div className="text-xs space-y-1.5">
-                    <p className="text-primary/50">Caller: &quot;Book me a table for tonight&quot;</p>
-                    <p className="text-chart-2/60">Agent checks availability... confirmed 7pm, 2 guests</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Remember */}
-              <motion.div variants={fadeUpScale} className="bg-card p-8 lg:p-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <CpuIcon className="h-7 w-7 text-primary" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-primary tracking-widest">REMEMBER</span>
-                    <h3 className="text-xl font-bold">Persistent Memory</h3>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Your agent remembers past conversations, caller preferences, and history — so every interaction feels personal.
-                </p>
-                <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border/50">
-                  <motion.div
-                    animate={{ opacity: [0.3, 0.7, 0.3] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <CpuIcon className="h-5 w-5 text-primary/40" />
-                  </motion.div>
-                  <span className="text-xs text-muted-foreground">&quot;Welcome back, Sarah — same order as last time?&quot;</span>
-                </div>
-              </motion.div>
-            </motion.div>
-
-            {/* Animated flow pill */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="mt-12 flex justify-center"
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-4xl mx-auto"
             >
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border bg-card text-sm shadow-sm">
-                <MicrophoneIcon className="h-4 w-4 text-primary" />
-                <span className="font-medium">Voice In</span>
-                {["Think", "Act", "Remember"].map((label, i) => (
-                  <span key={label} className="contents">
-                    <motion.div
-                      animate={{ opacity: [0.2, 1, 0.2] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.4, ease: "easeInOut" }}
-                    >
-                      <ArrowRightIcon className="h-3 w-3 text-primary" />
-                    </motion.div>
-                    <span className="text-muted-foreground">{label}</span>
-                  </span>
-                ))}
-                <motion.div
-                  animate={{ opacity: [0.2, 1, 0.2] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: 1.2, ease: "easeInOut" }}
-                >
-                  <ArrowRightIcon className="h-3 w-3 text-primary" />
-                </motion.div>
-                <SpeakerIcon className="h-4 w-4 text-primary" />
-                <span className="font-medium">Voice Out</span>
-              </div>
+              <CustomAgentDemo />
             </motion.div>
           </div>
         </section>
 
-        {/* ── Under the Hood (Developer Section) ────────────────────────── */}
-        <section className="border-t">
+        {/* ── Cost Comparison ────────────────────────────────────────────── */}
+        <section className="border-b">
           <div className="container mx-auto px-4 py-24">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              variants={stagger}
-              className="text-center mb-12"
-            >
-              <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4 animate-[slide-up-fade_0.5s_ease-out]">For Developers</Badge>
-              </motion.div>
-              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                Under the hood
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={stagger} className="text-center mb-16">
+              <motion.p variants={fadeUp} className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">Pricing</motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
+                Voice AI without the platform tax
               </motion.h2>
               <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Every agent is a modular computer — speech in, intelligence, speech out. Swap any piece to fit your stack.
+                You pay $0 to Arkenos. Your only costs are the AI providers you choose.
               </motion.p>
             </motion.div>
+
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
               className="max-w-3xl mx-auto"
             >
-              <AgentComputerDiagram className="w-full h-[300px] sm:h-[400px] lg:h-[480px]" />
+              {/* Comparison table */}
+              <div className="rounded-xl border overflow-hidden">
+                {/* Header */}
+                <div className="grid grid-cols-4 border-b">
+                  <div className="p-4 text-sm font-medium text-muted-foreground">10,000 min / month</div>
+                  <div className="p-4 text-sm font-bold text-center bg-primary/[0.06] border-x border-primary/10">Arkenos</div>
+                  <div className="p-4 text-sm font-medium text-center text-muted-foreground">Vapi</div>
+                  <div className="p-4 text-sm font-medium text-center text-muted-foreground">Retell</div>
+                </div>
+                {/* Rows */}
+                {[
+                  { label: "Platform fee", arkenos: "$0/min", vapi: "$0.05/min", retell: "$0.055/min", total: false },
+                  { label: "STT cost", arkenos: "~$0.01/min", vapi: "~$0.01/min", retell: "Bundled", total: false },
+                  { label: "LLM cost", arkenos: "~$0.03/min", vapi: "~$0.03/min", retell: "~$0.03/min", total: false },
+                  { label: "TTS cost", arkenos: "~$0.02/min", vapi: "~$0.04/min", retell: "$0.015/min", total: false },
+                  { label: "Telephony", arkenos: "~$0.01/min", vapi: "~$0.01/min", retell: "$0.015/min", total: false },
+                  { label: "Total per minute", arkenos: "~$0.07", vapi: "~$0.14", retell: "~$0.12", total: true },
+                  { label: "Monthly (10K min)", arkenos: "~$700", vapi: "~$1,400", retell: "~$1,200", total: true },
+                  { label: "HIPAA compliance", arkenos: "Self-host", vapi: "$1,000/mo add-on", retell: "Enterprise only", total: false },
+                  { label: "Self-hostable", arkenos: "Yes", vapi: "No", retell: "No", total: false },
+                  { label: "Open source", arkenos: "AGPL-3.0", vapi: "No", retell: "No", total: false },
+                ].map((row) => (
+                  <div key={row.label} className={`grid grid-cols-4 border-b last:border-0 ${row.total ? "bg-muted/30" : ""}`}>
+                    <div className={`p-4 text-sm ${row.total ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{row.label}</div>
+                    <div className={`p-4 text-sm text-center bg-primary/[0.04] border-x border-primary/10 font-bold ${row.total ? "text-lg text-foreground" : "text-foreground"}`}>{row.arkenos}</div>
+                    <div className={`p-4 text-sm text-center ${row.total ? "font-medium text-muted-foreground" : "text-muted-foreground"}`}>{row.vapi}</div>
+                    <div className={`p-4 text-sm text-center ${row.total ? "font-medium text-muted-foreground" : "text-muted-foreground"}`}>{row.retell}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground/60 text-center mt-4">
+                Based on Deepgram STT + Gemini Flash LLM + Resemble TTS + Twilio telephony. Vapi and Retell prices from their public pricing pages (March 2026). Excludes hidden add-ons like concurrency fees, knowledge base charges, and branded caller ID costs.
+              </p>
             </motion.div>
           </div>
         </section>
 
-        {/* ── Bento Features ─────────────────────────────────────────────── */}
-        <section className="border-t">
+        {/* ── Features ────────────────────────────────────────────────────── */}
+        <section className="border-b">
           <div className="container mx-auto px-4 py-24">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              variants={stagger}
-              className="text-center mb-16"
-            >
-              <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4 animate-[slide-up-fade_0.5s_ease-out]">Features</Badge>
-              </motion.div>
-              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={stagger} className="text-center mb-20">
+              <motion.p variants={fadeUp} className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">Platform</motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
                 Everything you need
               </motion.h2>
-              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Everything you need to launch voice AI agents that delight your customers.
-              </motion.p>
             </motion.div>
 
-            {/* Bento grid with TiltCard + animated borders */}
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
-              variants={stagger}
-              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto"
-            >
-              {/* Open Source — spans 2 cols, animated gradient border */}
-              <motion.div variants={fadeUpScale} className="sm:col-span-2">
-                <TiltCard>
-                  <div className="relative group">
-                    <div
-                      className="absolute -inset-[1px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                      style={{
-                        background: "linear-gradient(90deg, var(--foreground), var(--muted-foreground), var(--foreground))",
-                        backgroundSize: "200% 100%",
-                        animation: "gradient-x 3s ease infinite",
-                      }}
-                    />
-                    <div className="relative h-full p-8 rounded-lg border bg-card">
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <CodeBracketIcon className="h-6 w-6 text-primary" />
+            <div className="max-w-5xl mx-auto space-y-24">
+
+              {/* ── Feature 1: Natural Voice */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.6 }}
+                className="grid lg:grid-cols-2 gap-10 items-center"
+              >
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs text-muted-foreground mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                    Voice Pipeline
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-4">Conversations that feel human</h3>
+                  <p className="text-muted-foreground leading-relaxed mb-6">
+                    Sub-500ms end-to-end latency. Your agent knows when to speak, when to listen, and handles interruptions naturally. Callers don&apos;t notice they&apos;re talking to AI.
+                  </p>
+                  <div className="flex gap-6 text-sm">
+                    <div><span className="text-2xl font-bold">&lt;500</span><span className="text-muted-foreground">ms latency</span></div>
+                    <div><span className="text-2xl font-bold">VAD</span><span className="text-muted-foreground"> built-in</span></div>
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-card p-6 h-32 flex items-center justify-center">
+                  <div className="flex items-center gap-[2.5px] h-20 w-full">
+                    {Array.from({ length: 64 }).map((_, i) => {
+                      const t = i / 63;
+                      const envelope = Math.exp(-Math.pow((t - 0.5) * 2.8, 2));
+                      const wave = 0.6 + Math.sin(i * 0.5) * 0.2 + Math.sin(i * 1.2) * 0.15;
+                      const scale = envelope * wave;
+                      return (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-full origin-center bg-primary/50"
+                          style={{
+                            height: "100%",
+                            transform: `scaleY(${Math.max(0.02, scale).toFixed(4)})`,
+                            animationName: "waveform-bar",
+                            animationDuration: `${(0.6 + Math.sin(i * 0.7) * 0.3 + 0.3).toFixed(4)}s`,
+                            animationTimingFunction: "ease-in-out",
+                            animationIterationCount: "infinite",
+                            animationDelay: `${(i * 0.025).toFixed(4)}s`,
+                            "--wave-scale": Math.max(0.02, scale).toFixed(4),
+                          } as React.CSSProperties}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* ── Feature 2: Any Provider */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.6 }}
+                className="grid lg:grid-cols-2 gap-10 items-center"
+              >
+                <div className="lg:order-last">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs text-muted-foreground mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Composable
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-4">Swap any provider, anytime</h3>
+                  <p className="text-muted-foreground leading-relaxed mb-6">
+                    Every piece of the voice pipeline is modular. Switch your STT, LLM, or TTS provider without rewriting your agent. No lock-in, ever.
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-card p-6">
+                  <div className="space-y-3">
+                    {[
+                      { label: "Speech-to-Text", providers: ["AssemblyAI", "Deepgram", "ElevenLabs"], color: "bg-blue-500", active: 0 },
+                      { label: "LLM", providers: ["Gemini", "GPT-4o", "Claude", "Llama"], color: "bg-violet-500", active: 0 },
+                      { label: "Text-to-Speech", providers: ["Resemble AI", "ElevenLabs", "PlayHT"], color: "bg-amber-500", active: 0 },
+                      { label: "Telephony", providers: ["Twilio", "Telnyx", "SIP"], color: "bg-rose-500", active: 0 },
+                    ].map((row) => (
+                      <div key={row.label} className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${row.color} shrink-0`} />
+                        <span className="text-xs font-medium w-24 shrink-0">{row.label}</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {row.providers.map((p, i) => (
+                            <span key={p} className={`text-[10px] px-2 py-0.5 rounded-full border ${i === row.active ? "bg-primary/10 border-primary/20 text-foreground" : "text-muted-foreground border-border/50"}`}>
+                              {p}
+                            </span>
+                          ))}
                         </div>
-                        <Badge variant="secondary">AGPL-3.0</Badge>
                       </div>
-                      <h3 className="text-2xl font-bold mb-2">Open Source & Free</h3>
-                      <p className="text-muted-foreground mb-6">
-                        Own your data. Run it yourself or use our cloud — either way, it&apos;s transparent, auditable, and free to start.
-                      </p>
-                      <SetupSteps />
-                    </div>
+                    ))}
                   </div>
-                </TiltCard>
+                </div>
               </motion.div>
 
-              {/* Real-time */}
-              <motion.div variants={fadeUpScale}>
-                <TiltCard className="h-full">
-                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 flex flex-col">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
-                      <BoltIcon className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">Lightning Fast</h3>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      Your agent responds in under half a second — conversations feel natural, not robotic.
-                    </p>
-                    <div className="mt-auto">
-                      <div className="text-5xl font-bold text-primary">
-                        <AnimatedCounter target={500} prefix="<" suffix="ms" />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">end-to-end latency</p>
-                    </div>
+              {/* ── Feature 3: Function Calling */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.6 }}
+                className="grid lg:grid-cols-2 gap-10 items-center"
+              >
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs text-muted-foreground mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    Actions
                   </div>
-                </TiltCard>
-              </motion.div>
-
-              {/* Model Agnostic */}
-              <motion.div variants={fadeUpScale}>
-                <TiltCard className="h-full">
-                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 flex flex-col">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
-                      <GlobeIcon className="h-6 w-6 text-primary" />
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-4">Agents that do things</h3>
+                  <p className="text-muted-foreground leading-relaxed mb-6">
+                    Your agent doesn&apos;t just talk — it books appointments, checks order status, sends confirmations, and calls APIs. All mid-call, in real time.
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-[#0a0a0f] overflow-hidden">
+                  <div className="px-4 py-2 border-b border-white/[0.06] text-[10px] text-white/30 font-mono">Live call transcript</div>
+                  <div className="p-4 space-y-3 font-mono text-[11px]">
+                    <div className="flex gap-3">
+                      <span className="text-white/30 w-12 shrink-0 text-right">Caller</span>
+                      <span className="text-white/60">&quot;Can I book a table for tonight at 7?&quot;</span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Works with Any AI</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Choose the best speech and AI providers for your needs. Switch anytime — no lock-in.
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-auto">
-                      {["Speech Recognition", "AI Reasoning", "Voice Generation", "More coming soon"].map((m, i) => (
-                        <motion.div
-                          key={m}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          whileInView={{ opacity: 1, scale: 1 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: 0.3 + i * 0.08 }}
-                        >
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {m}
-                          </Badge>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
-
-              {/* Full Dashboard — spans 2 cols, animated gradient border */}
-              <motion.div variants={fadeUpScale} className="sm:col-span-2">
-                <TiltCard>
-                  <div className="relative group">
-                    <div
-                      className="absolute -inset-[1px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                      style={{
-                        background: "linear-gradient(90deg, var(--foreground), var(--muted-foreground), var(--foreground))",
-                        backgroundSize: "200% 100%",
-                        animation: "gradient-x 3s ease infinite",
-                      }}
-                    />
-                    <div className="relative h-full p-8 rounded-lg border bg-card">
-                      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
-                        <ChartBarIcon className="h-6 w-6 text-primary" />
-                      </div>
-                      <h3 className="text-2xl font-bold mb-2">Full Management Dashboard</h3>
-                      <p className="text-muted-foreground mb-6">
-                        Create agents, monitor calls, analyze conversations, track costs — all from one place.
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {[
-                          { label: "Agent Builder", desc: "Create & configure" },
-                          { label: "Call Logs", desc: "Full transcripts" },
-                          { label: "Analytics", desc: "Sentiment & topics" },
-                          { label: "Cost Tracking", desc: "Per-call breakdown" },
-                        ].map((item, i) => (
-                          <motion.div
-                            key={item.label}
-                            initial={{ opacity: 0, y: 12 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.2 + i * 0.1 }}
-                            className="p-3 rounded-lg bg-muted/50 border text-center hover:bg-muted/80 transition-colors"
-                          >
-                            <p className="text-sm font-medium">{item.label}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                          </motion.div>
-                        ))}
+                    <div className="flex gap-3 items-start">
+                      <span className="text-amber-400/60 w-12 shrink-0 text-right">fn()</span>
+                      <div>
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[9px]">POST</span>
+                        <span className="text-white/40 ml-2">check_availability(&quot;2026-03-15&quot;, &quot;19:00&quot;)</span>
+                        <div className="text-emerald-400/50 mt-1">→ 3 slots available</div>
                       </div>
                     </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
-
-              {/* Security */}
-              <motion.div variants={fadeUpScale}>
-                <TiltCard className="h-full">
-                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
-                      <ShieldCheckIcon className="h-6 w-6 text-primary" />
+                    <div className="flex gap-3">
+                      <span className="text-emerald-400/60 w-12 shrink-0 text-right">Agent</span>
+                      <span className="text-white/60">&quot;Done! You&apos;re booked for 7pm tonight, 2 guests. I&apos;ll send a confirmation text.&quot;</span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Secure by Default</h3>
-                    <p className="text-sm text-muted-foreground">
-                      All conversations are encrypted and private. No data leaves your servers. Your customers&apos; trust is built in.
-                    </p>
-                    {/* Lock animation */}
-                    <div className="mt-6 pt-4 border-t border-border/50 flex items-center gap-2">
-                      <motion.div
-                        animate={{ scale: [1, 1.15, 1] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        <ShieldCheckIcon className="h-5 w-5 text-chart-2/60" />
-                      </motion.div>
-                      <span className="text-xs text-chart-2/60 font-medium">End-to-end encrypted</span>
-                    </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
-
-              {/* Telephony */}
-              <motion.div variants={fadeUpScale}>
-                <TiltCard className="h-full">
-                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
-                      <CpuIcon className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">Real Phone Calls</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Connect a real phone number. Your AI agent answers actual calls — just like a human receptionist.
-                    </p>
-                    {/* Phone ring animation */}
-                    <div className="mt-6 pt-4 border-t border-border/50 flex items-center gap-2">
-                      <motion.div
-                        animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-                      >
-                        <CpuIcon className="h-5 w-5 text-primary/50" />
-                      </motion.div>
-                      <span className="text-xs text-muted-foreground font-mono">+1 (555) 0XX-XXXX</span>
-                    </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
-
-              {/* Function Calling */}
-              <motion.div variants={fadeUpScale}>
-                <TiltCard className="h-full">
-                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
-                      <BoltIcon className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">Takes Real Actions</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Your agent doesn&apos;t just answer questions — it books appointments, checks orders, sends emails, and more.
-                    </p>
-                    {/* Action animation */}
-                    <div className="mt-6 pt-4 border-t border-border/50">
-                      <div className="text-xs space-y-1.5">
-                        <p className="text-primary/50">Checking availability...</p>
-                        <motion.p
-                          animate={{ opacity: [0.3, 0.7, 0.3] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                          className="text-chart-2/60"
-                        >
-                          3 slots available today
-                        </motion.p>
+                    <div className="flex gap-3 items-start">
+                      <span className="text-amber-400/60 w-12 shrink-0 text-right">fn()</span>
+                      <div>
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[9px]">POST</span>
+                        <span className="text-white/40 ml-2">send_sms(&quot;+1555...&quot;, &quot;Confirmed...&quot;)</span>
+                        <div className="text-emerald-400/50 mt-1">→ SMS sent</div>
                       </div>
-                    </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
-
-              {/* Waveform card — full width */}
-              <motion.div variants={fadeUpScale} className="sm:col-span-2 lg:col-span-3">
-                <div className="p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-                  <div className="flex flex-col sm:flex-row items-center gap-6">
-                    <div className="flex-1 text-center sm:text-left">
-                      <h3 className="text-xl font-bold mb-2">Natural Conversations</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Your agent listens naturally — it knows when to speak, when to wait, and handles interruptions gracefully.
-                      </p>
-                    </div>
-                    <div className="flex-1 max-w-md w-full">
-                      <Waveform />
                     </div>
                   </div>
                 </div>
               </motion.div>
-            </motion.div>
-          </div>
-        </section>
 
-        {/* ── Stats ──────────────────────────────────────────────────────── */}
-        <section className="border-t bg-muted/30">
-          <div className="container mx-auto px-4 py-20">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={stagger}
-              className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 text-center"
-            >
-              {[
-                { value: 500, prefix: "<", suffix: "ms", label: "Voice Latency" },
-                { value: 100, prefix: "", suffix: "%", label: "Open Source" },
-                { value: 5, prefix: "", suffix: "+", label: "AI Providers" },
-                { value: 3, prefix: "", suffix: " min", label: "To First Agent" },
-              ].map((stat) => (
-                <motion.div key={stat.label} variants={fadeUp} className="relative after:absolute after:right-0 after:top-1/4 after:h-1/2 after:w-px after:bg-border last:after:hidden">
-                  <div className="text-4xl sm:text-5xl font-extrabold text-primary mb-2">
-                    <AnimatedCounter target={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
+              {/* ── Feature 4: Security + Open Source */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.6 }}
+                className="grid lg:grid-cols-2 gap-10 items-center"
+              >
+                <div className="lg:order-last">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs text-muted-foreground mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-chart-2" />
+                    Trust
                   </div>
-                  <p className="text-sm text-muted-foreground font-medium">{stat.label}</p>
-                </motion.div>
-              ))}
-            </motion.div>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-4">Open source, self-hostable, yours</h3>
+                  <p className="text-muted-foreground leading-relaxed mb-6">
+                    AGPL-3.0 licensed. Self-host for full data control. GDPR and HIPAA ready. Every line of code is auditable. No vendor calls the shots.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Self-Hosted", desc: "Deploy on your own infrastructure", icon: "🏠" },
+                    { label: "End-to-End Encrypted", desc: "Data never leaves your servers", icon: "🔒" },
+                    { label: "AGPL-3.0", desc: "Fully auditable open source", icon: "📋" },
+                    { label: "GDPR & HIPAA", desc: "Compliance ready out of the box", icon: "🛡️" },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-xl border bg-card p-4 hover:border-primary/20 transition-colors group">
+                      <span className="text-lg mb-2 block">{item.icon}</span>
+                      <p className="text-sm font-semibold mb-1">{item.label}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+            </div>
           </div>
         </section>
 
         {/* ── CTA ────────────────────────────────────────────────────────── */}
         <section className="border-t">
-          <div className="container mx-auto px-4 py-24">
+          <div className="container mx-auto px-4 py-32">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="relative overflow-hidden rounded-lg border bg-card p-12 sm:p-16 text-center"
+              initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }} transition={{ duration: 0.6 }}
+              className="text-center max-w-3xl mx-auto"
             >
-              {/* Animated background glow */}
-              <div className="absolute inset-0 pointer-events-none">
-                <motion.div
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.03, 0.08, 0.03],
-                  }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-primary blur-[120px] rounded-full"
-                />
-                <motion.div
-                  animate={{
-                    scale: [1.2, 1, 1.2],
-                    opacity: [0.02, 0.06, 0.02],
-                    x: [20, -20, 20],
-                  }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[300px] bg-chart-2 blur-[100px] rounded-full"
-                />
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6">
+                Start building for free
+              </h2>
+              <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
+                Deploy your first voice agent in minutes. No platform fees. No credit card. No vendor lock-in.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+                {session ? (
+                  <Link href="/dashboard">
+                    <Button size="lg" className="gap-2 h-12 px-8 text-base">
+                      Go to Dashboard <ArrowRightIcon className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button size="lg" className="gap-2 h-12 px-8 text-base" onClick={() => setAuthOpen(true)}>
+                    Get Started Free <ArrowRightIcon className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button variant="outline" size="lg" className="gap-2 h-12 px-8 text-base" asChild>
+                  <a href="https://github.com/Arkenos-World/Arkenos" target="_blank" rel="noopener noreferrer">
+                    <GithubIcon className="h-4 w-4" /> Star on GitHub
+                  </a>
+                </Button>
               </div>
 
-              <div className="relative">
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                  Ready to get started?
-                </h2>
-                <p className="mx-auto max-w-xl text-lg text-muted-foreground mb-8">
-                  Create your first voice AI agent in minutes. Free forever. No credit card required.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  {session ? (
-                    <Link href="/dashboard">
-                      <Button size="lg" className="gap-2 h-12 px-8 text-base">
-                        Go to Dashboard
-                        <ArrowRightIcon className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Button size="lg" className="gap-2 h-12 px-8 text-base" onClick={() => setAuthOpen(true)}>
-                      Get Started Free
-                      <ArrowRightIcon className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button variant="outline" size="lg" className="gap-2 h-12 px-8 text-base" asChild>
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer">
-                      <GithubIcon className="h-5 w-5" />
-                      Star on GitHub
-                    </a>
-                  </Button>
-                </div>
+              {/* Key differentiators */}
+              <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
+                {[
+                  { label: "$0/min platform fee", strong: true },
+                  { label: "Open source (AGPL-3.0)", strong: false },
+                  { label: "Self-hostable", strong: false },
+                ].map((item) => (
+                  <span key={item.label} className="flex items-center gap-2">
+                    <CheckIcon className="h-4 w-4 text-chart-2" />
+                    {item.strong ? <span className="text-foreground font-medium">{item.label}</span> : item.label}
+                  </span>
+                ))}
               </div>
             </motion.div>
           </div>

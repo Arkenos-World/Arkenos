@@ -186,10 +186,10 @@ export default function VoiceAILandscape2026() {
                 rows={[
                   ["Platform fee", "$0.050/min", "$0.055/min", "$0 (your infra)"],
                   ["STT (Deepgram nova-2)", "$0.010/min", "Included*", "$0.004/sec direct"],
-                  ["LLM (GPT-4o)", "$0.060/min", "$0.050/min", "API cost only"],
-                  ["TTS (ElevenLabs)", "$0.036/min", "$0.040/min", "API cost only"],
-                  ["Telephony (US)", "$0.008/min", "$0.015/min", "$0.002–0.01/min"],
-                  ["Total", "$0.164/min", "$0.160/min", "~$0.03–0.05/min"],
+                  ["LLM (GPT-4o)", "$0.030/min", "$0.030/min", "API cost only"],
+                  ["TTS (ElevenLabs)", "$0.040/min", "$0.015/min", "API cost only"],
+                  ["Telephony (US)", "$0.010/min", "$0.015/min", "$0.002–0.01/min"],
+                  ["Total", "$0.140/min", "$0.115/min", "~$0.03–0.07/min"],
                 ]}
               />
 
@@ -198,7 +198,7 @@ export default function VoiceAILandscape2026() {
               </Paragraph>
 
               <Callout type="warning">
-                <strong>At 10,000 minutes/month</strong>, Vapi costs roughly $1,443 while Retell costs about $700 (bundled pricing). A self-hosted stack with direct API accounts runs $300–500. At 100,000+ minutes, self-hosted drops to approximately $0.03/min — a 5x savings over managed platforms.
+                <strong>At 10,000 minutes/month</strong>, Vapi costs roughly $1,400 while Retell costs about $1,200 (all-in pricing). A self-hosted stack with direct API accounts runs $300–700. At 100,000+ minutes, self-hosted drops to approximately $0.03/min — a 4x savings over managed platforms.
               </Callout>
 
               <Paragraph>
@@ -346,7 +346,7 @@ export default function VoiceAILandscape2026() {
                   ["Self-hosting", "No", "Yes", "Yes"],
                   ["Provider flexibility", "High (Vapi) / Medium (Retell)", "Full", "Full"],
                   ["Setup time", "Hours", "Days–weeks", "Minutes"],
-                  ["Ongoing cost", "$0.10–0.33/min", "~$0.03–0.05/min", "~$0.03–0.05/min"],
+                  ["Ongoing cost", "$0.12–0.33/min", "~$0.03–0.07/min", "~$0.03–0.07/min"],
                   ["Vendor lock-in", "High", "None", "None"],
                 ]}
               />
@@ -360,7 +360,7 @@ export default function VoiceAILandscape2026() {
 
               <SubHeading>Choose Vapi if...</SubHeading>
               <Paragraph>
-                You have a strong engineering team, need maximum provider flexibility, and want managed infrastructure. You&apos;re comfortable with $0.13–0.33/min all-in costs and don&apos;t need self-hosting. Vapi&apos;s Flow Studio and Squads are the most powerful workflow tools in the managed category.
+                You have a strong engineering team, need maximum provider flexibility, and want managed infrastructure. You&apos;re comfortable with $0.14–0.33/min all-in costs and don&apos;t need self-hosting. Vapi&apos;s Flow Studio and Squads are the most powerful workflow tools in the managed category.
               </Paragraph>
 
               <SubHeading>Choose Retell if...</SubHeading>

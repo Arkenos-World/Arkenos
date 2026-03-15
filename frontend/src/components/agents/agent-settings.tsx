@@ -561,7 +561,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                         <PlayIcon className="h-4 w-4" />
                         Test
                     </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} className="transition-transform active:scale-95">
                         {isSaving ? "Saving..." : "Save Changes"}
                     </Button>
                     <Button variant="destructive" size="icon-sm" onClick={handleDelete} title="Delete Agent">
@@ -611,7 +611,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                     </TabsTrigger>
                 </TabsList>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 [&>[role=tabpanel]]:animate-[slide-up-fade_0.3s_ease-out_both]">
 
                 {/* Model Tab */}
                 <TabsContent value="model">

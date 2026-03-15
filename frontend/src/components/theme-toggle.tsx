@@ -23,6 +23,7 @@ function MoonIcon({ className }: { className?: string }) {
 export function ThemeToggle() {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
+    const [rotating, setRotating] = React.useState(false);
 
     React.useEffect(() => {
         setMounted(true);
@@ -30,24 +31,34 @@ export function ThemeToggle() {
 
     if (!mounted) {
         return (
-            <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-muted">
                 <span className="sr-only">Toggle theme</span>
             </Button>
         );
     }
 
+    const handleToggle = () => {
+        setRotating(true);
+        setTheme(theme === "dark" ? "light" : "dark");
+        setTimeout(() => setRotating(false), 300);
+    };
+
     return (
         <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="h-9 w-9 hover:bg-muted"
+            onClick={handleToggle}
         >
-            {theme === "dark" ? (
-                <SunIcon className="h-5 w-5" />
-            ) : (
-                <MoonIcon className="h-5 w-5" />
-            )}
+            <span
+                className={`inline-flex transition-transform duration-300 ease-in-out ${rotating ? "rotate-180" : "rotate-0"}`}
+            >
+                {theme === "dark" ? (
+                    <SunIcon className="h-5 w-5" />
+                ) : (
+                    <MoonIcon className="h-5 w-5" />
+                )}
+            </span>
             <span className="sr-only">Toggle theme</span>
         </Button>
     );

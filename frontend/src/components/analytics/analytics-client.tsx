@@ -312,7 +312,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Total Calls */}
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0s" }}>
                     <CardHeader className="pb-1 pt-4 px-4">
                         <CardDescription>Total Calls</CardDescription>
                         <div className="flex items-end justify-between gap-2">
@@ -340,7 +340,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
                 </Card>
 
                 {/* Avg Duration */}
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.05s" }}>
                     <CardHeader className="pb-1 pt-4 px-4">
                         <CardDescription>Avg Duration</CardDescription>
                         <div className="flex items-end justify-between gap-2">
@@ -368,7 +368,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
                 </Card>
 
                 {/* Success Rate */}
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.1s" }}>
                     <CardHeader className="pb-1 pt-4 px-4">
                         <CardDescription>Success Rate</CardDescription>
                         <div className="flex items-end justify-between gap-2">
@@ -404,7 +404,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
                 </Card>
 
                 {/* Active Agents */}
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.15s" }}>
                     <CardHeader className="pb-1 pt-4 px-4">
                         <CardDescription>Active Agents</CardDescription>
                         <div className="flex items-end justify-between gap-2">
@@ -438,7 +438,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
             </div>
 
             {/* Row 1: Calls over time (wide) + Status donut */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-[scale-in_0.5s_ease-out_0.3s_both]">
                 <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle>Calls Over Time</CardTitle>
@@ -505,7 +505,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
             </div>
 
             {/* Row 2: Avg Duration + Calls by Agent */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-[scale-in_0.5s_ease-out_0.5s_both]">
                 <Card>
                     <CardHeader>
                         <CardTitle>Avg Call Duration</CardTitle>

@@ -25,7 +25,7 @@ export function PublicFooter() {
         </p>
         <a
           href="https://github.com/Arkenos-World/Arkenos"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110"
           target="_blank"
           rel="noopener noreferrer"
         >

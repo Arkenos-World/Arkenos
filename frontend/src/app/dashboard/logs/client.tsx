@@ -231,9 +231,9 @@ export function CallLogsClient({ userId }: CallLogsClientProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
-                            {sessions.map((session) => (
-                                <Link key={session.id} href={`/dashboard/logs/${session.id}`} className="block">
-                                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                            {sessions.map((session, index) => (
+                                <Link key={session.id} href={`/dashboard/logs/${session.id}`} className="block animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: `${index * 0.04}s` }}>
+                                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer">
                                         <div className="flex items-center gap-4">
                                             <div className="relative h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                                                 <MicrophoneIcon className="h-5 w-5 text-primary" />

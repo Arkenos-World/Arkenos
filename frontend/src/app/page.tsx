@@ -252,18 +252,18 @@ function Waveform() {
 // ─── Animation Variants ────────────────────────────────────────────────────────
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
 const fadeUpScale = {
-  hidden: { opacity: 0, y: 30, scale: 0.95 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5 } },
+  hidden: { opacity: 0, y: 24, scale: 0.96 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
 const stagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
@@ -280,6 +280,13 @@ export default function Home() {
         {/* ── Hero ───────────────────────────────────────────────────────── */}
         <section className="relative overflow-x-clip overflow-y-visible min-h-[calc(100vh-4rem)]">
           {/* Background glow — removed for cleaner diagram look */}
+
+          {/* Animated gradient mesh background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-[100px] animate-[float_8s_ease-in-out_infinite]" />
+            <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/3 rounded-full blur-[120px] animate-[float_10s_ease-in-out_infinite_2s]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/4 rounded-full blur-[80px] animate-[float_6s_ease-in-out_infinite_1s]" />
+          </div>
 
           <div className="container mx-auto px-4 pt-16 pb-8 lg:pt-20 lg:pb-12 relative flex-1 flex flex-col justify-center min-h-[calc(100vh-4rem)]">
             <div className="grid lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-10 items-center">
@@ -302,7 +309,7 @@ export default function Home() {
                   className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]"
                 >
                   Build Voice Agents{" "}
-                  <span className="bg-gradient-to-r from-foreground via-foreground/80 to-muted-foreground bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-foreground via-foreground/80 to-muted-foreground bg-clip-text text-transparent bg-[length:200%_100%] animate-[gradient-x_6s_ease_infinite]">
                     That Actually Work
                   </span>
                 </motion.h1>
@@ -352,7 +359,7 @@ export default function Home() {
                       transition={{ duration: 0.4, delay: 0.6 + i * 0.15 }}
                       className="flex items-center gap-1.5"
                     >
-                      <span className="h-1 w-1 rounded-full bg-primary/60" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-pulse" />
                       {text}
                     </motion.span>
                   ))}
@@ -361,9 +368,9 @@ export default function Home() {
 
               {/* Right: Live Call Demo */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className="relative order-first lg:order-last flex items-center justify-center"
               >
                 <AgentBuilderDemo className="w-full max-w-[320px] sm:max-w-[360px] lg:max-w-[400px]" />
@@ -383,7 +390,7 @@ export default function Home() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">The Agent Computer</Badge>
+                <Badge variant="outline" className="mb-4 animate-[slide-up-fade_0.5s_ease-out]">The Agent Computer</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 More than a pipeline.
@@ -519,7 +526,7 @@ export default function Home() {
               className="text-center mb-12"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">For Developers</Badge>
+                <Badge variant="outline" className="mb-4 animate-[slide-up-fade_0.5s_ease-out]">For Developers</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 Under the hood
@@ -551,7 +558,7 @@ export default function Home() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Features</Badge>
+                <Badge variant="outline" className="mb-4 animate-[slide-up-fade_0.5s_ease-out]">Features</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 Everything you need
@@ -601,8 +608,8 @@ export default function Home() {
               {/* Real-time */}
               <motion.div variants={fadeUpScale}>
                 <TiltCard className="h-full">
-                  <div className="h-full p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors flex flex-col">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 flex flex-col">
+                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
                       <BoltIcon className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">Lightning Fast</h3>
@@ -622,8 +629,8 @@ export default function Home() {
               {/* Model Agnostic */}
               <motion.div variants={fadeUpScale}>
                 <TiltCard className="h-full">
-                  <div className="h-full p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors flex flex-col">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 flex flex-col">
+                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
                       <GlobeIcon className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">Works with Any AI</h3>
@@ -697,8 +704,8 @@ export default function Home() {
               {/* Security */}
               <motion.div variants={fadeUpScale}>
                 <TiltCard className="h-full">
-                  <div className="h-full p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
                       <ShieldCheckIcon className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">Secure by Default</h3>
@@ -722,8 +729,8 @@ export default function Home() {
               {/* Telephony */}
               <motion.div variants={fadeUpScale}>
                 <TiltCard className="h-full">
-                  <div className="h-full p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
                       <CpuIcon className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">Real Phone Calls</h3>
@@ -747,8 +754,8 @@ export default function Home() {
               {/* Function Calling */}
               <motion.div variants={fadeUpScale}>
                 <TiltCard className="h-full">
-                  <div className="h-full p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6">
+                  <div className="group h-full p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110">
                       <BoltIcon className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">Takes Real Actions</h3>
@@ -774,7 +781,7 @@ export default function Home() {
 
               {/* Waveform card — full width */}
               <motion.div variants={fadeUpScale} className="sm:col-span-2 lg:col-span-3">
-                <div className="p-8 rounded-lg border bg-card hover:border-primary/50 transition-colors">
+                <div className="p-8 rounded-lg border bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
                     <div className="flex-1 text-center sm:text-left">
                       <h3 className="text-xl font-bold mb-2">Natural Conversations</h3>
@@ -808,7 +815,7 @@ export default function Home() {
                 { value: 5, prefix: "", suffix: "+", label: "AI Providers" },
                 { value: 3, prefix: "", suffix: " min", label: "To First Agent" },
               ].map((stat) => (
-                <motion.div key={stat.label} variants={fadeUp}>
+                <motion.div key={stat.label} variants={fadeUp} className="relative after:absolute after:right-0 after:top-1/4 after:h-1/2 after:w-px after:bg-border last:after:hidden">
                   <div className="text-4xl sm:text-5xl font-extrabold text-primary mb-2">
                     <AnimatedCounter target={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
                   </div>
@@ -837,7 +844,16 @@ export default function Home() {
                     opacity: [0.03, 0.08, 0.03],
                   }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary blur-[100px] rounded-full"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-primary blur-[120px] rounded-full"
+                />
+                <motion.div
+                  animate={{
+                    scale: [1.2, 1, 1.2],
+                    opacity: [0.02, 0.06, 0.02],
+                    x: [20, -20, 20],
+                  }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[300px] bg-chart-2 blur-[100px] rounded-full"
                 />
               </div>
 

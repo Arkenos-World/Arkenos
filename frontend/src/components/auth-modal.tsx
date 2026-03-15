@@ -77,7 +77,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthM
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md border-border/80 shadow-2xl shadow-black/40 bg-card">
+            <DialogContent className="sm:max-w-md border-border/80 shadow-2xl shadow-black/40 bg-card animate-[scale-in_0.25s_ease-out]">
                 <DialogHeader className="text-center">
                     <DialogTitle className="text-2xl">
                         {mode === "sign-in" ? "Sign In" : "Create Account"}
@@ -88,7 +88,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthM
                             : "Get started with your free Arkenos account"}
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form key={mode} onSubmit={handleSubmit} className="space-y-4 animate-[slide-up-fade_0.3s_ease-out]">
                     {mode === "sign-up" && (
                         <div className="space-y-2">
                             <Label htmlFor="auth-name">Name</Label>

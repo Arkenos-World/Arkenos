@@ -32,7 +32,7 @@ export function PublicHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl transition-all duration-300">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-6">
             <Link href="/">
@@ -43,7 +43,7 @@ export function PublicHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 py-1.5 text-sm transition-colors ${
+                  className={`px-3 py-1.5 text-sm transition-all duration-200 relative ${
                     pathname === link.href
                       ? "text-foreground font-medium"
                       : "text-muted-foreground hover:text-foreground"

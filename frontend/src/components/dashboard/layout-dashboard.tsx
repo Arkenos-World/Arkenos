@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
             <main className="flex-1 min-w-0">
                 {/* Top Bar */}
-                <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
+                <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur-lg">
                     <div className="flex items-center justify-between h-14 px-6">
                         {/* Spacer for mobile hamburger */}
                         <div className="w-10 lg:w-0" />
@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
                 </header>
 
                 {/* Page Content */}
-                <div className="p-6">
+                <div className="p-6 animate-[slide-up-fade_0.3s_ease-out]">
                     <MissingKeysBanner />
                     {children}
                 </div>

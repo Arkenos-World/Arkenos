@@ -44,8 +44,9 @@ Voice agent configurations.
 | description | Text | Agent description (nullable) |
 | type | Enum | STT, LLM, TTS, or PIPELINE |
 | config | JSON | Full agent configuration blob |
-| phone_number | String(50) | Assigned Twilio number (nullable) |
-| twilio_sid | String(255) | Twilio number SID (nullable) |
+| phone_number | String(50) | Telephony provider number (nullable) |
+| provider_number_sid | String(255) | Provider number SID (nullable) |
+| telephony_provider | String(20) | Telephony provider: "twilio" or "telnyx" (nullable, default: "twilio") |
 | is_active | Boolean | Soft delete flag |
 | agent_mode | Enum | STANDARD or CUSTOM (default: STANDARD) |
 | storage_path | String(500) | MinIO storage path for custom agents (nullable) |

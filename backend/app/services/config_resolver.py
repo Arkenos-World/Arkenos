@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 PROVIDERS = {
     "livekit": {
         "label": "LiveKit",
-        "keys": ["livekit_api_key", "livekit_api_secret", "livekit_url"],
+        "keys": ["livekit_api_key", "livekit_api_secret", "livekit_url", "livekit_sip_uri"],
         "required": True,
+        "optional_keys": ["livekit_sip_uri"],  # Not required for "configured" status
     },
     "google": {
         "label": "Google AI (Gemini)",
@@ -46,7 +47,12 @@ PROVIDERS = {
     "twilio": {
         "label": "Twilio",
         "keys": ["twilio_account_sid", "twilio_auth_token"],
-        "required": True,
+        "required": False,
+    },
+    "telnyx": {
+        "label": "Telnyx",
+        "keys": ["telnyx_api_key"],
+        "required": False,
     },
 }
 
@@ -158,8 +164,13 @@ def get_status(db: Session) -> dict:
             else:
                 keys_status[key_name] = {"status": "missing", "source": None}
 
-        # Check if this provider is fully configured
-        all_set = all(k["status"] == "set" for k in keys_status.values())
+        # Check if this provider is fully configured (ignoring optional keys)
+        optional_keys = set(provider.get("optional_keys", []))
+        all_set = all(
+            k["status"] == "set"
+            for key_name, k in keys_status.items()
+            if key_name not in optional_keys
+        )
 
         result["providers"][provider_id] = {
             "label": provider["label"],
@@ -176,6 +187,13 @@ def get_status(db: Session) -> dict:
     stt_configured = any(result["providers"][p]["configured"] for p in stt_providers)
     result["stt_configured"] = stt_configured
     if not stt_configured:
+        result["all_required_set"] = False
+
+    # Special: at least one telephony provider must be configured
+    telephony_providers = ["twilio", "telnyx"]
+    telephony_configured = any(result["providers"][p]["configured"] for p in telephony_providers)
+    result["telephony_configured"] = telephony_configured
+    if not telephony_configured:
         result["all_required_set"] = False
 
     return result

@@ -125,6 +125,7 @@ async def create_outbound_call(
         from livekit import api as lk_api
         from livekit.protocol.sip import CreateSIPParticipantRequest
 
+        logger.info(f"[outbound] Connecting to LiveKit: url={lk_url}")
         livekit = lk_api.LiveKitAPI(
             url=lk_url,
             api_key=lk_api_key,
@@ -137,34 +138,49 @@ async def create_outbound_call(
             from livekit.protocol.agent_dispatch import RoomAgentDispatch
 
             import json as _json
+            room_metadata = _json.dumps({"agentId": agent.id})
+            logger.info(f"[outbound] Creating LiveKit room: name={room_name}, metadata={room_metadata}, empty_timeout=120")
             await livekit.room.create_room(
                 CreateRoomRequest(
                     name=room_name,
                     empty_timeout=120,
-                    metadata=_json.dumps({"agentId": agent.id}),
+                    metadata=room_metadata,
                     agents=[RoomAgentDispatch(agent_name="arkenos-agent")],
                 )
             )
+            logger.info(f"[outbound] LiveKit room created successfully: {room_name}")
 
             # Get outbound SIP trunk ID (auto-provisioned or fallback)
             from app.services.telephony_provisioning import ensure_outbound_trunk
 
+            provider_name = agent.telephony_provider or "twilio"
+            logger.info(f"[outbound] Agent telephony_provider={agent.telephony_provider}, resolved provider_name={provider_name}")
+
             try:
-                outbound_trunk_id = await ensure_outbound_trunk()
-                logger.info(f"Using outbound trunk: {outbound_trunk_id}")
+                outbound_trunk_id = await ensure_outbound_trunk(provider_name)
+                logger.info(f"[outbound] Using outbound trunk: {outbound_trunk_id} (provider={provider_name})")
             except Exception as e:
-                logger.error(f"Failed to provision outbound trunk: {e}", exc_info=True)
+                logger.error(f"[outbound] Failed to provision outbound trunk for provider={provider_name}: {e}", exc_info=True)
                 outbound_trunk_id = get_key(db, "livekit_sip_trunk_id")
                 if outbound_trunk_id:
-                    logger.info(f"Falling back to env LIVEKIT_SIP_TRUNK_ID: {outbound_trunk_id}")
+                    logger.info(f"[outbound] Falling back to env LIVEKIT_SIP_TRUNK_ID: {outbound_trunk_id}")
+                else:
+                    logger.error("[outbound] No LIVEKIT_SIP_TRUNK_ID fallback available either")
+
+            logger.info(f"[outbound] Final outbound_trunk_id={outbound_trunk_id}")
 
             if not outbound_trunk_id:
                 raise RuntimeError(
                     "No outbound SIP trunk available. "
-                    "Ensure Twilio credentials are configured and at least one agent has a phone number."
+                    "Ensure telephony provider credentials are configured and at least one agent has a phone number."
                 )
 
             # Dial the phone number via SIP
+            # Use the agent's assigned phone number as caller ID (required by Telnyx,
+            # optional for Twilio which can infer it from the trunk).
+            caller_id = agent.phone_number or ""
+            logger.info(f"[outbound] Agent phone_number={agent.phone_number}, caller_id={caller_id}")
+
             sip_request = CreateSIPParticipantRequest(
                 sip_trunk_id=outbound_trunk_id,
                 sip_call_to=phone,
@@ -172,9 +188,17 @@ async def create_outbound_call(
                 participant_identity=f"phone-{phone}",
                 participant_name=f"Phone {phone}",
                 play_dialtone=True,
+                sip_number=caller_id,
+            )
+
+            logger.info(
+                f"[outbound] Creating SIP participant: "
+                f"trunk_id={outbound_trunk_id}, call_to={phone}, room={room_name}, "
+                f"identity=phone-{phone}, caller_id={caller_id}, play_dialtone=True"
             )
 
             await livekit.sip.create_sip_participant(sip_request)
+            logger.info(f"[outbound] SIP participant created successfully for call to {phone}")
         finally:
             await livekit.aclose()
 

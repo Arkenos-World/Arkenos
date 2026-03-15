@@ -55,7 +55,7 @@ interface Session {
     created_at: string;
     agent_name?: string;
     analysis?: SessionAnalysis | null;
-    direction?: "inbound" | "outbound" | null;
+    call_direction?: "INBOUND" | "OUTBOUND" | null;
     outbound_phone_number?: string | null;
 }
 
@@ -275,14 +275,14 @@ export function CallLogsClient({ userId }: CallLogsClientProps) {
                                                 <ClockIcon className="h-4 w-4" />
                                                 {formatDuration(session.duration)}
                                             </div>
-                                            {session.direction && (
+                                            {session.call_direction && (
                                                 <Badge variant="outline" className="gap-1 text-xs">
-                                                    {session.direction === "outbound" ? (
+                                                    {session.call_direction === "OUTBOUND" ? (
                                                         <ArrowUpRightIcon className="h-3 w-3" />
                                                     ) : (
                                                         <ArrowDownLeftIcon className="h-3 w-3" />
                                                     )}
-                                                    {session.direction}
+                                                    {session.call_direction.toLowerCase()}
                                                 </Badge>
                                             )}
                                             <Badge

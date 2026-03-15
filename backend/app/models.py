@@ -106,8 +106,9 @@ class Agent(Base):
     type: Mapped[AgentType] = mapped_column(Enum(AgentType))
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    phone_number: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Twilio/SIP number
-    twilio_sid: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Twilio number SID
+    phone_number: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Telephony provider number
+    provider_number_sid: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Provider number SID
+    telephony_provider: Mapped[str | None] = mapped_column(String(20), nullable=True, server_default="twilio")
 
     # Custom agent fields
     agent_mode: Mapped[AgentMode] = mapped_column(

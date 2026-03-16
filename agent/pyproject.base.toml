@@ -10,6 +10,7 @@ dependencies = [
     "livekit-plugins-deepgram>=0.6.0",
     "livekit-plugins-assemblyai>=0.2.0",
     "livekit-plugins-elevenlabs>=0.8.0",
+    "livekit-plugins-resemble>=1.4.5",
     "livekit-plugins-silero>=0.7.0",
     "livekit-plugins-google>=0.9.0",
 

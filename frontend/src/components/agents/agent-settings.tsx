@@ -28,6 +28,7 @@ import {
     searchPhoneNumbers,
     buyPhoneNumber,
     checkNumberAssignment,
+    detectNumberProvider,
     assignPhoneNumber,
     reassignPhoneNumber,
     releasePhoneNumber,
@@ -352,10 +353,32 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         const e164 = "+" + digits;
         setIsCheckingNumber(true);
         try {
-            // First check if number is assigned to another agent
+            // Step 1: Detect which provider owns this number
+            try {
+                const detection = await detectNumberProvider(e164);
+                if (detection.detected_provider && detection.detected_provider !== telephonyProvider) {
+                    toast.error(
+                        `This number belongs to ${detection.detected_provider.charAt(0).toUpperCase() + detection.detected_provider.slice(1)}, ` +
+                        `but you selected ${telephonyProvider.charAt(0).toUpperCase() + telephonyProvider.slice(1)}. ` +
+                        `Please change the Telephony Provider dropdown to ${detection.detected_provider.charAt(0).toUpperCase() + detection.detected_provider.slice(1)}.`
+                    );
+                    setIsCheckingNumber(false);
+                    return;
+                }
+                if (detection.not_found) {
+                    toast.warning("Number not found in any configured provider account. Double-check the number and provider credentials.");
+                }
+                // Auto-select the correct provider if detected
+                if (detection.detected_provider && detection.detected_provider !== telephonyProvider) {
+                    setTelephonyProvider(detection.detected_provider);
+                }
+            } catch {
+                // Detection failed (provider not configured) — continue anyway
+            }
+
+            // Step 2: Check if number is assigned to another agent
             const checkData = await checkNumberAssignment(e164);
             if (checkData.assigned) {
-                // Number is assigned to another agent — show warning dialog
                 setReassignInfo(checkData);
                 setShowReassignDialog(true);
                 setIsCheckingNumber(false);

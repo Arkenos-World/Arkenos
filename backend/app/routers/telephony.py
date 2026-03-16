@@ -254,6 +254,43 @@ async def release_number(
         raise HTTPException(status_code=500, detail=f"Failed to release number: {str(e)}")
 
 
+@router.get("/numbers/detect-provider")
+async def detect_provider(
+    phone_number: str = Query(..., description="Phone number to check (E.164)"),
+    db: Session = Depends(get_db),
+):
+    """Detect which telephony provider owns a phone number.
+    Checks all configured providers and returns the one that owns it.
+    """
+    phone = phone_number.strip()
+    if not phone.startswith("+"):
+        phone = f"+{phone}"
+
+    results = {}
+    for provider_name in ("twilio", "telnyx"):
+        try:
+            provider_impl = get_provider(provider_name, db)
+            sid = await provider_impl.validate_ownership(phone)
+            if sid:
+                results[provider_name] = {"found": True, "sid": sid}
+                logger.info(f"[detect-provider] {phone} found in {provider_name} (sid={sid})")
+            else:
+                results[provider_name] = {"found": False}
+        except Exception as e:
+            results[provider_name] = {"found": False, "error": str(e)}
+            logger.debug(f"[detect-provider] {provider_name} check failed: {e}")
+
+    detected = [name for name, r in results.items() if r.get("found")]
+
+    return {
+        "phone_number": phone,
+        "detected_provider": detected[0] if len(detected) == 1 else None,
+        "providers": results,
+        "multiple": len(detected) > 1,
+        "not_found": len(detected) == 0,
+    }
+
+
 @router.post("/numbers/assign")
 async def assign_existing_number(
     request: AssignNumberRequest,
@@ -278,13 +315,30 @@ async def assign_existing_number(
     if not phone.startswith("+"):
         phone = f"+{phone}"
 
-    # Validate ownership by looking it up in the provider account
+    # Validate ownership — check selected provider first, then detect correct one
     provider_number_sid = None
     try:
         provider_impl = get_provider(request.provider, db)
         provider_number_sid = await provider_impl.validate_ownership(phone)
         if not provider_number_sid:
-            logger.warning(f"Number {phone} not found in {request.provider} account — assigning anyway")
+            # Number not found in selected provider — check the other provider
+            other_provider = "telnyx" if request.provider == "twilio" else "twilio"
+            try:
+                other_impl = get_provider(other_provider, db)
+                other_sid = await other_impl.validate_ownership(phone)
+                if other_sid:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Number {phone} was not found in {request.provider} but exists in {other_provider}. "
+                               f"Please select {other_provider} as the provider.",
+                    )
+            except HTTPException:
+                raise  # Re-raise our own error
+            except Exception:
+                pass  # Other provider not configured, skip
+            logger.warning(f"Number {phone} not found in any provider account — assigning anyway")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"Could not verify number in {request.provider}: {e} — assigning anyway")
 

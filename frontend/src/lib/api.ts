@@ -352,6 +352,23 @@ export async function checkNumberAssignment(
   return res.json();
 }
 
+export async function detectNumberProvider(
+  phoneNumber: string,
+): Promise<{
+  phone_number: string;
+  detected_provider: string | null;
+  providers: Record<string, { found: boolean; sid?: string; error?: string }>;
+  multiple: boolean;
+  not_found: boolean;
+}> {
+  const apiUrl = getApiUrl();
+  const res = await fetch(
+    `${apiUrl}/telephony/numbers/detect-provider?phone_number=${encodeURIComponent(phoneNumber)}`,
+  );
+  if (!res.ok) throw new Error("Provider detection failed");
+  return res.json();
+}
+
 export async function assignPhoneNumber(
   agentId: string,
   phoneNumber: string,

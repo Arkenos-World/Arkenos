@@ -124,6 +124,7 @@ class TelnyxProvider(TelephonyProvider):
 
     async def validate_ownership(self, phone_number: str) -> str | None:
         """Check if number is owned by this Telnyx account. Returns Telnyx number ID or None."""
+        logger.info(f"[validate_ownership] Searching for phone_number={phone_number}")
         params = {
             "filter[phone_number]": phone_number,
         }
@@ -137,16 +138,75 @@ class TelnyxProvider(TelephonyProvider):
             )
 
         if resp.status_code != 200:
-            logger.warning(f"Telnyx ownership check failed ({resp.status_code}): {resp.text}")
+            logger.warning(f"[validate_ownership] Telnyx API returned {resp.status_code}: {resp.text}")
             return None
 
         data = resp.json().get("data", [])
+        logger.info(f"[validate_ownership] Telnyx returned {len(data)} results for {phone_number}")
+
         if data:
-            return data[0].get("id")
+            result = data[0]
+            resource_id = result.get("id")
+            logger.info(
+                f"[validate_ownership] Found: id={resource_id}, "
+                f"phone_number={result.get('phone_number')}, "
+                f"status={result.get('status')}, "
+                f"connection_id={result.get('connection_id')}"
+            )
+            return resource_id
+
+        # If exact match fails, try without + prefix (some Telnyx accounts store differently)
+        if phone_number.startswith("+"):
+            logger.info(f"[validate_ownership] Exact match failed, trying without + prefix")
+            params2 = {"filter[phone_number]": phone_number[1:]}
+            async with httpx.AsyncClient() as client:
+                resp2 = await client.get(
+                    f"{TELNYX_API_BASE}/phone_numbers",
+                    headers=self._headers(),
+                    params=params2,
+                    timeout=15,
+                )
+            if resp2.status_code == 200:
+                data2 = resp2.json().get("data", [])
+                logger.info(f"[validate_ownership] Retry without +: {len(data2)} results")
+                if data2:
+                    resource_id = data2[0].get("id")
+                    logger.info(f"[validate_ownership] Found on retry: id={resource_id}")
+                    return resource_id
+
+        # Last resort: list all numbers and search manually
+        logger.info(f"[validate_ownership] Filter search failed, listing all numbers to find match")
+        async with httpx.AsyncClient() as client:
+            resp3 = await client.get(
+                f"{TELNYX_API_BASE}/phone_numbers",
+                headers=self._headers(),
+                params={"page[size]": 100},
+                timeout=15,
+            )
+        if resp3.status_code == 200:
+            all_numbers = resp3.json().get("data", [])
+            logger.info(f"[validate_ownership] Account has {len(all_numbers)} total numbers")
+            # Normalize for comparison
+            target_digits = "".join(c for c in phone_number if c.isdigit())
+            for num in all_numbers:
+                num_phone = num.get("phone_number", "")
+                num_digits = "".join(c for c in num_phone if c.isdigit())
+                if num_digits == target_digits:
+                    resource_id = num.get("id")
+                    logger.info(f"[validate_ownership] Found via full scan: id={resource_id}, phone={num_phone}")
+                    return resource_id
+            # Log what numbers ARE in the account for debugging
+            account_numbers = [n.get("phone_number") for n in all_numbers[:10]]
+            logger.warning(f"[validate_ownership] Number {phone_number} NOT found. Account numbers: {account_numbers}")
+        else:
+            logger.warning(f"[validate_ownership] Failed to list all numbers: {resp3.status_code}")
+
         return None
 
     async def _find_connection(self) -> str | None:
-        """Find existing 'Arkenos Inbound' FQDN connection. Returns connection ID or None."""
+        """Find existing 'Arkenos Inbound' FQDN connection. Returns connection ID or None.
+        Also ensures transport_protocol is UDP for better voice quality.
+        """
         headers = self._headers()
 
         async with httpx.AsyncClient() as client:
@@ -163,7 +223,24 @@ class TelnyxProvider(TelephonyProvider):
         for conn in connections:
             if conn.get("connection_name") == "Arkenos Inbound":
                 self.connection_id = conn["id"]
-                logger.info(f"Reusing existing Telnyx FQDN Connection: {conn['id']}")
+                transport = conn.get("transport_protocol", "")
+                logger.info(f"Reusing existing Telnyx FQDN Connection: {conn['id']}, transport={transport}")
+
+                # Auto-fix: switch TCP to UDP for better real-time voice quality
+                if transport and transport.upper() == "TCP":
+                    logger.warning(f"[_find_connection] Connection {conn['id']} uses TCP — upgrading to UDP for voice quality")
+                    async with httpx.AsyncClient() as client:
+                        patch_resp = await client.patch(
+                            f"{TELNYX_API_BASE}/fqdn_connections/{conn['id']}",
+                            headers=headers,
+                            json={"transport_protocol": "UDP"},
+                            timeout=15,
+                        )
+                    if patch_resp.status_code == 200:
+                        logger.info(f"[_find_connection] Upgraded connection {conn['id']} to UDP")
+                    else:
+                        logger.warning(f"[_find_connection] Failed to upgrade to UDP: {patch_resp.status_code} {patch_resp.text}")
+
                 return conn["id"]
 
         return None
@@ -196,7 +273,7 @@ class TelnyxProvider(TelephonyProvider):
                     json={
                         "connection_name": "Arkenos Inbound",
                         "active": True,
-                        "transport_protocol": "TCP",
+                        "transport_protocol": "UDP",
                         "anchorsite_override": "Latency",
                         "inbound": {
                             "ani_number_format": "+E.164",
@@ -540,19 +617,23 @@ class TelnyxProvider(TelephonyProvider):
         import secrets
         password = secrets.token_urlsafe(32)
 
+        create_payload = {
+            "connection_name": "Arkenos Outbound",
+            "user_name": username,
+            "password": password,
+            "active": True,
+        }
+        logger.info(f"[configure_sip_outbound] Creating credential connection with user_name={username}")
+
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{TELNYX_API_BASE}/credential_connections",
                 headers=headers,
-                json={
-                    "connection_name": "Arkenos Outbound",
-                    "user_name": username,
-                    "password": password,
-                    "active": True,
-                },
+                json=create_payload,
                 timeout=15,
             )
 
+        logger.info(f"[configure_sip_outbound] Create response: status={resp.status_code}, body={resp.text[:500]}")
         if resp.status_code not in (200, 201):
             raise ValueError(f"Failed to create credential connection ({resp.status_code}): {resp.text}")
 

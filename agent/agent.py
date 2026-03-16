@@ -13,6 +13,7 @@ import logging
 import os
 import signal
 import sys
+import time
 
 import httpx
 from dotenv import load_dotenv
@@ -20,12 +21,17 @@ from livekit import agents
 from livekit.agents import Agent, AgentServer, AgentSession, RunContext, function_tool
 from livekit.agents.metrics import LLMMetrics, STTMetrics, TTSMetrics
 
-from livekit.plugins import assemblyai, deepgram, elevenlabs, google, silero
-
-from resemble_tts import ResembleTTS
+from livekit.plugins import assemblyai, deepgram, elevenlabs, google, resemble, silero
 from usage_logger import log_stt_usage, log_llm_usage, log_tts_usage
 
 load_dotenv()
+
+# Configure logging with timestamps for pipeline diagnostics
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger("voice-agent")
 
 # Backend API URL — auto-append /api if not present (for Render fromService URLs)
@@ -475,14 +481,30 @@ server = AgentServer()
 async def entrypoint(ctx: agents.JobContext):
     """Main entrypoint for the voice agent session."""
     
-    logger.info(f"Starting voice agent session for room: {ctx.room.name}")
+    call_start_time = time.time()
+    logger.info(f"[CALL] ========== NEW CALL ==========")
+    logger.info(f"[CALL] Room: {ctx.room.name}")
+    logger.info(f"[CALL] Backend API URL: {BACKEND_API_URL}")
 
     # Re-fetch keys from dashboard so new/changed keys take effect without restart
     fetch_and_inject_keys()
 
+    # Log current LiveKit config for debugging connection issues
+    lk_url = os.environ.get("LIVEKIT_URL", "NOT SET")
+    lk_key = os.environ.get("LIVEKIT_API_KEY", "NOT SET")
+    lk_secret = os.environ.get("LIVEKIT_API_SECRET", "")
+    logger.info(f"[CALL] LiveKit URL: {lk_url}")
+    logger.info(f"[CALL] LiveKit API Key: {lk_key}")
+    logger.info(f"[CALL] LiveKit API Secret: {'***' + lk_secret[-4:] if len(lk_secret) > 4 else 'NOT SET'}")
+
     # Wait for room to be fully connected
-    await ctx.connect()
-    logger.info("Room connected, waiting for participant...")
+    logger.info("[CALL] Connecting to room...")
+    try:
+        await ctx.connect()
+        logger.info(f"[CALL] Room connected in {time.time() - call_start_time:.2f}s, waiting for participant...")
+    except Exception as e:
+        logger.error(f"[CALL] FAILED to connect to room: {e}", exc_info=True)
+        raise
 
     # Track whether a phone participant has disconnected (used for early cleanup)
     _phone_disconnected = asyncio.Event()
@@ -509,8 +531,18 @@ async def entrypoint(ctx: agents.JobContext):
         await end_backend_session(ctx.room.name)
         return
 
-    logger.info(f"Participant joined: {participant.identity}")
-    
+    logger.info(f"[CALL] Participant joined: identity={participant.identity}, name={getattr(participant, 'name', 'N/A')}")
+
+    # Log all participant attributes for SIP debugging
+    attrs = participant.attributes or {}
+    if attrs:
+        logger.info(f"[CALL] Participant attributes: {dict(attrs)}")
+
+    # Log all remote participants in room
+    for pid, p in ctx.room.remote_participants.items():
+        p_attrs = p.attributes or {}
+        logger.info(f"[CALL] Remote participant: identity={p.identity}, attrs={dict(p_attrs)}")
+
     # Get agent ID from room metadata
     room_metadata = ctx.room.metadata
     
@@ -567,17 +599,26 @@ async def entrypoint(ctx: agents.JobContext):
     stt_provider = "assemblyai"
     if agent_config:
         stt_provider = agent_config.get("config", {}).get("stt_provider", "assemblyai")
-    
+
     # Create STT based on provider selection
-    if stt_provider == "assemblyai":
-        stt = assemblyai.STT()
-        logger.info("Using AssemblyAI for STT")
-    elif stt_provider == "elevenlabs":
-        stt = elevenlabs.STT()
-        logger.info("Using ElevenLabs for STT")
-    else:
-        stt = deepgram.STT()
-        logger.info("Using Deepgram for STT")
+    logger.info(f"[PIPELINE] Initializing STT provider: {stt_provider}")
+    try:
+        if stt_provider == "assemblyai":
+            api_key = os.environ.get("ASSEMBLYAI_API_KEY")
+            logger.info(f"[PIPELINE] AssemblyAI API key present: {bool(api_key)}, length: {len(api_key) if api_key else 0}")
+            stt = assemblyai.STT()
+        elif stt_provider == "elevenlabs":
+            api_key = os.environ.get("ELEVENLABS_API_KEY")
+            logger.info(f"[PIPELINE] ElevenLabs API key present: {bool(api_key)}, length: {len(api_key) if api_key else 0}")
+            stt = elevenlabs.STT()
+        else:
+            api_key = os.environ.get("DEEPGRAM_API_KEY")
+            logger.info(f"[PIPELINE] Deepgram API key present: {bool(api_key)}, length: {len(api_key) if api_key else 0}")
+            stt = deepgram.STT()
+        logger.info(f"[PIPELINE] STT initialized successfully: {stt_provider}")
+    except Exception as e:
+        logger.error(f"[PIPELINE] FAILED to initialize STT ({stt_provider}): {e}", exc_info=True)
+        raise
     
     # Continue with agent config parsing for webhooks
     if agent_config:
@@ -637,8 +678,21 @@ async def entrypoint(ctx: agents.JobContext):
             except Exception as e:
                 logger.error(f"Pre-call webhook failed: {e}")
 
-    # Create TTS with the configured voice
-    tts = ResembleTTS(voice_uuid=voice_id) if voice_id else ResembleTTS()
+    # Create TTS with the configured voice (official LiveKit Resemble plugin)
+    logger.info(f"[PIPELINE] Initializing TTS (Resemble AI official plugin), voice_id={voice_id}")
+    try:
+        resemble_key = os.environ.get("RESEMBLE_API_KEY")
+        resemble_voice = voice_id or os.environ.get("RESEMBLE_VOICE_UUID")
+        logger.info(f"[PIPELINE] Resemble API key present: {bool(resemble_key)}, voice_uuid: {resemble_voice}")
+        tts = resemble.TTS(
+            voice_uuid=resemble_voice,
+            model="chatterbox-turbo",
+            use_streaming=True,
+        )
+        logger.info("[PIPELINE] TTS initialized: model=chatterbox-turbo, streaming=True")
+    except Exception as e:
+        logger.error(f"[PIPELINE] FAILED to initialize TTS (Resemble): {e}", exc_info=True)
+        raise
     
     # --- CREATE BACKEND SESSION ---
     # For SIP calls, use the agent owner's user_id so sessions appear in their call log.
@@ -659,25 +713,63 @@ async def entrypoint(ctx: agents.JobContext):
     session_id_holder["id"] = session_id
     
     # Create the agent session with STT, LLM, and TTS
+    logger.info("[PIPELINE] Initializing LLM (Google Gemini)")
+    try:
+        google_key = os.environ.get("GOOGLE_API_KEY")
+        logger.info(f"[PIPELINE] Google API key present: {bool(google_key)}, length: {len(google_key) if google_key else 0}")
+        llm = google.LLM()
+        logger.info("[PIPELINE] LLM initialized successfully")
+    except Exception as e:
+        logger.error(f"[PIPELINE] FAILED to initialize LLM (Google Gemini): {e}", exc_info=True)
+        raise
+
+    logger.info("[PIPELINE] Loading Silero VAD")
+    try:
+        vad = silero.VAD.load()
+        logger.info("[PIPELINE] VAD loaded successfully")
+    except Exception as e:
+        logger.error(f"[PIPELINE] FAILED to load VAD (Silero): {e}", exc_info=True)
+        raise
+
+    logger.info("[PIPELINE] Creating AgentSession (STT + LLM + TTS + VAD)")
     session = AgentSession(
         stt=stt,
-        llm=google.LLM(),
+        llm=llm,
         tts=tts,
-        vad=silero.VAD.load(),
+        vad=vad,
     )
-    
+    logger.info("[PIPELINE] AgentSession created successfully")
+    logger.info(f"[PIPELINE] ===== Pipeline Summary =====")
+    logger.info(f"[PIPELINE]   STT: {stt_provider}")
+    logger.info(f"[PIPELINE]   LLM: google-gemini")
+    logger.info(f"[PIPELINE]   TTS: resemble-ai (voice={voice_id or 'default'})")
+    logger.info(f"[PIPELINE]   VAD: silero")
+    logger.info(f"[PIPELINE]   Agent ID: {agent_id}")
+    logger.info(f"[PIPELINE]   Room: {ctx.room.name}")
+    logger.info(f"[PIPELINE] =============================")
+
+    # --- ERROR HOOKS ---
+    # Catch runtime pipeline errors (STT/LLM/TTS failures during the call)
+    @session.on("error")
+    def on_session_error(error):
+        logger.error(f"[PIPELINE ERROR] AgentSession error: {error}", exc_info=isinstance(error, Exception))
+
+    @session.on("close")
+    def on_session_close():
+        logger.info("[PIPELINE] AgentSession closed")
+
     # --- TRANSCRIPT HOOKS ---
     # Save user speech transcripts (only final results, not intermediate streaming partials)
     @session.on("user_input_transcribed")
     def on_user_transcript(transcript):
-        # transcript is a UserInputTranscribedEvent with .transcript (str) and .is_final (bool)
         is_final = getattr(transcript, "is_final", True)
         if not is_final:
-            return  # Skip intermediate/partial results
+            return
         text = getattr(transcript, "transcript", None) or getattr(transcript, "text", None)
         if not text:
             text = transcript.get("transcript", transcript.get("text", "")) if isinstance(transcript, dict) else ""
         if text and text.strip():
+            logger.info(f"[STT] User said: {text.strip()[:100]}")
             asyncio.create_task(save_transcript_to_backend(ctx.room.name, text.strip(), "USER"))
     
     # Save agent speech transcripts via conversation_item_added (role='assistant')
@@ -705,14 +797,23 @@ async def entrypoint(ctx: agents.JobContext):
         else:
             text = str(content).strip() if content else ""
         if text:
+            logger.info(f"[LLM] Agent said: {text[:100]}")
             asyncio.create_task(save_transcript_to_backend(ctx.room.name, text, "AGENT"))
     
     # --- USAGE METRICS HOOK ---
     # Log STT / LLM / TTS usage events for cost tracking
     @session.on("metrics_collected")
     def on_metrics(metrics):
+        if isinstance(metrics, STTMetrics):
+            logger.info(f"[METRICS] STT ({stt_provider}): audio_duration={getattr(metrics, 'audio_duration', 'N/A')}s")
+        elif isinstance(metrics, LLMMetrics):
+            logger.info(f"[METRICS] LLM (google): prompt_tokens={metrics.prompt_tokens}, completion_tokens={metrics.completion_tokens}")
+        elif isinstance(metrics, TTSMetrics):
+            logger.info(f"[METRICS] TTS (resemble): characters={metrics.characters_count}")
+
         if not session_id:
-            return  # Can't log without a backend session
+            logger.warning("[METRICS] No session_id, skipping usage log")
+            return
         if isinstance(metrics, STTMetrics):
             log_stt_usage(
                 backend_url=BACKEND_API_URL,
@@ -758,20 +859,29 @@ async def entrypoint(ctx: agents.JobContext):
     logger.info(f"Registered built-in transfer_call tool (total tools: {len(function_tools)})")
 
     # Start the session with the configured system prompt and tools
-    logger.info(f"Starting session with system_prompt ({len(system_prompt)} chars), first_message_mode={first_message_mode}")
-    await session.start(
-        room=ctx.room,
-        agent=VoiceAssistant(instructions=system_prompt, tools=function_tools),
-    )
-    
-    # Generate initial greeting only if mode is assistant_speaks_first
-    if first_message_mode == "assistant_speaks_first":
-        logger.info(f"Generating initial greeting: {first_message}")
-        await session.generate_reply(
-            instructions=f"Say this exact greeting: {first_message}"
+    logger.info(f"[PIPELINE] Starting session with system_prompt ({len(system_prompt)} chars), first_message_mode={first_message_mode}, tools={len(function_tools)}")
+    try:
+        t0 = time.time()
+        await session.start(
+            room=ctx.room,
+            agent=VoiceAssistant(instructions=system_prompt, tools=function_tools),
         )
+        logger.info(f"[PIPELINE] Session started successfully in {time.time() - t0:.2f}s")
+    except Exception as e:
+        logger.error(f"[PIPELINE] FAILED to start session: {e}", exc_info=True)
+        raise
+
+    # Speak initial greeting only if mode is assistant_speaks_first
+    if first_message_mode == "assistant_speaks_first":
+        logger.info(f"[PIPELINE] Speaking greeting (direct TTS, skipping LLM): {first_message[:80]}...")
+        try:
+            t0 = time.time()
+            await session.say(first_message)
+            logger.info(f"[PIPELINE] First message spoken in {time.time() - t0:.2f}s")
+        except Exception as e:
+            logger.error(f"[PIPELINE] FAILED to speak first message: {e}", exc_info=True)
     else:
-        logger.info("Assistant waiting for user to speak first")
+        logger.info("[PIPELINE] Assistant waiting for user to speak first")
 
     # --- PARTICIPANT DISCONNECT HANDLER (session phase) ---
     # Now that the session is running, close it when the phone participant leaves.
@@ -790,21 +900,26 @@ async def entrypoint(ctx: agents.JobContext):
         except Exception:
             pass
 
-    # Wait for the session to run until shutdown (disconnection)
-    try:
-        await ctx.wait_for_shutdown()
-    except Exception:
-        pass
+    # Wait for the call to end (phone participant disconnects or room closes)
+    logger.info("[CALL] Voice pipeline running, waiting for call to end...")
+    await _phone_disconnected.wait()
+    logger.info("[CALL] Phone participant disconnected, cleaning up...")
+
+    # Brief grace period to let final TTS finish playing
+    await asyncio.sleep(1)
 
     # --- CLEANUP ---
+    logger.info("[CALL] Shutting down, closing session...")
     try:
         await session.aclose()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[CALL] session.aclose() error: {e}")
 
     # --- END BACKEND SESSION ---
     await end_backend_session(ctx.room.name)
-    logger.info(f"Session ended for room {ctx.room.name}")
+    call_duration = time.time() - call_start_time
+    logger.info(f"[CALL] ========== CALL ENDED ==========")
+    logger.info(f"[CALL] Room: {ctx.room.name}, total duration: {call_duration:.1f}s")
 
     # --- POST-CALL WEBHOOK EXECUTION ---
     # This runs after the room is disconnected/shutdown

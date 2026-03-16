@@ -107,23 +107,25 @@ class ResembleChunkedStream(tts.ChunkedStream):
     
     async def _run(self, output_emitter: tts.AudioEmitter) -> None:
         """Stream audio from Resemble AI with no_audio_header for raw PCM."""
+        import time
         request_id = str(uuid.uuid4())
         http_client = self._resemble_tts._ensure_client()
-        
+        text_preview = self._input_text[:80].replace('\n', ' ')
+        t0 = time.time()
+
+        logger.info(f"[TTS] Starting synthesis request={request_id}, text='{text_preview}...', voice={self._voice_uuid}")
+
         try:
             payload = {
                 "voice_uuid": self._voice_uuid,
                 "data": self._input_text,
                 "sample_rate": self._sample_rate,
                 "precision": "PCM_16",
-                "no_audio_header": True,  # Raw PCM - no WAV header parsing needed!
+                "no_audio_header": True,
             }
             if self._project_uuid:
                 payload["project_uuid"] = self._project_uuid
 
-            logger.debug(f"Sending TTS request for text: {self._input_text[:50]}...")
-
-            # Initialize the emitter before streaming
             output_emitter.initialize(
                 request_id=request_id,
                 sample_rate=self._sample_rate,
@@ -131,7 +133,6 @@ class ResembleChunkedStream(tts.ChunkedStream):
                 mime_type="audio/pcm",
             )
 
-            # Use the HTTP streaming synthesis endpoint
             async with http_client.stream(
                 "POST",
                 "https://f.cluster.resemble.ai/stream",
@@ -141,35 +142,39 @@ class ResembleChunkedStream(tts.ChunkedStream):
                 },
                 json=payload,
             ) as response:
+                logger.info(f"[TTS] Resemble API response: status={response.status_code}, request={request_id}")
                 if response.status_code >= 400:
                     error_content = await response.aread()
                     error_msg = error_content.decode('utf-8')
-                    logger.error(f"Resemble AI HTTP error: {response.status_code} - {error_msg}")
+                    logger.error(f"[TTS] FAILED: HTTP {response.status_code} - {error_msg}, request={request_id}")
                     raise RuntimeError(f"Resemble AI error {response.status_code}: {error_msg}")
-                
-                # Stream chunks directly - no buffering needed with no_audio_header!
-                async for chunk in response.aiter_bytes(chunk_size=4096):
+
+                total_bytes = 0
+                chunk_count = 0
+                # Use larger chunks (16KB) to reduce push overhead and buffer underruns
+                async for chunk in response.aiter_bytes(chunk_size=16384):
                     if not chunk:
                         continue
-                    
-                    # Ensure even number of bytes for 16-bit PCM
                     if len(chunk) % 2 != 0:
                         chunk = chunk[:-1]
-                    
                     if len(chunk) > 0:
                         output_emitter.push(chunk)
-                
-                # Signal end of audio
+                        total_bytes += len(chunk)
+                        chunk_count += 1
+
                 output_emitter.flush()
-                
-                logger.debug(f"Finished streaming audio for request {request_id}")
-                    
+                elapsed = time.time() - t0
+                logger.info(
+                    f"[TTS] Completed: request={request_id}, chunks={chunk_count}, "
+                    f"bytes={total_bytes}, elapsed={elapsed:.2f}s"
+                )
+
         except httpx.HTTPStatusError as e:
-            logger.error(f"Resemble AI HTTP status error: {e}")
+            logger.error(f"[TTS] HTTP status error: {e}, request={request_id}")
             raise RuntimeError(f"Resemble AI TTS error: {e}")
         except httpx.RequestError as e:
-            logger.error(f"Resemble AI request error: {e}")
+            logger.error(f"[TTS] Request error (network/timeout): {e}, request={request_id}")
             raise RuntimeError(f"Resemble AI TTS error: {e}")
         except Exception as e:
-            logger.error(f"Resemble AI TTS error: {e}")
+            logger.error(f"[TTS] Unexpected error: {e}, request={request_id}", exc_info=True)
             raise RuntimeError(f"Resemble AI TTS error: {e}")

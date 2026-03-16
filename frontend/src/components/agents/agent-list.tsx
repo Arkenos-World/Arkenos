@@ -289,7 +289,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                 </div>
 
                 <Button
-                    className="gap-2"
+                    className="gap-2 transition-transform hover:scale-105 active:scale-95"
                     onClick={() => setIsOpen(true)}
                     disabled={!allConfigured}
                     title={!allConfigured ? "Configure API keys first" : undefined}
@@ -520,12 +520,13 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                 </Card>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {agents.map((agent) => {
+                    {agents.map((agent, index) => {
                         const { icon: agentIcon, bg: agentBg } = getAgentCardIcon(agent);
                         return (
                         <Card
                             key={agent.id}
-                            className="hover:border-primary/50 transition-colors cursor-pointer"
+                            className="hover:border-primary/50 transition-colors cursor-pointer animate-[slide-up-fade_0.4s_ease-out_both]"
+                            style={{ animationDelay: `${index * 0.06}s` }}
                             onClick={() => handleAgentClick(agent.id)}
                         >
                             <CardHeader className="pb-3">

@@ -24,7 +24,7 @@ export default async function SettingsPage() {
                 </div>
 
                 {/* Profile */}
-                <Card>
+                <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0s" }}>
                     <CardHeader>
                         <CardTitle>Profile</CardTitle>
                         <CardDescription>Your account information</CardDescription>
@@ -43,7 +43,7 @@ export default async function SettingsPage() {
                 </Card>
 
                 {/* Preferences */}
-                <Card>
+                <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.05s" }}>
                     <CardHeader>
                         <CardTitle>Preferences</CardTitle>
                         <CardDescription>Customize your experience</CardDescription>
@@ -67,7 +67,7 @@ export default async function SettingsPage() {
                 </Card>
 
                 {/* Danger Zone */}
-                <Card className="border-destructive/50">
+                <Card className="border-destructive/50 animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.1s" }}>
                     <CardHeader>
                         <CardTitle className="text-destructive">Danger Zone</CardTitle>
                         <CardDescription>Irreversible actions</CardDescription>

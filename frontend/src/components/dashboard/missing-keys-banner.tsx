@@ -17,7 +17,7 @@ export function MissingKeysBanner() {
     if (!show) return null;
 
     return (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 animate-[slide-down-fade_0.4s_ease-out]">
             <div className="flex items-center gap-2 text-sm">
                 <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                 <span className="text-muted-foreground">

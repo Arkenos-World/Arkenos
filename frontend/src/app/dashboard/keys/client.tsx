@@ -224,7 +224,7 @@ function ProviderCard({
     };
 
     return (
-        <Card className="relative">
+        <Card className="relative animate-[slide-up-fade_0.4s_ease-out_both]">
             <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -372,7 +372,7 @@ function STTCard({
     if (!provider || !meta) return null;
 
     return (
-        <Card className="relative">
+        <Card className="relative animate-[slide-up-fade_0.4s_ease-out_both]">
             <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -449,7 +449,7 @@ function TelephonyCard({
     if (!provider || !meta) return null;
 
     return (
-        <Card className="relative">
+        <Card className="relative animate-[slide-up-fade_0.4s_ease-out_both]">
             <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

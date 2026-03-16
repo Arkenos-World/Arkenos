@@ -327,7 +327,7 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card>
+                <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0s" }}>
                     <CardHeader className="pb-2">
                         <CardDescription>Total Cost (All Time)</CardDescription>
                     </CardHeader>
@@ -339,7 +339,7 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.05s" }}>
                     <CardHeader className="pb-2">
                         <CardDescription>This Month</CardDescription>
                     </CardHeader>
@@ -348,7 +348,7 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.1s" }}>
                     <CardHeader className="pb-2">
                         <CardDescription>Avg Cost per Call</CardDescription>
                     </CardHeader>
@@ -360,7 +360,7 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
 
             {/* Row: Provider Breakdown (pie) + Provider Bar Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Card>
+                <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.15s" }}>
                     <CardHeader>
                         <CardTitle>Cost by Provider</CardTitle>
                         <CardDescription>Breakdown of spending</CardDescription>
@@ -413,7 +413,7 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
                 </Card>
 
                 {/* Timeline Chart */}
-                <Card className="lg:col-span-2">
+                <Card className="lg:col-span-2 animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.2s" }}>
                     <CardHeader className="flex flex-row items-center justify-between pb-3">
                         <div>
                             <CardTitle>Cost Timeline</CardTitle>
@@ -476,7 +476,7 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
             </div>
 
             {/* Cost by Agent Table */}
-            <Card>
+            <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.25s" }}>
                 <CardHeader>
                     <CardTitle>Cost by Agent</CardTitle>
                     <CardDescription>Per-agent cost breakdown for the selected period</CardDescription>

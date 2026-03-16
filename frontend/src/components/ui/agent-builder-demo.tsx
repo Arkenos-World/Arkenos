@@ -29,7 +29,7 @@ type Phase = "idle" | "typing" | "thinking" | "building" | "live";
 
 // ─── Typing Hook ─────────────────────────────────────────────────────────────────
 
-function useTypingEffect(text: string, active: boolean, speed = 22) {
+function useTypingEffect(text: string, active: boolean, speed = 38) {
     const [displayed, setDisplayed] = useState("");
     useEffect(() => {
         setDisplayed("");
@@ -144,10 +144,10 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
     const [loopCount, setLoopCount] = useState(0);
     const [started, setStarted] = useState(false);
 
-    const typedText = useTypingEffect(PROMPT, phase === "typing", 22);
+    const typedText = useTypingEffect(PROMPT, phase === "typing", 38);
     const isTypeDone = typedText.length >= PROMPT.length;
 
-    const thinkingText = useTypingEffect(BUILDER_THINKING, phase === "thinking", 18);
+    const thinkingText = useTypingEffect(BUILDER_THINKING, phase === "thinking", 28);
 
     useEffect(() => {
         if (inView && !started) setStarted(true);
@@ -161,23 +161,23 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
 
         setPhase("typing");
 
-        const typeDone = PROMPT.length * 22 + 500;
+        const typeDone = PROMPT.length * 38 + 800;
 
         // Thinking — Builder analyzes the request
         t(() => setPhase("thinking"), typeDone);
 
-        const thinkDone = typeDone + BUILDER_THINKING.length * 18 + 800;
+        const thinkDone = typeDone + BUILDER_THINKING.length * 28 + 1200;
 
         // Building — actions appear one by one
         t(() => setPhase("building"), thinkDone);
 
         BUILD_ACTIONS.forEach((_, i) => {
-            const d = thinkDone + 300 + i * 420;
+            const d = thinkDone + 500 + i * 750;
             t(() => setVisibleActions(i + 1), d);
-            t(() => setResolvedActions(i + 1), d + 340);
+            t(() => setResolvedActions(i + 1), d + 580);
         });
 
-        const buildDone = thinkDone + 300 + BUILD_ACTIONS.length * 420 + 500;
+        const buildDone = thinkDone + 500 + BUILD_ACTIONS.length * 750 + 800;
 
         // Live
         t(() => setPhase("live"), buildDone);
@@ -188,7 +188,7 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
             setVisibleActions(0);
             setResolvedActions(0);
             setLoopCount((c) => c + 1);
-        }, buildDone + 5000);
+        }, buildDone + 6000);
 
         return () => timers.forEach(clearTimeout);
     }, []);
@@ -197,7 +197,7 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
         if (!started || !inView) return;
         const h = setTimeout(
             () => runSequence(),
-            loopCount === 0 ? 600 : 500
+            loopCount === 0 ? 1200 : 800
         );
         return () => clearTimeout(h);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,7 +268,7 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                             className={cn(
                                 "h-2 w-2 rounded-full transition-all duration-500",
                                 isLive
-                                    ? "bg-chart-2"
+                                    ? "bg-chart-2 animate-[pulse-node_2s_ease-in-out_infinite]"
                                     : isWorking
                                         ? "bg-amber-400 animate-pulse"
                                         : "bg-muted-foreground/25"
@@ -287,7 +287,7 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.3 }}
+                                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                                 className="absolute inset-0 flex flex-col items-center justify-center px-8"
                             >
                                 <div className="h-14 w-14 rounded-2xl bg-primary/8 flex items-center justify-center mb-5">
@@ -318,8 +318,8 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: -30 }}
-                                transition={{ duration: 0.35 }}
-                                className="absolute inset-0 flex flex-col items-center justify-center px-6 sm:px-8"
+                                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                                className="absolute inset-0 flex flex-col items-center justify-center px-6 sm:px-8 will-change-transform"
                             >
                                 <div className="w-full max-w-sm">
                                     <div className="mb-3 flex items-center gap-2">
@@ -334,9 +334,9 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                             {typedText}
                                             {!isTypeDone && (
                                                 <span
-                                                    className="inline-block w-[2px] h-3.5 bg-foreground/50 ml-0.5 align-middle rounded-full"
+                                                    className="inline-block w-[2px] h-3.5 bg-foreground/70 ml-0.5 align-middle rounded-full"
                                                     style={{
-                                                        animation: "core-glow 0.8s ease-in-out infinite",
+                                                        animation: "core-glow 1s cubic-bezier(0.4, 0, 0.6, 1) infinite",
                                                     }}
                                                 />
                                             )}
@@ -353,8 +353,8 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: -30 }}
-                                transition={{ duration: 0.35 }}
-                                className="absolute inset-0 flex flex-col px-6 sm:px-8 pt-6"
+                                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                                className="absolute inset-0 flex flex-col px-6 sm:px-8 pt-6 will-change-transform"
                             >
                                 <div className="w-full max-w-sm mx-auto">
                                     {/* User prompt recap */}
@@ -399,8 +399,8 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                 initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.35 }}
-                                className="absolute inset-0 overflow-y-auto px-4 sm:px-5 py-4"
+                                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                                className="absolute inset-0 overflow-y-auto px-4 sm:px-5 py-4 will-change-transform"
                             >
                                 {/* Compact prompt recap */}
                                 <div className="flex items-start gap-2 mb-4 px-1">
@@ -465,9 +465,9 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                             return (
                                                 <motion.div
                                                     key={`${loopCount}-a-${i}`}
-                                                    initial={{ opacity: 0, x: -10 }}
+                                                    initial={{ opacity: 0, x: -12 }}
                                                     animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ duration: 0.2 }}
+                                                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                                                     className="flex items-center gap-3 px-2 py-1.5 rounded-lg transition-colors duration-300"
                                                 >
                                                     {/* Icon */}
@@ -506,7 +506,7 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                                             <motion.p
                                                                 initial={{ opacity: 0, height: 0 }}
                                                                 animate={{ opacity: 1, height: "auto" }}
-                                                                transition={{ duration: 0.15 }}
+                                                                transition={{ duration: 0.35, ease: "easeOut" }}
                                                                 className="text-[10px] text-muted-foreground/40 leading-snug"
                                                             >
                                                                 {action.detail}
@@ -533,8 +533,8 @@ export function AgentBuilderDemo({ className }: AgentBuilderDemoProps) {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.4, ease: "easeOut" }}
-                                className="absolute inset-0 flex flex-col items-center justify-center px-6 sm:px-8"
+                                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                className="absolute inset-0 flex flex-col items-center justify-center px-6 sm:px-8 will-change-transform"
                             >
                                 {/* Success icon */}
                                 <motion.div

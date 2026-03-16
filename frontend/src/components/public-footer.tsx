@@ -11,26 +11,90 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
+const FOOTER_LINKS = {
+  Product: [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Agents", href: "/dashboard/agents" },
+    { label: "Analytics", href: "/dashboard/analytics" },
+    { label: "API Keys", href: "/dashboard/keys" },
+  ],
+  Developers: [
+    { label: "Documentation", href: "https://arkenos.mintlify.app", external: true },
+    { label: "API Reference", href: "https://arkenos.mintlify.app", external: true },
+    { label: "GitHub", href: "https://github.com/Arkenos-World/Arkenos", external: true },
+    { label: "Self-Hosting Guide", href: "https://arkenos.mintlify.app", external: true },
+  ],
+  Company: [
+    { label: "Blog", href: "/blog" },
+    { label: "Product", href: "/product" },
+    { label: "Open Source", href: "https://github.com/Arkenos-World/Arkenos", external: true },
+  ],
+};
+
 export function PublicFooter() {
   return (
     <footer className="border-t">
-      <div className="container mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <ArkenosLogo className="h-5" />
-          </Link>
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+          {/* Brand column */}
+          <div className="col-span-2 md:col-span-1">
+            <Link href="/">
+              <ArkenosLogo className="h-5 mb-4" />
+            </Link>
+            <p className="text-sm text-muted-foreground mb-4">
+              The open-source voice AI platform.
+            </p>
+            <a
+              href="https://github.com/Arkenos-World/Arkenos"
+              className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 inline-block"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <GithubIcon className="h-5 w-5" />
+            </a>
+          </div>
+
+          {/* Link columns */}
+          {Object.entries(FOOTER_LINKS).map(([title, links]) => (
+            <div key={title}>
+              <p className="text-sm font-semibold mb-4">{title}</p>
+              <ul className="space-y-2.5">
+                {links.map((link) => (
+                  <li key={link.label}>
+                    {"external" in link && link.external ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-        <p className="text-sm text-muted-foreground">
-          Open source voice AI platform.
-        </p>
-        <a
-          href="https://github.com/Arkenos-World/Arkenos"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <GithubIcon className="h-5 w-5" />
-        </a>
+
+        {/* Bottom bar */}
+        <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} Arkenos. Open source under AGPL-3.0.
+          </p>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Privacy</span>
+            <span>Terms</span>
+          </div>
+        </div>
       </div>
     </footer>
   );

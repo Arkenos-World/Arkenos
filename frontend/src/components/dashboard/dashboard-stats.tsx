@@ -30,15 +30,17 @@ function StatCell({
     delta,
     positive,
     noData,
+    index = 0,
 }: {
     label: string
     value: string
     delta: string | null
     positive: boolean
     noData?: boolean
+    index?: number
 }) {
     return (
-        <div className="px-6 py-5">
+        <div className="px-6 py-5 animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: `${index * 0.05}s` }}>
             <p className="text-xs text-muted-foreground mb-1.5">{label}</p>
             <p className="text-2xl font-semibold tracking-tight">{value}</p>
             {delta !== null ? (
@@ -226,6 +228,7 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
                         delta={isLoading ? null : formatDelta(callsDelta)}
                         positive={callsDelta === null || callsDelta >= 0}
                         noData={!isLoading && prevTotal === 0}
+                        index={0}
                     />
                     <StatCell
                         label="Avg Duration"
@@ -233,6 +236,7 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
                         delta={isLoading ? null : formatDelta(durationDelta)}
                         positive={durationDelta === null || durationDelta >= 0}
                         noData={!isLoading && prevWithDur.length === 0}
+                        index={1}
                     />
                     <StatCell
                         label="Success Rate"
@@ -240,6 +244,7 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
                         delta={isLoading ? null : formatDelta(successDelta, "pp")}
                         positive={successDelta === null || successDelta >= 0}
                         noData={!isLoading && prevSessions.length === 0}
+                        index={2}
                     />
                     <StatCell
                         label="Avg Sentiment"
@@ -247,6 +252,7 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
                         delta={null}
                         positive={true}
                         noData={!isLoading && sessionsWithAnalysis.length === 0}
+                        index={3}
                     />
                     <StatCell
                         label="Resolution Rate"
@@ -254,19 +260,21 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
                         delta={null}
                         positive={true}
                         noData={!isLoading && sessionsWithAnalysis.length === 0}
+                        index={4}
                     />
                     <StatCell
                         label="Active Agents"
                         value={isLoading ? "—" : String(activeAgents)}
                         delta={null}
                         positive={true}
+                        index={5}
                     />
                 </div>
             </Card>
             )}
 
             {/* Call Volume Chart */}
-            <Card>
+            <Card className="animate-[scale-in_0.5s_ease-out_0.3s_both]">
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>

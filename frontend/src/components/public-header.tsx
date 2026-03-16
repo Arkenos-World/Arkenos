@@ -11,6 +11,7 @@ import { AuthModal } from "@/components/auth-modal";
 
 const NAV_LINKS = [
   { href: "/product", label: "Product" },
+  { href: "https://arkenos.mintlify.app", label: "Docs", external: true },
   { href: "/blog", label: "Blog" },
 ];
 
@@ -32,26 +33,38 @@ export function PublicHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl transition-all duration-300">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-6">
             <Link href="/">
               <ArkenosLogo className="h-6" />
             </Link>
             <nav className="flex items-center gap-1">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-1.5 text-sm transition-colors ${
-                    pathname === link.href
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {NAV_LINKS.map((link) =>
+                "external" in link && link.external ? (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 text-sm transition-all duration-200 relative text-muted-foreground hover:text-foreground"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-1.5 text-sm transition-all duration-200 relative ${
+                      pathname === link.href
+                        ? "text-foreground font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )
+              )}
             </nav>
           </div>
           <nav className="flex items-center gap-3">

@@ -96,8 +96,8 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
                                         "flex items-center py-2 text-sm transition-colors",
                                         collapsed ? "justify-center px-2" : "gap-3 px-3",
                                         isActive(pathname, item.href)
-                                            ? "bg-primary/10 text-primary font-medium"
-                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                            ? "bg-primary/10 text-primary font-medium border-l-2 border-primary"
+                                            : "text-muted-foreground hover:bg-muted/80 hover:text-foreground hover:translate-x-0.5 transition-all duration-200"
                                     )}
                                 >
                                     <item.icon className="h-4 w-4 shrink-0" />
@@ -115,7 +115,7 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
                     <button
                         onClick={() => onCollapsedChange(!collapsed)}
                         className={cn(
-                            "flex items-center py-2 text-sm transition-colors w-full text-muted-foreground hover:bg-muted hover:text-foreground",
+                            "flex items-center py-2 text-sm transition-colors w-full text-muted-foreground hover:bg-muted/80 hover:text-foreground hover:translate-x-0.5 transition-all duration-200",
                             collapsed ? "justify-center px-2" : "gap-3 px-3"
                         )}
                         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -137,15 +137,15 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
                         "flex items-center py-2 text-sm transition-colors",
                         collapsed ? "justify-center px-2" : "gap-3 px-3",
                         isActive(pathname, "/dashboard/settings")
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            ? "bg-primary/10 text-primary font-medium border-l-2 border-primary"
+                            : "text-muted-foreground hover:bg-muted/80 hover:text-foreground hover:translate-x-0.5 transition-all duration-200"
                     )}
                 >
                     <SettingsIcon className="h-4 w-4 shrink-0" />
                     {!collapsed && "Settings"}
                 </Link>
                 <div className={cn("flex items-center py-2", collapsed ? "justify-center px-2" : "gap-3 px-3")}>
-                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 ring-2 ring-transparent hover:ring-primary/20 transition-all duration-200">
                         {userName?.[0]?.toUpperCase() || userEmail?.[0]?.toUpperCase() || "U"}
                     </div>
                     {!collapsed && (
@@ -157,7 +157,7 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
                 <button
                     onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })}
                     className={cn(
-                        "flex items-center py-2 text-sm transition-colors w-full text-muted-foreground hover:bg-muted hover:text-foreground",
+                        "flex items-center py-2 text-sm transition-colors w-full text-muted-foreground hover:bg-muted/80 hover:text-foreground hover:translate-x-0.5 transition-all duration-200",
                         collapsed ? "justify-center px-2" : "gap-3 px-3"
                     )}
                     title={collapsed ? "Sign out" : undefined}
@@ -206,7 +206,7 @@ export function Sidebar({ userEmail, userName, collapsed: collapsedProp }: Sideb
         <>
             {/* Desktop sidebar */}
             <aside className={cn(
-                "hidden lg:flex border-r bg-card flex-col h-screen sticky top-0 transition-all duration-200",
+                "hidden lg:flex border-r bg-card flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out",
                 isCollapsed ? "w-14 overflow-hidden" : "w-64"
             )}>
                 <SidebarContent

@@ -69,92 +69,15 @@ def fetch_and_inject_keys():
 # Fetch keys from backend dashboard (non-blocking fallback to .env)
 fetch_and_inject_keys()
 
-# Default system prompt if no agent config found
-DEFAULT_INSTRUCTIONS = """You are Dylan, a professional and courteous virtual customer service assistant for Qatar National Bank (QNB) — the largest financial institution in the Middle East and Africa region, headquartered in Doha, Qatar, founded in 1964. You handle inbound customer calls with warmth, clarity, and efficiency.
-
-## Your Role
-You assist customers with general banking inquiries, product information, account guidance, and routing to the appropriate department. You do NOT have access to customer account data, cannot perform transactions, and cannot verify identities. For any action requiring account access, authentication, or transactions, transfer the caller to a live agent.
-
-## Voice & Tone
-- Professional yet warm and approachable
-- Speak in clear, concise sentences suitable for phone conversation
-- Avoid jargon — explain banking terms simply when needed
-- Always be patient, especially with elderly or non-native English speakers
-- Support English and Arabic — if the caller speaks Arabic, respond in Arabic
-
-## QNB Products & Services You Can Inform Callers About
-
-### Accounts
-- Current Account: No monthly charges, no minimum balance, no interest
-- Savings Plus Account: Daily interest calculation, credited monthly, no fees
-- E-Saver Account: Rewards consistent monthly savings, minimum deposit QAR 5,000
-- eSaving Account: Fully digital, manage via Internet Banking/ATM, supports QAR, USD, EUR, GBP
-- Fixed Deposit and Call-Notice Deposit accounts also available
-
-### Cards
-- Credit Cards (Visa/Mastercard): Various tiers with cashback, rewards, and travel benefits
-- Debit Cards: Linked to current/savings accounts
-- Prepaid Cards: For controlled spending
-- Virtual Credit Card: Apply instantly through QNB Mobile app
-- Smart Installment: Convert credit card purchases into monthly installments
-
-### Loans
-- Personal Loans (Qataris): Up to QAR 400,000, terms up to 4 years, minimum salary QAR 3,000
-- Personal Loans (Expats): Available with valid Qatar ID and employer salary transfer
-- Vehicle Loans: Up to 100% financing, 6-72 month terms, new and pre-owned cars, low interest, no management fees
-- Mortgage Loans: Primary and secondary market properties, requires life and property insurance
-
-### Insurance
-- Life Insurance, Salary Continuation, Critical Illness
-- Motor Insurance, Travel Insurance
-- Mortgage Protection Insurance (mandatory for home loans via SEIB)
-- Credit Life Insurance (mandatory for outstanding loans/credit cards, ages 18-70)
-
-### Digital Banking
-- QNB Mobile App: Available in English, Arabic, and French (iOS, Android, Harmony OS)
-- Internet Banking: Full account management, bill payments, transfers
-- QNB WhatsApp Banking: +974 4440 7777 for general info and live agent support
-- Cardless ATM withdrawals, contactless payments, mobile cheque deposit
-
-### Other Services
-- International transfers and remittances
-- IBAN Converter tool on the website
-- QNB First (premium banking) for high-net-worth clients
-- Corporate and SME banking services
-- Trade finance and treasury services
-
-## Key Contact Information
-- Customer Call Center: +974 4440 7777 (available 24/7)
-- WhatsApp: +974 4440 7777
-- Website: www.qnb.com
-- Internet Banking: ib.qnb.com
-- Branch & ATM Locator: Available on QNB website and mobile app
-- Social Media: @QNBGroup on Instagram, Facebook, Twitter, YouTube, LinkedIn
-
-## Conversation Guidelines
-1. Greet the caller and ask how you can help
-2. Listen carefully to the caller's request before responding
-3. Provide accurate, relevant information from the knowledge above
-4. If the caller asks about their specific account balance, transactions, or needs to perform a transfer — inform them you'll connect them with a live agent who can securely access their account
-5. If the caller wants to report a lost/stolen card — treat it as urgent, advise them to also block the card via QNB Mobile app, and offer to transfer to the cards department immediately
-6. If you don't know the answer, say so honestly and offer to transfer to a specialist
-7. Always confirm if the caller needs anything else before ending the call
-8. End calls professionally: "Thank you for calling Qatar National Bank. Have a wonderful day."
-
-## Important Rules
-- NEVER make up account information or balances
-- NEVER ask for or accept PINs, passwords, OTPs, or full card numbers
-- NEVER provide specific interest rates or fees — direct callers to the website or branch for current rates
-- If a caller appears to be a victim of fraud, treat it as urgent and immediately offer to transfer to the fraud department
-- Do not provide investment advice — refer to QNB's wealth management team
-- Keep responses concise — this is a phone call, not a written document"""
+# Default system prompt — only used if agent config has no system_prompt
+DEFAULT_INSTRUCTIONS = """You are a voice assistant. The service is currently not available. Politely inform the caller that the service is temporarily unavailable and suggest they try again later. Do not engage in conversation beyond this. Never invent a company name or claim to represent a business."""
 
 
 async def fetch_agent_config(agent_id: str) -> dict | None:
     """Fetch agent configuration from the backend API."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{BACKEND_API_URL}/agents/{agent_id}")
+            response = await client.get(f"{BACKEND_API_URL}/agents/{agent_id}", timeout=10)
             if response.status_code == 200:
                 return response.json()
             else:
@@ -172,6 +95,7 @@ async def lookup_agent_by_phone(phone_number: str) -> dict | None:
             response = await client.get(
                 f"{BACKEND_API_URL}/telephony/lookup",
                 params={"phone_number": phone_number},
+                timeout=10,
             )
             if response.status_code == 200:
                 return response.json()
@@ -181,6 +105,50 @@ async def lookup_agent_by_phone(phone_number: str) -> dict | None:
     except Exception as e:
         logger.error(f"Error looking up agent by phone: {e}")
         return None
+
+
+# --- Retry Helpers ---
+MAX_RESOLVE_RETRIES = 3
+RESOLVE_RETRY_DELAY = 1.5  # seconds
+
+
+async def resolve_agent_id_from_metadata(ctx) -> tuple[str | None, dict]:
+    """Try to extract agentId from room metadata, with retries for cloud latency."""
+    for attempt in range(MAX_RESOLVE_RETRIES):
+        room_metadata = ctx.room.metadata
+        if room_metadata:
+            try:
+                metadata = json.loads(room_metadata)
+                agent_id = metadata.get("agentId")
+                if agent_id and agent_id != "default":
+                    logger.info(f"Resolved agent ID from room metadata: {agent_id} (attempt {attempt + 1})")
+                    return agent_id, metadata
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse room metadata (attempt {attempt + 1}): {e}")
+        if attempt < MAX_RESOLVE_RETRIES - 1:
+            logger.info(f"Room metadata empty or no agentId, retrying in {RESOLVE_RETRY_DELAY}s (attempt {attempt + 1}/{MAX_RESOLVE_RETRIES})")
+            await asyncio.sleep(RESOLVE_RETRY_DELAY)
+    return None, {}
+
+
+async def resolve_agent_id_from_sip(ctx) -> str | None:
+    """Try to resolve agent ID via SIP phone number lookup, with retries."""
+    for attempt in range(MAX_RESOLVE_RETRIES):
+        sip_number = get_sip_phone_number(ctx.room)
+        if sip_number:
+            logger.info(f"SIP call detected to number: {sip_number} (attempt {attempt + 1})")
+            lookup = await lookup_agent_by_phone(sip_number)
+            if lookup:
+                agent_id = lookup.get("agent_id")
+                logger.info(f"Resolved SIP call to agent: {agent_id} ({lookup.get('name')})")
+                return agent_id
+            else:
+                logger.warning(f"No agent for SIP number {sip_number} (attempt {attempt + 1})")
+        else:
+            logger.info(f"No SIP participant attributes yet (attempt {attempt + 1}/{MAX_RESOLVE_RETRIES})")
+        if attempt < MAX_RESOLVE_RETRIES - 1:
+            await asyncio.sleep(RESOLVE_RETRY_DELAY)
+    return None
 
 
 def get_sip_phone_number(room) -> str | None:
@@ -543,62 +511,69 @@ async def entrypoint(ctx: agents.JobContext):
         p_attrs = p.attributes or {}
         logger.info(f"[CALL] Remote participant: identity={p.identity}, attrs={dict(p_attrs)}")
 
-    # Get agent ID from room metadata
-    room_metadata = ctx.room.metadata
-    
-    # Parse room metadata to get agent configuration
+    # --- RESOLVE AGENT ID (with retries for cloud latency) ---
     agent_id = None
     agent_config = None
     voice_id = None
-    system_prompt = DEFAULT_INSTRUCTIONS
-    first_message = "Thank you for calling Qatar National Bank. My name is Dylan, your virtual banking assistant. How may I assist you today?"
-    first_message_mode = "assistant_speaks_first"  # or "assistant_waits"
+    system_prompt = None
+    first_message = None
+    first_message_mode = "assistant_speaks_first"
     metadata = {}
-    
-    # Parse room metadata to get agent ID (browser calls)
-    if room_metadata:
-        try:
-            metadata = json.loads(room_metadata)
-            agent_id = metadata.get("agentId")
-            logger.info(f"Found agent ID in room metadata: {agent_id}")
-        except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse room metadata: {e}")
-    
-    # --- SIP CALL DETECTION ---
-    # If no agentId from room metadata, check for a SIP participant
-    # and resolve the agent by the called phone number
-    if not agent_id or agent_id == "default":
-        sip_number = get_sip_phone_number(ctx.room)
-        if sip_number:
-            logger.info(f"SIP call detected to number: {sip_number}")
-            lookup = await lookup_agent_by_phone(sip_number)
-            if lookup:
-                agent_id = lookup.get("agent_id")
-                logger.info(f"Resolved SIP call to agent: {agent_id} ({lookup.get('name')})")
-            else:
-                logger.warning(f"No agent configured for SIP number {sip_number}, using defaults")
-    
-    # Fetch agent config if we have an agent ID
-    if agent_id and agent_id != "default":
-        agent_config = await fetch_agent_config(agent_id)
-        if agent_config:
-            logger.info(f"Full agent config: {agent_config}")
-            config = agent_config.get("config", {})
-            system_prompt = config.get("system_prompt") or DEFAULT_INSTRUCTIONS
-            first_message = config.get("first_message") or first_message
-            voice_id = config.get("voice_id")
-            first_message_mode = config.get("first_message_mode", "assistant_speaks_first")
 
-            # Replace {{agent_name}} placeholder with the actual agent name
-            agent_name = agent_config.get("name", "")
-            if agent_name:
-                system_prompt = system_prompt.replace("{{agent_name}}", agent_name)
-                first_message = first_message.replace("{{agent_name}}", agent_name)
+    # Quick check: if a SIP participant is already present, skip metadata retries
+    # (metadata is only set for browser calls, so retrying it wastes ~4.5s on phone calls).
+    # If no SIP participant yet, fall through to normal metadata-first flow.
+    sip_number = get_sip_phone_number(ctx.room)
+    if sip_number:
+        logger.info(f"[CALL] SIP participant already present ({sip_number}) — skipping metadata, resolving via phone lookup")
+        agent_id = await resolve_agent_id_from_sip(ctx)
+    else:
+        # Step 1: Try room metadata (browser calls set agentId here)
+        agent_id, metadata = await resolve_agent_id_from_metadata(ctx)
+
+    # Step 2: If still no agent, try SIP lookup (covers late-arriving SIP participants)
+    if not agent_id:
+        agent_id = await resolve_agent_id_from_sip(ctx)
+
+    # Step 3: If agent_id STILL not resolved — disconnect gracefully, never fallback
+    if not agent_id:
+        logger.error(
+            "[CALL] FATAL: Could not resolve agent_id after all retries. "
+            "Room: %s. Disconnecting call — refusing to use fallback.",
+            ctx.room.name,
+        )
+        await end_backend_session(ctx.room.name)
+        return
+
+    # Fetch agent config — required, not optional
+    agent_config = await fetch_agent_config(agent_id)
+    if not agent_config:
+        logger.error(
+            "[CALL] FATAL: agent_id=%s resolved but config fetch failed. "
+            "Room: %s. Disconnecting call.",
+            agent_id, ctx.room.name,
+        )
+        await end_backend_session(ctx.room.name)
+        return
+
+    logger.info(f"Full agent config: {agent_config}")
+    config = agent_config.get("config", {})
+    system_prompt = config.get("system_prompt")
+    if not system_prompt:
+        logger.warning(f"[CALL] Agent {agent_id} has no system_prompt in config — using generic default")
+        system_prompt = DEFAULT_INSTRUCTIONS
+    first_message = config.get("first_message") or "Sorry, this service is currently not available. Please try calling back later. Goodbye."
+    voice_id = config.get("voice_id")
+    first_message_mode = config.get("first_message_mode", "assistant_speaks_first")
+
+    # Replace {{agent_name}} placeholder with the actual agent name
+    agent_name = agent_config.get("name", "")
+    if agent_name:
+        system_prompt = system_prompt.replace("{{agent_name}}", agent_name)
+        first_message = first_message.replace("{{agent_name}}", agent_name)
             
     # Get STT provider from config (default to assemblyai)
-    stt_provider = "assemblyai"
-    if agent_config:
-        stt_provider = agent_config.get("config", {}).get("stt_provider", "assemblyai")
+    stt_provider = config.get("stt_provider", "assemblyai")
 
     # Create STT based on provider selection
     logger.info(f"[PIPELINE] Initializing STT provider: {stt_provider}")
@@ -620,11 +595,9 @@ async def entrypoint(ctx: agents.JobContext):
         logger.error(f"[PIPELINE] FAILED to initialize STT ({stt_provider}): {e}", exc_info=True)
         raise
     
-    # Continue with agent config parsing for webhooks
+    # --- WEBHOOKS SUPPORT ---
     if agent_config:
-        config = agent_config.get("config", {})
-        
-        # --- WEBHOOKS SUPPORT ---
+        # --- WEBHOOKS ---
         webhooks = config.get("webhooks", {})
         
         # Pre-call Webhook

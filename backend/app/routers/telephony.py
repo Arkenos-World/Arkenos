@@ -416,11 +416,16 @@ async def provision_pipeline(
 
     from app.services.telephony_provisioning import (
         add_number_to_inbound_trunk,
+        clear_provisioning_cache,
         ensure_dispatch_rule,
         ensure_inbound_trunk,
         ensure_outbound_trunk,
         get_sip_uri,
     )
+
+    # Clear all cached trunk/rule IDs so we always re-check LiveKit fresh.
+    # This self-heals after LiveKit project changes without needing a restart.
+    clear_provisioning_cache()
 
     steps = []
 
@@ -677,11 +682,14 @@ async def reassign_number(
     # Auto-provision pipeline
     from app.services.telephony_provisioning import (
         add_number_to_inbound_trunk,
+        clear_provisioning_cache,
         ensure_dispatch_rule,
         ensure_inbound_trunk,
         ensure_outbound_trunk,
         get_sip_uri,
     )
+
+    clear_provisioning_cache()
 
     steps = []
 

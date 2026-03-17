@@ -35,6 +35,11 @@ class TelephonyProvider(ABC):
     async def configure_sip_outbound(self) -> dict:
         """Set up provider-side outbound termination. Returns {address, auth_username, auth_password}."""
 
+    async def delete_outbound_credentials(self) -> None:
+        """Delete stale outbound credentials from the provider.
+        Override in subclasses that create credential resources."""
+        pass
+
     @abstractmethod
     async def test_connection(self) -> bool:
         """Validate provider credentials."""

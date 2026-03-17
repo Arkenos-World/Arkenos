@@ -45,6 +45,7 @@ import {
     ShieldCheck,
     Settings2,
     AlertTriangle,
+    ChevronDown,
 } from "lucide-react";
 import {
     Dialog,
@@ -310,6 +311,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [isReleasing, setIsReleasing] = useState(false);
     const [isProvisioning, setIsProvisioning] = useState(false);
     const [pipelineResult, setPipelineResult] = useState<{ status: string; steps: { step: string; status: string; detail: string }[] } | null>(null);
+    const [pipelineExpanded, setPipelineExpanded] = useState(false);
     const [isCheckingNumber, setIsCheckingNumber] = useState(false);
     const [reassignInfo, setReassignInfo] = useState<{
         assigned: boolean;
@@ -447,8 +449,10 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             setPipelineResult(data);
             if (data.status === "ready") {
                 toast.success("Pipeline is fully configured!");
+                setPipelineExpanded(false);
             } else {
                 toast.warning("Pipeline has issues — see details below");
+                setPipelineExpanded(true);
             }
         } catch (error: any) {
             toast.error(error.message || "Failed to check pipeline");
@@ -993,31 +997,47 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                         </Button>
                                     </div>
                                     {pipelineResult && (
-                                        pipelineResult.status === "ready" ? (
-                                            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-emerald-500/10 text-emerald-600 text-sm">
-                                                <ShieldCheck className="h-4 w-4" />
-                                                <span className="font-medium">Pipeline ready</span>
-                                                <span className="text-xs opacity-70">— all {pipelineResult.steps.length} steps passed</span>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-1.5 text-sm">
-                                                {pipelineResult.steps.map((s, i) => (
-                                                    <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-md ${
-                                                        s.status === "ok"
-                                                            ? "bg-emerald-500/10 text-emerald-600"
-                                                            : s.status === "warning"
-                                                            ? "bg-amber-500/10 text-amber-600"
-                                                            : "bg-destructive/10 text-destructive"
-                                                    }`}>
-                                                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                                                            s.status === "ok" ? "bg-emerald-500" : s.status === "warning" ? "bg-amber-500" : "bg-destructive"
-                                                        }`} />
-                                                        <span className="font-medium">{s.step}</span>
-                                                        <span className="text-xs opacity-70 ml-auto truncate max-w-[200px]">{s.detail}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )
+                                        <div className="rounded-md border border-border overflow-hidden">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPipelineExpanded(!pipelineExpanded)}
+                                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors ${
+                                                    pipelineResult.status === "ready"
+                                                        ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15"
+                                                        : pipelineResult.steps.some(s => s.status === "error")
+                                                        ? "bg-destructive/10 text-destructive hover:bg-destructive/15"
+                                                        : "bg-amber-500/10 text-amber-600 hover:bg-amber-500/15"
+                                                }`}
+                                            >
+                                                {pipelineResult.status === "ready" ? (
+                                                    <ShieldCheck className="h-4 w-4 shrink-0" />
+                                                ) : (
+                                                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                                                )}
+                                                <span className="font-medium">
+                                                    {pipelineResult.status === "ready" ? "Pipeline ready" : "Pipeline has issues"}
+                                                </span>
+                                                <span className="text-xs opacity-70">
+                                                    — {pipelineResult.steps.filter(s => s.status === "ok").length}/{pipelineResult.steps.length} steps passed
+                                                </span>
+                                                <ChevronDown className={`h-3.5 w-3.5 ml-auto shrink-0 transition-transform ${pipelineExpanded ? "rotate-180" : ""}`} />
+                                            </button>
+                                            {pipelineExpanded && (
+                                                <div className="px-3 py-2 space-y-1.5 bg-muted/30 text-sm">
+                                                    {pipelineResult.steps.map((s, i) => (
+                                                        <div key={i} className="flex items-center gap-2 py-1">
+                                                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                                                s.status === "ok" ? "bg-emerald-500" : s.status === "warning" ? "bg-amber-500" : "bg-destructive"
+                                                            }`} />
+                                                            <span className={`font-medium ${
+                                                                s.status === "ok" ? "text-emerald-600" : s.status === "warning" ? "text-amber-600" : "text-destructive"
+                                                            }`}>{s.step}</span>
+                                                            <span className="text-xs text-muted-foreground ml-auto truncate max-w-[250px]">{s.detail}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}

@@ -25,8 +25,6 @@ import {
     type ProviderStatus,
 } from "@/lib/api";
 import {
-    Eye,
-    EyeOff,
     CheckCircle2,
     XCircle,
     X,
@@ -157,7 +155,7 @@ function ProviderCard({
     onSaved: () => void;
 }) {
     const [values, setValues] = useState<Record<string, string>>({});
-    const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -295,23 +293,18 @@ function ProviderCard({
                         </div>
                         <div className="relative">
                             <Input
-                                type={showValues[keyName] ? "text" : "password"}
+                                type="text"
                                 placeholder={
                                     keyInfo.status === "set"
-                                        ? "••••••••  (saved — enter new value to update)"
+                                        ? (keyInfo as any).masked_value
+                                            ? `${(keyInfo as any).masked_value}  (edit to update)`
+                                            : "••••••••  (saved — edit to update)"
                                         : meta.keyPlaceholders[keyName] || "Enter key..."
                                 }
                                 value={values[keyName] || ""}
                                 onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
-                                className="pr-10 font-mono text-sm"
+                                className="font-mono text-sm"
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowValues(prev => ({ ...prev, [keyName]: !prev[keyName] }))}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                                {showValues[keyName] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
                         </div>
                     </div>
                 ))}
@@ -519,7 +512,7 @@ function SelectedGroupedProvider({
     onSaved: () => void;
 }) {
     const [values, setValues] = useState<Record<string, string>>({});
-    const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -527,7 +520,6 @@ function SelectedGroupedProvider({
     // Reset state when provider changes
     useEffect(() => {
         setValues({});
-        setShowValues({});
         setTestResult(null);
     }, [providerId]);
 
@@ -650,23 +642,18 @@ function SelectedGroupedProvider({
                     </div>
                     <div className="relative">
                         <Input
-                            type={showValues[keyName] ? "text" : "password"}
+                            type="text"
                             placeholder={
                                 keyInfo.status === "set"
-                                    ? "••••••••  (saved — enter new value to update)"
+                                    ? (keyInfo as any).masked_value
+                                        ? `${(keyInfo as any).masked_value}  (edit to update)`
+                                        : "••••••••  (saved — edit to update)"
                                     : meta.keyPlaceholders[keyName] || "Enter key..."
                             }
                             value={values[keyName] || ""}
                             onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
-                            className="pr-10 font-mono text-sm"
+                            className="font-mono text-sm"
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowValues(prev => ({ ...prev, [keyName]: !prev[keyName] }))}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                            {showValues[keyName] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
                     </div>
                 </div>
             ))}

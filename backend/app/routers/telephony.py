@@ -336,11 +336,19 @@ async def assign_existing_number(
                 raise  # Re-raise our own error
             except Exception:
                 pass  # Other provider not configured, skip
-            logger.warning(f"Number {phone} not found in any provider account — assigning anyway")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Number {phone} not found in any configured provider account. "
+                       f"Double-check the number and provider credentials.",
+            )
     except HTTPException:
         raise
     except Exception as e:
-        logger.warning(f"Could not verify number in {request.provider}: {e} — assigning anyway")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not verify number {phone} in {request.provider}: {str(e)}. "
+                   f"Check your provider credentials.",
+        )
 
     agent.phone_number = phone
     agent.provider_number_sid = provider_number_sid  # May be None if lookup failed

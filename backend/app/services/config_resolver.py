@@ -130,6 +130,16 @@ def set_key(db: Session, key_name: str, value: str) -> None:
     db.commit()
 
 
+def _mask_value(value: str | None) -> str | None:
+    """Return a masked version of a key value, e.g. 'sk-proj...x7f2'."""
+    if not value:
+        return None
+    v = value.strip()
+    if len(v) <= 8:
+        return v[:2] + "..." + v[-2:]
+    return v[:6] + "..." + v[-4:]
+
+
 def get_status(db: Session) -> dict:
     """Get status of all providers and their keys.
 
@@ -150,19 +160,21 @@ def get_status(db: Session) -> dict:
         }
     """
     settings = get_settings()
-    db_keys = {r.key for r in db.query(InstanceSettings).all()}
+    db_rows = {r.key: r.encrypted_value for r in db.query(InstanceSettings).all()}
 
     result = {"providers": {}, "all_required_set": True}
 
     for provider_id, provider in PROVIDERS.items():
         keys_status = {}
         for key_name in provider["keys"]:
-            if key_name in db_keys:
-                keys_status[key_name] = {"status": "set", "source": "db"}
+            if key_name in db_rows:
+                masked = _mask_value(decrypt(db_rows[key_name]))
+                keys_status[key_name] = {"status": "set", "source": "db", "masked_value": masked}
             elif getattr(settings, key_name, None):
-                keys_status[key_name] = {"status": "set", "source": "env"}
+                masked = _mask_value(getattr(settings, key_name))
+                keys_status[key_name] = {"status": "set", "source": "env", "masked_value": masked}
             else:
-                keys_status[key_name] = {"status": "missing", "source": None}
+                keys_status[key_name] = {"status": "missing", "source": None, "masked_value": None}
 
         # Check if this provider is fully configured (ignoring optional keys)
         optional_keys = set(provider.get("optional_keys", []))

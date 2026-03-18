@@ -14,6 +14,7 @@ import os
 import signal
 import sys
 import time
+import threading
 
 import httpx
 from dotenv import load_dotenv
@@ -68,6 +69,43 @@ def fetch_and_inject_keys():
 
 # Fetch keys from backend dashboard (non-blocking fallback to .env)
 fetch_and_inject_keys()
+
+# Store LiveKit keys at boot — used to detect changes later
+_BOOT_LIVEKIT_KEYS = {
+    "url": os.environ.get("LIVEKIT_URL", ""),
+    "key": os.environ.get("LIVEKIT_API_KEY", ""),
+    "secret": os.environ.get("LIVEKIT_API_SECRET", ""),
+}
+logger.info(f"[BOOT] LIVEKIT_URL: {_BOOT_LIVEKIT_KEYS['url']}")
+
+
+def _watch_livekit_keys(interval: int = 60):
+    """Background thread: periodically re-fetch keys from dashboard.
+    If LiveKit keys changed since boot, exit so the container restarts with new keys.
+    Runs every `interval` seconds. Skips in local dev.
+    """
+    if "localhost" in BACKEND_API_URL or "127.0.0.1" in BACKEND_API_URL:
+        return  # Local dev — no need to watch
+
+    logger.info(f"[WATCH] LiveKit key watcher started (checking every {interval}s)")
+    while True:
+        time.sleep(interval)
+        try:
+            fetch_and_inject_keys()
+            current = {
+                "url": os.environ.get("LIVEKIT_URL", ""),
+                "key": os.environ.get("LIVEKIT_API_KEY", ""),
+                "secret": os.environ.get("LIVEKIT_API_SECRET", ""),
+            }
+            if current != _BOOT_LIVEKIT_KEYS:
+                logger.warning(
+                    f"[WATCH] LiveKit keys changed! "
+                    f"Boot URL: {_BOOT_LIVEKIT_KEYS['url']} → Now: {current['url']}. "
+                    f"Restarting agent..."
+                )
+                os._exit(1)
+        except Exception as e:
+            logger.debug(f"[WATCH] Key check failed: {e}")
 
 # Default system prompt — only used if agent config has no system_prompt
 DEFAULT_INSTRUCTIONS = """You are a voice assistant. The service is currently not available. Politely inform the caller that the service is temporarily unavailable and suggest they try again later. Do not engage in conversation beyond this. Never invent a company name or claim to represent a business."""
@@ -973,4 +1011,5 @@ def _handle_sigterm(signum, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, _handle_sigterm)
+    threading.Thread(target=_watch_livekit_keys, daemon=True).start()
     agents.cli.run_app(server)

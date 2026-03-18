@@ -40,11 +40,12 @@ _raw_backend_url = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api"
 BACKEND_API_URL = _raw_backend_url if _raw_backend_url.endswith("/api") else f"{_raw_backend_url.rstrip('/')}/api"
 
 
-def fetch_and_inject_keys():
+def fetch_and_inject_keys(quiet: bool = False):
     """Fetch API keys from backend and inject into os.environ.
 
     Dashboard values always overwrite existing env vars so that key
     changes in the UI take effect without restarting the agent.
+    Set quiet=True to suppress routine log messages (used by background watcher).
     """
     import httpx as _httpx
     try:
@@ -57,14 +58,15 @@ def fetch_and_inject_keys():
                 if value:  # Only overwrite if dashboard has a non-empty value
                     os.environ[env_name] = value
                     injected.append(env_name)
-            if injected:
+            if injected and not quiet:
                 logger.info(f"Injected {len(injected)} keys from backend dashboard: {', '.join(injected)}")
-            else:
+            elif not injected and not quiet:
                 logger.info("No keys returned from backend dashboard")
         else:
             logger.warning(f"Failed to fetch keys from backend: {resp.status_code}")
     except Exception as e:
-        logger.warning(f"Could not fetch keys from backend (will use .env): {e}")
+        if not quiet:
+            logger.warning(f"Could not fetch keys from backend (will use .env): {e}")
 
 
 # Fetch keys from backend dashboard (non-blocking fallback to .env)
@@ -91,7 +93,7 @@ def _watch_livekit_keys(interval: int = 60):
     while True:
         time.sleep(interval)
         try:
-            fetch_and_inject_keys()
+            fetch_and_inject_keys(quiet=True)
             current = {
                 "url": os.environ.get("LIVEKIT_URL", ""),
                 "key": os.environ.get("LIVEKIT_API_KEY", ""),

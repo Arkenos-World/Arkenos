@@ -31,6 +31,7 @@ import {
 import { ArkenosLogo } from "@/components/ui/arkenos-logo";
 import { PIPELINE_COLORS, STATUS_COLORS } from "@/lib/design-tokens";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 
 type ConnectionState = "idle" | "connecting" | "connected" | "error";
 
@@ -47,6 +48,7 @@ export default function VoicePage() {
     const router = useRouter();
     const { data: session } = useSession();
     const userId = session?.user?.id;
+    const auth = useAuthHeaders();
     const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
     const [selectedAgent, setSelectedAgent] = useState("default");
     const [agents, setAgents] = useState<Agent[]>([defaultAgent]);
@@ -131,7 +133,7 @@ export default function VoicePage() {
             try {
                 await fetch(
                     `${getApiUrl()}/sessions/by-room/${connectionData.roomName}/end`,
-                    { method: "POST" }
+                    { method: "POST", headers: auth }
                 );
             } catch (error) {
                 console.error("Failed to end session:", error);

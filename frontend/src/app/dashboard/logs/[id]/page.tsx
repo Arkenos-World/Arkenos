@@ -59,9 +59,10 @@ export default async function CallDetailsPage({
 
     try {
         const apiUrl = getApiUrl();
+        const reqHeaders = { 'x-user-id': userId };
         const sessionResponse = await fetch(
             `${apiUrl}/sessions/${id}`,
-            { cache: 'no-store' }
+            { headers: reqHeaders, cache: 'no-store' }
         );
         if (sessionResponse.ok) {
             session = await sessionResponse.json();
@@ -69,7 +70,7 @@ export default async function CallDetailsPage({
 
         const transcriptsResponse = await fetch(
             `${apiUrl}/sessions/${id}/transcripts`,
-            { cache: 'no-store' }
+            { headers: reqHeaders, cache: 'no-store' }
         );
         if (transcriptsResponse.ok) {
             transcripts = await transcriptsResponse.json();
@@ -77,7 +78,7 @@ export default async function CallDetailsPage({
 
         const costsResponse = await fetch(
             `${apiUrl}/sessions/${id}/costs`,
-            { cache: 'no-store' }
+            { headers: reqHeaders, cache: 'no-store' }
         );
         if (costsResponse.ok) {
             sessionCosts = await costsResponse.json();

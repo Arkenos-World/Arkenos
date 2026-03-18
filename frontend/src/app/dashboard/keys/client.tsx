@@ -23,7 +23,9 @@ import {
     testProvider,
     type KeyStatusResponse,
     type ProviderStatus,
+    type AuthHeaders,
 } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import {
     Eye,
     EyeOff,
@@ -150,11 +152,13 @@ function ProviderCard({
     provider,
     meta,
     onSaved,
+    auth,
 }: {
     providerId: string;
     provider: ProviderStatus;
     meta: typeof PROVIDER_META[string];
     onSaved: () => void;
+    auth: AuthHeaders;
 }) {
     const [values, setValues] = useState<Record<string, string>>({});
     const [showValues, setShowValues] = useState<Record<string, boolean>>({});
@@ -182,14 +186,14 @@ function ProviderCard({
         setTestResult(null);
         try {
             // Test with the new keys before saving
-            const result = await testProvider(providerId, keysToSave);
+            const result = await testProvider(auth, providerId, keysToSave);
             if (!result.success) {
                 setTestResult(result);
                 toast.error(result.message);
                 return;
             }
             // Test passed — save to DB
-            await saveKeys(keysToSave);
+            await saveKeys(auth, keysToSave);
             trackApiKeyConfigured(providerId);
             toast.success(`${provider.label} keys saved`);
             setValues({});
@@ -208,7 +212,7 @@ function ProviderCard({
         try {
             // Test with form values if entered, otherwise test existing keys
             const keysToTest = getKeysToSave();
-            const result = await testProvider(providerId, Object.keys(keysToTest).length > 0 ? keysToTest : undefined);
+            const result = await testProvider(auth, providerId, Object.keys(keysToTest).length > 0 ? keysToTest : undefined);
             trackProviderTestConnection(providerId, result.success);
             setTestResult(result);
             if (result.success) {
@@ -266,18 +270,20 @@ function ProviderCard({
                             {keyInfo.status === "set" && (
                                 <div className="flex items-center gap-1">
                                     <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${
-                                        keyInfo.source === "db"
+                                        keyInfo.source === "user"
                                             ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                            : keyInfo.source === "db"
+                                            ? "bg-green-500/10 text-green-500 border-green-500/20"
                                             : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                     }`}>
-                                        {keyInfo.source === "db" ? "via dashboard" : "via .env"}
+                                        {keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
                                     </Badge>
-                                    {keyInfo.source === "db" && (
+                                    {keyInfo.source === "user" && (
                                         <button
                                             type="button"
                                             onClick={async () => {
                                                 try {
-                                                    await deleteKey(keyName);
+                                                    await deleteKey(auth, keyName);
                                                     toast.success("Key removed from dashboard");
                                                     onSaved();
                                                 } catch {
@@ -356,9 +362,11 @@ function ProviderCard({
 function STTCard({
     providers,
     onSaved,
+    auth,
 }: {
     providers: Record<string, ProviderStatus>;
     onSaved: () => void;
+    auth: AuthHeaders;
 }) {
     const [selectedProvider, setSelectedProvider] = useState(() => {
         // Default to first configured provider, or assemblyai
@@ -424,6 +432,7 @@ function STTCard({
                     provider={provider}
                     meta={meta}
                     onSaved={onSaved}
+                    auth={auth}
                 />
             </CardContent>
         </Card>
@@ -433,9 +442,11 @@ function STTCard({
 function TelephonyCard({
     providers,
     onSaved,
+    auth,
 }: {
     providers: Record<string, ProviderStatus>;
     onSaved: () => void;
+    auth: AuthHeaders;
 }) {
     const [selectedProvider, setSelectedProvider] = useState(() => {
         // Default to first configured provider, or twilio
@@ -501,6 +512,7 @@ function TelephonyCard({
                     provider={provider}
                     meta={meta}
                     onSaved={onSaved}
+                    auth={auth}
                 />
             </CardContent>
         </Card>
@@ -512,11 +524,13 @@ function SelectedGroupedProvider({
     provider,
     meta,
     onSaved,
+    auth,
 }: {
     providerId: string;
     provider: ProviderStatus;
     meta: typeof PROVIDER_META[string];
     onSaved: () => void;
+    auth: AuthHeaders;
 }) {
     const [values, setValues] = useState<Record<string, string>>({});
     const [showValues, setShowValues] = useState<Record<string, boolean>>({});
@@ -548,13 +562,13 @@ function SelectedGroupedProvider({
         setSaving(true);
         setTestResult(null);
         try {
-            const result = await testProvider(providerId, keysToSave);
+            const result = await testProvider(auth, providerId, keysToSave);
             if (!result.success) {
                 setTestResult(result);
                 toast.error(result.message);
                 return;
             }
-            await saveKeys(keysToSave);
+            await saveKeys(auth, keysToSave);
             trackApiKeyConfigured(providerId);
             toast.success(`${provider.label} key saved`);
             setValues({});
@@ -572,7 +586,7 @@ function SelectedGroupedProvider({
         setTestResult(null);
         try {
             const keysToTest = getKeysToSave();
-            const result = await testProvider(providerId, Object.keys(keysToTest).length > 0 ? keysToTest : undefined);
+            const result = await testProvider(auth, providerId, Object.keys(keysToTest).length > 0 ? keysToTest : undefined);
             trackProviderTestConnection(providerId, result.success);
             setTestResult(result);
             if (result.success) {
@@ -621,18 +635,20 @@ function SelectedGroupedProvider({
                         {keyInfo.status === "set" && (
                             <div className="flex items-center gap-1">
                                 <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${
-                                    keyInfo.source === "db"
+                                    keyInfo.source === "user"
                                         ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                        : keyInfo.source === "db"
+                                        ? "bg-green-500/10 text-green-500 border-green-500/20"
                                         : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                 }`}>
-                                    {keyInfo.source === "db" ? "via dashboard" : "via .env"}
+                                    {keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
                                 </Badge>
-                                {keyInfo.source === "db" && (
+                                {keyInfo.source === "user" && (
                                     <button
                                         type="button"
                                         onClick={async () => {
                                             try {
-                                                await deleteKey(keyName);
+                                                await deleteKey(auth, keyName);
                                                 toast.success("Key removed from dashboard");
                                                 onSaved();
                                             } catch {
@@ -708,19 +724,20 @@ function SelectedGroupedProvider({
 }
 
 export function APIKeysClient() {
+    const auth = useAuthHeaders();
     const [status, setStatus] = useState<KeyStatusResponse | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchStatus = useCallback(async () => {
         try {
-            const data = await getKeyStatus();
+            const data = await getKeyStatus(auth);
             setStatus(data);
         } catch {
             toast.error("Failed to load key status");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [auth]);
 
     useEffect(() => {
         fetchStatus();
@@ -768,6 +785,7 @@ export function APIKeysClient() {
                                     provider={status.providers[id]}
                                     meta={PROVIDER_META[id]}
                                     onSaved={fetchStatus}
+                                    auth={auth}
                                 />
                             ))}
 
@@ -778,6 +796,7 @@ export function APIKeysClient() {
                                     .filter(([, v]) => v)
                             )}
                             onSaved={fetchStatus}
+                            auth={auth}
                         />
 
                         {/* Telephony card in the grid */}
@@ -787,6 +806,7 @@ export function APIKeysClient() {
                                     .filter(([, v]) => v)
                             )}
                             onSaved={fetchStatus}
+                            auth={auth}
                         />
                     </div>
                 </div>

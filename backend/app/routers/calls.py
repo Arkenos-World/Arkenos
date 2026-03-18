@@ -13,6 +13,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.services.config_resolver import get_key, require_providers
 from app.models import (
     Agent,
@@ -66,7 +67,7 @@ async def _timeout_no_answer(session_id: str, timeout_seconds: int = 60) -> None
 async def create_outbound_call(
     request: OutboundCallRequest,
     background_tasks: BackgroundTasks,
-    x_user_id: str = Header(...),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     _=Depends(require_providers("livekit")),
 ):
@@ -81,11 +82,6 @@ async def create_outbound_call(
 
     # --- Validate inputs ---
     phone = _validate_e164(request.phone_number)
-
-    # --- Authenticate user ---
-    user = db.query(User).filter(User.auth_id == x_user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
 
     # --- Validate agent belongs to user ---
     agent = (
@@ -224,7 +220,7 @@ async def create_outbound_call(
 @router.post("/{call_id}/end")
 async def end_call(
     call_id: str,
-    x_user_id: str = Header(...),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     _=Depends(require_providers("livekit")),
 ):
@@ -237,9 +233,7 @@ async def end_call(
     if not session:
         raise HTTPException(status_code=404, detail="Call not found")
 
-    # Verify user owns this call
-    user = db.query(User).filter(User.auth_id == x_user_id).first()
-    if not user or session.user_id != user.id:
+    if session.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Delete the LiveKit room to end the call

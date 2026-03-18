@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models import Agent, AgentMode, User
 from app.schemas import AgentCreate, AgentUpdate, AgentResponse
 from app.services.scaffold_templates import scaffold_agent
-from app.dependencies import verify_agent_ownership
+from app.dependencies import verify_agent_ownership, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +33,10 @@ def get_or_create_user(db: Session, auth_id: str) -> User:
 
 @router.get("/", response_model=list[AgentResponse])
 async def get_agents(
-    x_user_id: Optional[str] = Header(None),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Get all agents for the authenticated user."""
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="User ID required")
-    
-    user = db.query(User).filter(User.auth_id == x_user_id).first()
-    if not user:
-        return []
-    
     agents = db.query(Agent).filter(Agent.user_id == user.id, Agent.is_active == True).order_by(Agent.created_at.desc()).all()
     return agents
 

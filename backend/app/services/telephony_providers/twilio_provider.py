@@ -95,9 +95,15 @@ class TwilioProvider(TelephonyProvider):
                     break
 
         if existing_trunk:
+            # Ensure trunk uses secure (TLS/TCP) — LiveKit SIP requires TCP
+            # Ensure trunk is NOT secure — LiveKit SIP uses TCP, not TLS
+            if existing_trunk.secure:
+                client.trunking.v1.trunks(existing_trunk.sid).update(secure=False)
+                logger.info(f"Disabled secure (TLS) on trunk {existing_trunk.sid} — LiveKit uses TCP")
+
             # Verify origination URIs point to the correct SIP URI
             if sip_uri:
-                expected_sip_url = f"sip:{sip_uri}"
+                expected_sip_url = f"sip:{sip_uri};transport=tcp"
                 orig_urls = client.trunking.v1.trunks(existing_trunk.sid).origination_urls.list()
                 has_correct_uri = False
                 for orig in orig_urls:
@@ -134,10 +140,10 @@ class TwilioProvider(TelephonyProvider):
 
         trunk = client.trunking.v1.trunks.create(friendly_name="Arkenos Inbound")
 
-        # Add origination URI pointing to LiveKit SIP
+        # Add origination URI pointing to LiveKit SIP (TCP required)
         trunk.origination_urls.create(
             friendly_name="LiveKit SIP",
-            sip_url=f"sip:{sip_uri}",
+            sip_url=f"sip:{sip_uri};transport=tcp",
             weight=10,
             priority=10,
             enabled=True,

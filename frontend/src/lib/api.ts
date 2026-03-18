@@ -11,6 +11,13 @@ export function getApiUrl(): string {
   return raw.endsWith("/api") ? raw : `${raw.replace(/\/+$/, "")}/api`;
 }
 
+/**
+ * Auth headers type — either a Bearer token or x-user-id fallback.
+ * Client components pass { Authorization: "Bearer <token>" } from useAuthHeaders().
+ * Server components can pass either format.
+ */
+export type AuthHeaders = Record<string, string>;
+
 export interface CallAnalysis {
   summary: string;
   sentiment: "positive" | "neutral" | "negative";
@@ -201,7 +208,7 @@ export interface FileTreeNode {
 
 export interface KeyInfo {
   status: "set" | "missing";
-  source: "db" | "env" | null;
+  source: "user" | "db" | "env" | null;
 }
 
 export interface ProviderStatus {
@@ -224,34 +231,39 @@ export interface TestResult {
   message: string;
 }
 
-export async function getKeyStatus(): Promise<KeyStatusResponse> {
+export async function getKeyStatus(auth: AuthHeaders): Promise<KeyStatusResponse> {
   const apiUrl = getApiUrl();
-  const res = await fetch(`${apiUrl}/settings/keys`);
+  const res = await fetch(`${apiUrl}/settings/keys`, {
+    headers: { ...auth },
+  });
   if (!res.ok) throw new Error("Failed to fetch key status");
   return res.json();
 }
 
-export async function saveKeys(keys: Record<string, string>): Promise<void> {
+export async function saveKeys(auth: AuthHeaders, keys: Record<string, string>): Promise<void> {
   const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/settings/keys/bulk`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ keys }),
   });
   if (!res.ok) throw new Error("Failed to save keys");
 }
 
-export async function deleteKey(keyName: string): Promise<void> {
+export async function deleteKey(auth: AuthHeaders, keyName: string): Promise<void> {
   const apiUrl = getApiUrl();
-  const res = await fetch(`${apiUrl}/settings/keys/${keyName}`, { method: "DELETE" });
+  const res = await fetch(`${apiUrl}/settings/keys/${keyName}`, {
+    method: "DELETE",
+    headers: { ...auth },
+  });
   if (!res.ok) throw new Error("Failed to delete key");
 }
 
-export async function testProvider(provider: string, keys?: Record<string, string>): Promise<TestResult> {
+export async function testProvider(auth: AuthHeaders, provider: string, keys?: Record<string, string>): Promise<TestResult> {
   const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/settings/test/${provider}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ keys: keys || null }),
   });
   if (!res.ok) throw new Error("Failed to test provider");
@@ -286,6 +298,7 @@ export interface AssignNumberResponse {
   phone_number: string;
   provider_number_sid?: string;
   agent_id: string;
+  pipeline_result?: ProvisionResult;
 }
 
 export interface ReassignNumberResponse {
@@ -313,6 +326,7 @@ export interface ProvisionResult {
 }
 
 export async function searchPhoneNumbers(
+  auth: AuthHeaders,
   provider: string,
   areaCode?: string,
   limit?: number,
@@ -321,12 +335,15 @@ export async function searchPhoneNumbers(
   const params = new URLSearchParams({ provider });
   if (areaCode) params.set("area_code", areaCode);
   if (limit != null) params.set("limit", String(limit));
-  const res = await fetch(`${apiUrl}/telephony/numbers/search?${params}`);
+  const res = await fetch(`${apiUrl}/telephony/numbers/search?${params}`, {
+    headers: { ...auth },
+  });
   if (!res.ok) throw new Error("Search failed");
   return res.json();
 }
 
 export async function buyPhoneNumber(
+  auth: AuthHeaders,
   agentId: string,
   phoneNumber: string,
   provider: string,
@@ -334,7 +351,7 @@ export async function buyPhoneNumber(
   const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/telephony/numbers/buy`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ agent_id: agentId, phone_number: phoneNumber, provider }),
   });
   if (!res.ok) throw new Error("Purchase failed");
@@ -342,17 +359,20 @@ export async function buyPhoneNumber(
 }
 
 export async function checkNumberAssignment(
+  auth: AuthHeaders,
   phoneNumber: string,
 ): Promise<NumberCheckResponse> {
   const apiUrl = getApiUrl();
   const res = await fetch(
     `${apiUrl}/telephony/numbers/check?phone_number=${encodeURIComponent(phoneNumber)}`,
+    { headers: { ...auth } },
   );
   if (!res.ok) throw new Error("Number check failed");
   return res.json();
 }
 
 export async function detectNumberProvider(
+  auth: AuthHeaders,
   phoneNumber: string,
 ): Promise<{
   phone_number: string;
@@ -364,12 +384,14 @@ export async function detectNumberProvider(
   const apiUrl = getApiUrl();
   const res = await fetch(
     `${apiUrl}/telephony/numbers/detect-provider?phone_number=${encodeURIComponent(phoneNumber)}`,
+    { headers: { ...auth } },
   );
   if (!res.ok) throw new Error("Provider detection failed");
   return res.json();
 }
 
 export async function assignPhoneNumber(
+  auth: AuthHeaders,
   agentId: string,
   phoneNumber: string,
   provider: string,
@@ -377,7 +399,7 @@ export async function assignPhoneNumber(
   const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/telephony/numbers/assign`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ agent_id: agentId, phone_number: phoneNumber, provider }),
   });
   if (!res.ok) {
@@ -388,6 +410,7 @@ export async function assignPhoneNumber(
 }
 
 export async function reassignPhoneNumber(
+  auth: AuthHeaders,
   phoneNumber: string,
   targetAgentId: string,
   provider: string,
@@ -395,7 +418,7 @@ export async function reassignPhoneNumber(
   const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/telephony/numbers/reassign`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ phone_number: phoneNumber, target_agent_id: targetAgentId, provider }),
   });
   if (!res.ok) {
@@ -406,12 +429,13 @@ export async function reassignPhoneNumber(
 }
 
 export async function releasePhoneNumber(
+  auth: AuthHeaders,
   agentId: string,
 ): Promise<ReleaseNumberResponse> {
   const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/telephony/numbers/release`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ agent_id: agentId }),
   });
   if (!res.ok) throw new Error("Release failed");
@@ -419,13 +443,14 @@ export async function releasePhoneNumber(
 }
 
 export async function provisionPhoneNumber(
+  auth: AuthHeaders,
   agentId: string,
   provider: string,
 ): Promise<ProvisionResult> {
   const apiUrl = getApiUrl();
   const res = await fetch(`${apiUrl}/telephony/numbers/provision`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auth },
     body: JSON.stringify({ agent_id: agentId, provider }),
   });
   const data = await res.json();

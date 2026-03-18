@@ -32,7 +32,7 @@ The following are in scope:
 
 ## Out of Scope
 
-- Third-party services (Clerk, LiveKit Cloud, Twilio, etc.) — report directly to those vendors
+- Third-party services (LiveKit Cloud, Twilio, etc.) — report directly to those vendors
 - Social engineering attacks
 - Denial of service attacks
 

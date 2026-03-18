@@ -6,13 +6,14 @@ const pool = new Pool({
 });
 
 const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export const auth = betterAuth({
   database: pool,
   emailAndPassword: { enabled: true },
   secret: process.env.BETTER_AUTH_SECRET || "arkenos-default-secret-change-in-production",
   baseURL,
-  trustedOrigins: [baseURL],
+  trustedOrigins: [baseURL, backendUrl],
 });
 
 // Auto-create BetterAuth tables if they don't exist

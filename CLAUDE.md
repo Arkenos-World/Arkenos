@@ -6,7 +6,7 @@ Composable orchestration layer for enterprise-grade conversational AI infrastruc
 ## Services
 | Service  | Stack                                              | Local URL             |
 |----------|----------------------------------------------------|-----------------------|
-| frontend | Next.js 16, React 19, Tailwind, Clerk              | http://localhost:3000 |
+| frontend | Next.js 16, React 19, Tailwind, Better Auth        | http://localhost:3000 |
 | backend  | FastAPI, SQLAlchemy, PostgreSQL                    | http://localhost:8000 |
 | agent    | Python, LiveKit, AssemblyAI, Gemini, Resemble AI   | N/A                   |
 
@@ -25,12 +25,12 @@ agent    → cd agent && venv\Scripts\activate && python agent.py dev
 - NEVER commit .env files
 - Always read .claude/api-contracts.md before touching any API
 - If you change an endpoint shape → update api-contracts.md first
-- All /api/dashboard/* routes require Clerk auth middleware
+- All /api/dashboard/* routes require Better Auth middleware
 - Run your verification script before reporting done
 - Write to .claude/run-state.json at every step
 
 ## Key Integrations
-- Auth: Clerk (frontend SDK + backend middleware)
+- Auth: Better Auth (frontend SDK + backend x-user-id header)
 - Real-time: LiveKit (do not break room/token flow)
 - STT: AssemblyAI / Deepgram
 - LLM: Google Gemini

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import type { Transfer, TransferStatus as TStatus } from "@/lib/api";
 
 const STATUS_CONFIG: Record<
@@ -65,6 +66,7 @@ export function TransferStatusIndicator({
   sessionId,
   onStatusChange,
 }: TransferStatusIndicatorProps) {
+  const auth = useAuthHeaders();
   const [current, setCurrent] = useState<Transfer>(transfer);
 
   useEffect(() => {
@@ -81,7 +83,8 @@ export function TransferStatusIndicator({
       try {
         const apiUrl = getApiUrl();
         const response = await fetch(
-          `${apiUrl}/sessions/${sessionId}/transfers`
+          `${apiUrl}/sessions/${sessionId}/transfers`,
+          { headers: auth }
         );
         if (!response.ok) return;
 

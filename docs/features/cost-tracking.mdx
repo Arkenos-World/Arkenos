@@ -34,7 +34,7 @@ The Gemini rate is a blended estimate assuming a ~3:1 input-to-output token rati
 ```json
 {
   "session_id": "uuid",
-  "user_id": "clerk-user-id",
+  "user_id": "user-id",
   "agent_id": "agent-uuid",
   "provider": "assemblyai",
   "event_type": "stt_minutes",
@@ -86,11 +86,11 @@ These costs are external to the voice pipeline and must be monitored in each pro
 
 ```bash
 # Cost summary
-curl -H "x-user-id: clerk_id" http://localhost:8000/api/costs/summary
+curl -H "x-user-id: your-user-id" http://localhost:8000/api/costs/summary
 
 # Cost timeline (daily/weekly/monthly)
-curl -H "x-user-id: clerk_id" "http://localhost:8000/api/costs/timeline?period=daily"
+curl -H "x-user-id: your-user-id" "http://localhost:8000/api/costs/timeline?period=daily"
 
 # Cost by agent
-curl -H "x-user-id: clerk_id" http://localhost:8000/api/costs/by-agent
+curl -H "x-user-id: your-user-id" http://localhost:8000/api/costs/by-agent
 ```

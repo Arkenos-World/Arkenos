@@ -6,6 +6,7 @@ import { TransferCallDialog } from "./transfer-call-dialog";
 import { TransferStatusIndicator } from "./transfer-status";
 import { TransferHistory } from "./transfer-history";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import type { Transfer } from "@/lib/api";
 
 function PhoneForwardIcon({ className }: { className?: string }) {
@@ -35,6 +36,7 @@ export function TransferControls({
   sessionId,
   sessionStatus,
 }: TransferControlsProps) {
+  const auth = useAuthHeaders();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -47,7 +49,8 @@ export function TransferControls({
       try {
         const apiUrl = getApiUrl();
         const response = await fetch(
-          `${apiUrl}/sessions/${sessionId}/transfers`
+          `${apiUrl}/sessions/${sessionId}/transfers`,
+          { headers: auth }
         );
         if (response.ok) {
           const data: Transfer[] = await response.json();

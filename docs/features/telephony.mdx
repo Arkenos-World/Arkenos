@@ -24,13 +24,13 @@ curl "http://localhost:8000/api/telephony/numbers/search?country=US&area_code=51
 # Buy and assign to agent (auto-provisions everything)
 curl -X POST http://localhost:8000/api/telephony/numbers/buy \
   -H "Content-Type: application/json" \
-  -H "x-user-id: your-clerk-id" \
+  -H "x-user-id: your-user-id" \
   -d '{"phone_number": "+15105550100", "agent_id": "uuid"}'
 
 # Release a number
 curl -X POST http://localhost:8000/api/telephony/numbers/release \
   -H "Content-Type: application/json" \
-  -H "x-user-id: your-clerk-id" \
+  -H "x-user-id: your-user-id" \
   -d '{"agent_id": "uuid"}'
 ```
 
@@ -56,7 +56,7 @@ Initiate calls from the dashboard or API:
 # Initiate an outbound call
 curl -X POST http://localhost:8000/api/calls/outbound \
   -H "Content-Type: application/json" \
-  -H "x-user-id: your-clerk-id" \
+  -H "x-user-id: your-user-id" \
   -d '{"agent_id": "uuid", "phone_number": "+15105550100"}'
 ```
 

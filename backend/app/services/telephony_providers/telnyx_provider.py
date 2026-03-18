@@ -196,8 +196,7 @@ class TelnyxProvider(TelephonyProvider):
                     logger.info(f"[validate_ownership] Found via full scan: id={resource_id}, phone={num_phone}")
                     return resource_id
             # Log what numbers ARE in the account for debugging
-            account_numbers = [n.get("phone_number") for n in all_numbers[:10]]
-            logger.warning(f"[validate_ownership] Number {phone_number} NOT found. Account numbers: {account_numbers}")
+            pass  # Number not in this provider — expected for cross-provider lookups
         else:
             logger.warning(f"[validate_ownership] Failed to list all numbers: {resp3.status_code}")
 
@@ -205,7 +204,7 @@ class TelnyxProvider(TelephonyProvider):
 
     async def _find_connection(self) -> str | None:
         """Find existing 'Arkenos Inbound' FQDN connection. Returns connection ID or None.
-        Also ensures transport_protocol is UDP for better voice quality.
+        Ensures transport_protocol is TCP (required by LiveKit SIP).
         """
         headers = self._headers()
 
@@ -226,20 +225,20 @@ class TelnyxProvider(TelephonyProvider):
                 transport = conn.get("transport_protocol", "")
                 logger.info(f"Reusing existing Telnyx FQDN Connection: {conn['id']}, transport={transport}")
 
-                # Auto-fix: switch TCP to UDP for better real-time voice quality
-                if transport and transport.upper() == "TCP":
-                    logger.warning(f"[_find_connection] Connection {conn['id']} uses TCP — upgrading to UDP for voice quality")
+                # Auto-fix: LiveKit SIP requires TCP
+                if transport and transport.upper() != "TCP":
+                    logger.warning(f"[_find_connection] Connection {conn['id']} uses {transport} — switching to TCP for LiveKit SIP")
                     async with httpx.AsyncClient() as client:
                         patch_resp = await client.patch(
                             f"{TELNYX_API_BASE}/fqdn_connections/{conn['id']}",
                             headers=headers,
-                            json={"transport_protocol": "UDP"},
+                            json={"transport_protocol": "TCP"},
                             timeout=15,
                         )
                     if patch_resp.status_code == 200:
-                        logger.info(f"[_find_connection] Upgraded connection {conn['id']} to UDP")
+                        logger.info(f"[_find_connection] Switched connection {conn['id']} to TCP")
                     else:
-                        logger.warning(f"[_find_connection] Failed to upgrade to UDP: {patch_resp.status_code} {patch_resp.text}")
+                        logger.warning(f"[_find_connection] Failed to switch to TCP: {patch_resp.status_code} {patch_resp.text}")
 
                 return conn["id"]
 
@@ -273,7 +272,7 @@ class TelnyxProvider(TelephonyProvider):
                     json={
                         "connection_name": "Arkenos Inbound",
                         "active": True,
-                        "transport_protocol": "UDP",
+                        "transport_protocol": "TCP",
                         "anchorsite_override": "Latency",
                         "inbound": {
                             "ani_number_format": "+E.164",

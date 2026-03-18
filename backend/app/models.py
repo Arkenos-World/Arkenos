@@ -80,6 +80,22 @@ class InstanceSettings(Base):
     )
 
 
+class UserApiKey(Base):
+    """Per-user encrypted API key storage. Composite PK (user_id, key_name)."""
+    __tablename__ = "user_api_keys"
+
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key_name: Mapped[str] = mapped_column(String(100), primary_key=True)
+    encrypted_value: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    user: Mapped["User"] = relationship(back_populates="api_keys")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -95,6 +111,7 @@ class User(Base):
     # Relationships
     agents: Mapped[list["Agent"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     sessions: Mapped[list["VoiceSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    api_keys: Mapped[list["UserApiKey"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Agent(Base):

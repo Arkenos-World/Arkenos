@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Square, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import type { ContainerInfo } from "@/lib/api";
 
 interface PreviewPanelProps {
@@ -19,6 +20,7 @@ export function PreviewPanel({
     userId,
     onContainerStatusChange,
 }: PreviewPanelProps) {
+    const auth = useAuthHeaders();
     const [container, setContainer] = useState<ContainerInfo | null>(null);
     const [isStarting, setIsStarting] = useState(false);
     const [isStopping, setIsStopping] = useState(false);
@@ -31,7 +33,7 @@ export function PreviewPanel({
                 `${apiUrl}/agents/${agentId}/containers/preview`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "x-user-id": userId },
+                    headers: { "Content-Type": "application/json", ...auth },
                 }
             );
             if (!res.ok) throw new Error("Failed to start container");
@@ -54,7 +56,7 @@ export function PreviewPanel({
                 `${apiUrl}/agents/${agentId}/containers/stop`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "x-user-id": userId },
+                    headers: { "Content-Type": "application/json", ...auth },
                 }
             );
             if (!res.ok) throw new Error("Failed to stop container");

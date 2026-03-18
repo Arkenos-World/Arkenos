@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.models import UsageEvent, VoiceSession, Agent, User
 from app.schemas import (
     CostSummaryResponse,
@@ -26,18 +27,10 @@ def _resolve_user(db: Session, auth_id: str) -> User | None:
 
 @router.get("/summary", response_model=CostSummaryResponse)
 async def get_cost_summary(
-    x_user_id: Optional[str] = Header(None),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Total cost, this month's cost, and cost broken down by provider."""
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="User ID required")
-
-    user = _resolve_user(db, x_user_id)
-    if not user:
-        return CostSummaryResponse(
-            total_cost=Decimal("0"), this_month_cost=Decimal("0"), by_provider={}
-        )
 
     # Total cost (all time)
     total_row = (
@@ -75,19 +68,13 @@ async def get_cost_summary(
 
 @router.get("/timeline", response_model=list[TimelinePointResponse])
 async def get_cost_timeline(
-    x_user_id: Optional[str] = Header(None),
+    user: User = Depends(get_current_user),
     period: str = Query("daily", pattern="^(daily|weekly|monthly)$"),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     """Cost over time, grouped by day/week/month."""
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="User ID required")
-
-    user = _resolve_user(db, x_user_id)
-    if not user:
-        return []
 
     query = db.query(
         cast(UsageEvent.created_at, Date).label("date"),
@@ -134,16 +121,10 @@ async def get_cost_timeline(
 
 @router.get("/by-agent", response_model=list[AgentCostResponse])
 async def get_cost_by_agent(
-    x_user_id: Optional[str] = Header(None),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Cost aggregated per agent."""
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="User ID required")
-
-    user = _resolve_user(db, x_user_id)
-    if not user:
-        return []
 
     rows = (
         db.query(

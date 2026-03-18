@@ -12,6 +12,7 @@ import {
 import { Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 
 interface DeployDialogProps {
     open: boolean;
@@ -33,6 +34,7 @@ export function DeployDialog({
     onDeployed,
 }: DeployDialogProps) {
     const [isDeploying, setIsDeploying] = useState(false);
+    const auth = useAuthHeaders();
     const apiUrl = getApiUrl();
 
     const handleDeploy = async () => {
@@ -42,7 +44,7 @@ export function DeployDialog({
                 `${apiUrl}/agents/${agentId}/containers/deploy`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "x-user-id": userId },
+                    headers: { "Content-Type": "application/json", ...auth },
                 }
             );
             if (!res.ok) throw new Error("Deploy failed");

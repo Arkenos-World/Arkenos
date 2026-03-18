@@ -195,7 +195,7 @@ Chat conversations with the coding agent (per agent, per user).
 |--------|------|-------------|
 | id | String(36) | Primary key |
 | agent_id | String(36) | Foreign key → agents (indexed) |
-| user_id | String(255) | Clerk user ID |
+| user_id | String(255) | Auth user ID |
 | title | String(200) | Conversation title (default: "New conversation") |
 | created_at | DateTime | Creation time |
 | updated_at | DateTime | Last update time |

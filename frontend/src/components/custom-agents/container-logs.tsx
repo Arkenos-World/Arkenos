@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Terminal } from "lucide-react";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 
 interface ContainerLogsProps {
     agentId: string;
@@ -11,6 +12,7 @@ interface ContainerLogsProps {
 }
 
 export function ContainerLogs({ agentId, userId, containerRunning }: ContainerLogsProps) {
+    const auth = useAuthHeaders();
     const [logs, setLogs] = useState<string[]>([]);
     const logsEndRef = useRef<HTMLDivElement>(null);
     const apiUrl = getApiUrl();
@@ -22,7 +24,7 @@ export function ContainerLogs({ agentId, userId, containerRunning }: ContainerLo
             try {
                 const res = await fetch(
                     `${apiUrl}/agents/${agentId}/containers/logs`,
-                    { headers: { "x-user-id": userId } }
+                    { headers: auth }
                 );
                 if (!res.ok) return;
                 const data = await res.json();

@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import get_settings
 from app.routers import agents, sessions, livekit, telephony, resemble, calls, usage, costs
 from app.routers import agent_files, containers, coding_agent
@@ -15,6 +16,46 @@ app = FastAPI(
     description="Backend API for Arkenos — Composable orchestration for conversational AI",
     version="0.1.0",
 )
+
+
+class UserContextMiddleware(BaseHTTPMiddleware):
+    """Set the user context for per-user API key resolution.
+
+    Checks (in order):
+      1. Authorization: Bearer <jwt> — verified via Better Auth JWKS
+      2. x-user-id header — fallback for server-to-server calls
+    """
+    async def dispatch(self, request: Request, call_next):
+        from app.services.config_resolver import _current_user_id
+        from app.database import SessionLocal
+        from app.models import User
+        user = None
+        db = SessionLocal()
+        try:
+            # 1. Try Bearer session token (Better Auth)
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                from app.dependencies import verify_session_token
+                user = verify_session_token(db, auth_header[7:])
+
+            # 2. Fallback to x-user-id header (server-to-server)
+            if not user:
+                auth_id = request.headers.get("x-user-id")
+                if auth_id:
+                    user = db.query(User).filter(User.auth_id == auth_id).first()
+
+            if user:
+                _current_user_id.set(user.id)
+                request.state.user = user
+        finally:
+            db.close()
+
+        response = await call_next(request)
+        _current_user_id.set(None)
+        return response
+
+
+app.add_middleware(UserContextMiddleware)
 
 # CORS
 app.add_middleware(

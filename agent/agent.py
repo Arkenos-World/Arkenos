@@ -39,15 +39,19 @@ _raw_backend_url = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api"
 BACKEND_API_URL = _raw_backend_url if _raw_backend_url.endswith("/api") else f"{_raw_backend_url.rstrip('/')}/api"
 
 
-def fetch_and_inject_keys():
+def fetch_and_inject_keys(user_id: str = None):
     """Fetch API keys from backend and inject into os.environ.
 
+    If user_id is provided, fetches that user's keys (with instance fallback).
     Dashboard values always overwrite existing env vars so that key
     changes in the UI take effect without restarting the agent.
     """
     import httpx as _httpx
     try:
-        resp = _httpx.get(f"{BACKEND_API_URL}/settings/keys/agent", timeout=5)
+        url = f"{BACKEND_API_URL}/settings/keys/agent"
+        if user_id:
+            url += f"?user_id={user_id}"
+        resp = _httpx.get(url, timeout=5)
         if resp.status_code == 200:
             keys = resp.json()
             injected = []
@@ -486,8 +490,8 @@ async def entrypoint(ctx: agents.JobContext):
     logger.info(f"[CALL] Room: {ctx.room.name}")
     logger.info(f"[CALL] Backend API URL: {BACKEND_API_URL}")
 
-    # Re-fetch keys from dashboard so new/changed keys take effect without restart
-    fetch_and_inject_keys()
+    # Skip boot-time key fetch (returns empty without user context).
+    # User-scoped keys are fetched after agent config is loaded (line ~594).
 
     # Log current LiveKit config for debugging connection issues
     lk_url = os.environ.get("LIVEKIT_URL", "NOT SET")
@@ -583,6 +587,12 @@ async def entrypoint(ctx: agents.JobContext):
         agent_config = await fetch_agent_config(agent_id)
         if agent_config:
             logger.info(f"Full agent config: {agent_config}")
+
+            # Re-fetch keys scoped to the agent owner so each user's keys are used
+            owner_user_id = agent_config.get("user_id")
+            if owner_user_id:
+                fetch_and_inject_keys(user_id=owner_user_id)
+
             config = agent_config.get("config", {})
             system_prompt = config.get("system_prompt") or DEFAULT_INSTRUCTIONS
             first_message = config.get("first_message") or first_message
@@ -696,7 +706,7 @@ async def entrypoint(ctx: agents.JobContext):
     
     # --- CREATE BACKEND SESSION ---
     # For SIP calls, use the agent owner's user_id so sessions appear in their call log.
-    # For browser calls, use the Clerk userId from room metadata.
+    # For browser calls, use the userId from room metadata.
     # agent_config["user_id"] is the agent owner's internal DB user UUID.
     if metadata.get("userId"):
         session_user_id = metadata["userId"]

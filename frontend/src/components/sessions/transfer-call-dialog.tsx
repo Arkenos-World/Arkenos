@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import type { Transfer, TransferType } from "@/lib/api";
 
 function PhoneIcon({ className }: { className?: string }) {
@@ -47,6 +48,7 @@ export function TransferCallDialog({
   onOpenChange,
   onTransferInitiated,
 }: TransferCallDialogProps) {
+  const auth = useAuthHeaders();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [transferType, setTransferType] = useState<TransferType>("cold");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,7 +66,7 @@ export function TransferCallDialog({
       const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/sessions/${sessionId}/transfer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auth },
         body: JSON.stringify({
           phone_number: phoneNumber.trim(),
           transfer_type: transferType,

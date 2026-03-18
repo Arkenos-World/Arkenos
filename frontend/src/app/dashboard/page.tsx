@@ -41,7 +41,7 @@ export default async function DashboardPage() {
 
     const [recentRes, keyStatusRes] = await Promise.all([
         fetch(`${apiUrl}/sessions/?limit=5`, { headers: reqHeaders, cache: 'no-store' }),
-        fetch(`${apiUrl}/settings/keys`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${apiUrl}/settings/keys`, { headers: reqHeaders, cache: 'no-store' }).catch(() => null),
     ]);
     const keyStatus: KeyStatusResponse | null = keyStatusRes?.ok ? await keyStatusRes.json().catch(() => null) : null;
     const allConfigured = keyStatus?.all_required_set ?? false;

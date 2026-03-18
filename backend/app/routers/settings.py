@@ -1,19 +1,24 @@
-"""Settings router — manage instance-level API keys."""
+"""Settings router — manage per-user API keys with instance-level fallback."""
 
 import logging
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_user
+from app.models import User
 from app.services.config_resolver import (
     get_all_keys,
+    get_all_user_keys,
     get_key,
-    get_status,
-    set_key,
+    get_user_key,
+    get_user_status,
+    set_user_key,
+    delete_user_key,
     PROVIDERS,
     ALL_KEY_NAMES,
 )
@@ -58,18 +63,24 @@ async def get_instance_id(db: Session = Depends(get_db)):
 
 
 @router.get("/keys")
-async def get_key_status(db: Session = Depends(get_db)):
-    """Get status of all API keys (set/missing, source). Never returns actual values."""
-    return get_status(db)
+async def get_key_status(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get status of all API keys for the current user. Never returns actual values."""
+    return get_user_status(db, user.id)
 
 
 @router.post("/keys")
-async def save_key(data: KeySave, db: Session = Depends(get_db)):
-    """Save a single API key (encrypted)."""
+async def save_key(
+    data: KeySave,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Save a single API key for the current user (encrypted)."""
     if data.key_name not in ALL_KEY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown key: {data.key_name}")
-    set_key(db, data.key_name, data.value)
-    # Clear SIP URI cache if a LiveKit key changed
+    set_user_key(db, user.id, data.key_name, data.value)
     if data.key_name.startswith("livekit_"):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
@@ -77,16 +88,19 @@ async def save_key(data: KeySave, db: Session = Depends(get_db)):
 
 
 @router.post("/keys/bulk")
-async def save_keys_bulk(data: BulkKeySave, db: Session = Depends(get_db)):
-    """Save multiple API keys at once."""
+async def save_keys_bulk(
+    data: BulkKeySave,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Save multiple API keys for the current user at once."""
     saved = []
     for key_name, value in data.keys.items():
         if key_name not in ALL_KEY_NAMES:
             continue
         if value:  # Skip empty strings
-            set_key(db, key_name, value)
+            set_user_key(db, user.id, key_name, value)
             saved.append(key_name)
-    # Clear SIP URI cache if any LiveKit key changed
     if any(k.startswith("livekit_") for k in saved):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
@@ -94,16 +108,17 @@ async def save_keys_bulk(data: BulkKeySave, db: Session = Depends(get_db)):
 
 
 @router.delete("/keys/{key_name}")
-async def delete_key(key_name: str, db: Session = Depends(get_db)):
-    """Delete a key from the DB. Falls back to .env if one exists."""
+async def delete_key(
+    key_name: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Delete a user's key from the DB. Falls back to instance/env if one exists."""
     if key_name not in ALL_KEY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown key: {key_name}")
-    from app.models import InstanceSettings
-    row = db.query(InstanceSettings).filter(InstanceSettings.key == key_name).first()
-    if not row:
+    deleted = delete_user_key(db, user.id, key_name)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Key not found in dashboard")
-    db.delete(row)
-    db.commit()
     if key_name.startswith("livekit_"):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
@@ -111,8 +126,24 @@ async def delete_key(key_name: str, db: Session = Depends(get_db)):
 
 
 @router.get("/keys/agent")
-async def get_agent_keys(db: Session = Depends(get_db)):
-    """Internal endpoint: returns all decrypted keys for agent boot."""
+async def get_agent_keys(
+    db: Session = Depends(get_db),
+    user_id: Optional[str] = Query(None),
+):
+    """Internal endpoint: returns decrypted keys for agent/service use.
+
+    Called by the agent process and frontend token route (server-to-server).
+    Accepts either internal DB user ID or auth_id — resolves automatically.
+    Should not be exposed to the public internet — protect via network/firewall.
+    """
+    if user_id:
+        # Check if it's an internal UUID first, otherwise resolve from auth_id
+        from app.models import User
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            user = db.query(User).filter(User.auth_id == user_id).first()
+        if user:
+            return get_all_user_keys(db, user.id)
     return get_all_keys(db)
 
 
@@ -121,8 +152,9 @@ async def test_provider_connection(
     provider: str,
     body: Optional[TestRequest] = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Test connection to a provider.
+    """Test connection to a provider using the current user's keys.
 
     If body.keys is provided, those values are used instead of DB/env keys.
     This allows testing new keys before saving them.
@@ -130,13 +162,13 @@ async def test_provider_connection(
     if provider not in PROVIDERS:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
-    # Build a key resolver that checks body overrides first
+    # Build a key resolver that checks body overrides first, then user keys
     override_keys = (body.keys if body else None) or {}
 
     def resolve_key(key_name: str) -> str | None:
         if key_name in override_keys and override_keys[key_name]:
             return override_keys[key_name]
-        return get_key(db, key_name)
+        return get_user_key(db, user.id, key_name)
 
     testers = {
         "livekit": _test_livekit,

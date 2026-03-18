@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { trackAgentDeleted } from "@/lib/tracking";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -199,6 +200,7 @@ const DEFAULT_WEBHOOK_CONFIG: WebhookConfigState = {
 
 export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const router = useRouter();
+    const auth = useAuthHeaders();
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingCall, setIsTestingCall] = useState(false);
     const [isOutboundCallOpen, setIsOutboundCallOpen] = useState(false);
@@ -228,7 +230,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     // Resolve saved voice name immediately on mount
     useEffect(() => {
         if (!agent.config?.voice_id) return;
-        fetch(`${apiUrl}/resemble/voices/${agent.config.voice_id}`)
+        fetch(`${apiUrl}/resemble/voices/${agent.config.voice_id}`, { headers: auth })
             .then(r => r.ok ? r.json() : null)
             .then((v: ResembleVoice | null) => { if (v) setSelectedVoiceName(v.name); })
             .catch(() => { });
@@ -236,7 +238,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
     // Fetch distinct language list once on mount
     useEffect(() => {
-        fetch(`${apiUrl}/resemble/voices/languages`)
+        fetch(`${apiUrl}/resemble/voices/languages`, { headers: auth })
             .then(r => r.ok ? r.json() : [])
             .then((langs: string[]) => setAllLanguages(langs))
             .catch(() => { });
@@ -247,7 +249,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         try {
             const params = new URLSearchParams({ page: String(page), page_size: String(VOICES_PER_PAGE) });
             if (lang) params.set("language", lang);
-            const res = await fetch(`${apiUrl}/resemble/voices?${params}`);
+            const res = await fetch(`${apiUrl}/resemble/voices?${params}`, { headers: auth });
             if (!res.ok) throw new Error("Failed to fetch voices");
             const data: ResembleVoicesPage = await res.json();
             setResembleVoices(data.voices);
@@ -324,19 +326,19 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const handleSearchNumbers = useCallback(async () => {
         setIsSearching(true);
         try {
-            const results = await searchPhoneNumbers(telephonyProvider, searchAreaCode || undefined, 5);
+            const results = await searchPhoneNumbers(auth, telephonyProvider, searchAreaCode || undefined, 5);
             setSearchResults(results);
         } catch (error) {
             toast.error("Failed to search numbers");
         } finally {
             setIsSearching(false);
         }
-    }, [searchAreaCode, telephonyProvider]);
+    }, [userId, searchAreaCode, telephonyProvider]);
 
     const handleBuyNumber = useCallback(async (number: string) => {
         setBuyingNumber(number);
         try {
-            const data = await buyPhoneNumber(agent.id, number, telephonyProvider);
+            const data = await buyPhoneNumber(auth, agent.id, number, telephonyProvider);
             setPhoneNumber(data.phone_number);
             setSearchResults([]);
             toast.success(`Number ${data.phone_number} purchased and assigned!`);
@@ -345,7 +347,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setBuyingNumber(null);
         }
-    }, [agent.id, telephonyProvider]);
+    }, [userId, agent.id, telephonyProvider]);
 
     const handleAssignNumber = useCallback(async () => {
         const digits = assignPhone.replace(/\D/g, "");
@@ -355,7 +357,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         try {
             // Step 1: Detect which provider owns this number
             try {
-                const detection = await detectNumberProvider(e164);
+                const detection = await detectNumberProvider(auth, e164);
                 if (detection.detected_provider && detection.detected_provider !== telephonyProvider) {
                     toast.error(
                         `This number belongs to ${detection.detected_provider.charAt(0).toUpperCase() + detection.detected_provider.slice(1)}, ` +
@@ -377,7 +379,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             }
 
             // Step 2: Check if number is assigned to another agent
-            const checkData = await checkNumberAssignment(e164);
+            const checkData = await checkNumberAssignment(auth, e164);
             if (checkData.assigned) {
                 setReassignInfo(checkData);
                 setShowReassignDialog(true);
@@ -387,17 +389,27 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             // Not assigned to anyone — proceed with normal assign
             setIsCheckingNumber(false);
             setIsAssigning(true);
-            const data = await assignPhoneNumber(agent.id, e164, telephonyProvider);
+            const data = await assignPhoneNumber(auth, agent.id, e164, telephonyProvider);
             setPhoneNumber(data.phone_number);
             setAssignPhone("");
-            toast.success(`Number ${data.phone_number} assigned!`);
+            if (data.pipeline_result) {
+                setPipelineResult(data.pipeline_result);
+                if (data.pipeline_result.status === "ready") {
+                    toast.success(`Number ${data.phone_number} assigned — pipeline ready!`);
+                } else {
+                    toast.success(`Number ${data.phone_number} assigned`);
+                    toast.warning("Pipeline has issues — see details below");
+                }
+            } else {
+                toast.success(`Number ${data.phone_number} assigned!`);
+            }
         } catch (error: any) {
             toast.error(error.message || "Failed to assign number");
             setIsCheckingNumber(false);
         } finally {
             setIsAssigning(false);
         }
-    }, [agent.id, assignPhone, telephonyProvider]);
+    }, [userId, agent.id, assignPhone, telephonyProvider]);
 
     const handleReassignConfirm = useCallback(async () => {
         const digits = assignPhone.replace(/\D/g, "");
@@ -405,7 +417,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         setIsReassigning(true);
         setReassignPipelineResult(null);
         try {
-            const data = await reassignPhoneNumber(e164, agent.id, telephonyProvider);
+            const data = await reassignPhoneNumber(auth, e164, agent.id, telephonyProvider);
             setPhoneNumber(data.phone_number);
             setAssignPhone("");
             setShowReassignDialog(false);
@@ -423,13 +435,13 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsReassigning(false);
         }
-    }, [agent.id, assignPhone, telephonyProvider]);
+    }, [userId, agent.id, assignPhone, telephonyProvider]);
 
     const handleReleaseNumber = useCallback(async () => {
         if (!confirm("Are you sure you want to release this phone number?")) return;
         setIsReleasing(true);
         try {
-            await releasePhoneNumber(agent.id);
+            await releasePhoneNumber(auth, agent.id);
             setPhoneNumber("");
             toast.success("Phone number released.");
         } catch (error) {
@@ -437,13 +449,13 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsReleasing(false);
         }
-    }, [agent.id]);
+    }, [userId, agent.id]);
 
     const handleTestPipeline = useCallback(async () => {
         setIsProvisioning(true);
         setPipelineResult(null);
         try {
-            const data = await provisionPhoneNumber(agent.id, telephonyProvider);
+            const data = await provisionPhoneNumber(auth, agent.id, telephonyProvider);
             setPipelineResult(data);
             if (data.status === "ready") {
                 toast.success("Pipeline is fully configured!");
@@ -455,7 +467,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsProvisioning(false);
         }
-    }, [agent.id, telephonyProvider]);
+    }, [userId, agent.id, telephonyProvider]);
 
     const handleSave = useCallback(async () => {
         setIsSaving(true);
@@ -501,8 +513,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     }, [agent.id, agent.config, userId, name, systemPrompt, firstMessage, firstMessageMode, llmModel, sttProvider, voiceId, webhookConfig, functions]);
 
     const handleTestCall = () => {
-        // Navigate to preview page (could pass agent ID in future)
-        router.push("/preview");
+        router.push(`/preview?agentId=${agent.id}`);
     };
 
     const handleDelete = useCallback(async () => {

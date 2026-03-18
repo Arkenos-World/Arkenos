@@ -24,9 +24,16 @@ _state = ProvisioningState()
 
 
 def clear_sip_uri_cache() -> None:
-    """Clear cached SIP URI so it's re-read from DB on next use."""
+    """Clear all cached provisioning state so it's re-discovered on next use.
+
+    Called when LiveKit keys change — trunk/rule IDs may point to a different
+    project, so everything must be re-resolved.
+    """
     _state.inbound_sip_uri = None
-    logger.info("[clear_sip_uri_cache] SIP URI cache cleared")
+    _state.inbound_trunk_id = None
+    _state.dispatch_rule_id = None
+    _state.outbound_trunk_ids = {}
+    logger.info("[clear_sip_uri_cache] All provisioning cache cleared")
 
 
 def _get_lk():

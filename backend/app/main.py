@@ -19,26 +19,25 @@ app = FastAPI(
 
 
 class UserContextMiddleware(BaseHTTPMiddleware):
-    """Set the user context for per-user API key resolution.
+    """Set user and org context for key resolution and resource scoping.
 
-    Checks (in order):
-      1. Authorization: Bearer <jwt> — verified via Better Auth JWKS
-      2. x-user-id header — fallback for server-to-server calls
+    Resolves user from: Bearer token → x-user-id header
+    Resolves org from: x-org-id header → session's activeOrganizationId → user's first org
     """
     async def dispatch(self, request: Request, call_next):
-        from app.services.config_resolver import _current_user_id
+        from app.services.config_resolver import _current_user_id, _current_org_id
         from app.database import SessionLocal
-        from app.models import User
+        from app.models import User, Organization, OrgMember
+
         user = None
         db = SessionLocal()
         try:
-            # 1. Try Bearer session token (Better Auth)
+            # Resolve user
             auth_header = request.headers.get("authorization", "")
             if auth_header.startswith("Bearer "):
                 from app.dependencies import verify_session_token
                 user = verify_session_token(db, auth_header[7:])
 
-            # 2. Fallback to x-user-id header (server-to-server)
             if not user:
                 auth_id = request.headers.get("x-user-id")
                 if auth_id:
@@ -47,11 +46,53 @@ class UserContextMiddleware(BaseHTTPMiddleware):
             if user:
                 _current_user_id.set(user.id)
                 request.state.user = user
+
+                # Resolve org
+                org = None
+                ba_org_id_to_resolve = None
+                x_org_id = request.headers.get("x-org-id")
+                if x_org_id:
+                    org = db.query(Organization).filter(Organization.ba_org_id == x_org_id).first()
+                    if not org:
+                        org = db.query(Organization).filter(Organization.id == x_org_id).first()
+                    if not org:
+                        ba_org_id_to_resolve = x_org_id
+
+                # From session's activeOrganizationId
+                if not org and auth_header.startswith("Bearer "):
+                    from app.dependencies import get_active_org_from_session
+                    ba_org_id = get_active_org_from_session(db, auth_header[7:])
+                    if ba_org_id:
+                        org = db.query(Organization).filter(Organization.ba_org_id == ba_org_id).first()
+                        if not org:
+                            ba_org_id_to_resolve = ba_org_id
+
+                # Auto-create Arkenos org from Better Auth org if not found
+                if not org and ba_org_id_to_resolve:
+                    from app.dependencies import _auto_create_org_from_ba
+                    org = _auto_create_org_from_ba(db, ba_org_id_to_resolve, user)
+
+                # Fallback: user's first org
+                if not org:
+                    membership = db.query(OrgMember).filter(OrgMember.user_id == user.id).first()
+                    if membership:
+                        org = db.query(Organization).filter(Organization.id == membership.org_id).first()
+
+                if org:
+                    # Verify membership
+                    member = db.query(OrgMember).filter(
+                        OrgMember.org_id == org.id, OrgMember.user_id == user.id
+                    ).first()
+                    if member:
+                        _current_org_id.set(org.id)
+                        request.state.org = org
+                        request.state.org_role = member.role
         finally:
             db.close()
 
         response = await call_next(request)
         _current_user_id.set(None)
+        _current_org_id.set(None)
         return response
 
 

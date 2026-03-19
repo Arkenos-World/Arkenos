@@ -512,7 +512,7 @@ async def check_number_assignment(
 
     agents = (
         db.query(models.Agent)
-        .filter(models.Agent.phone_number.isnot(None))
+        .filter(models.Agent.phone_number.isnot(None), models.Agent.is_active == True)
         .all()
     )
 

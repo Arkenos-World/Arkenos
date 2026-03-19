@@ -1,4 +1,4 @@
-"""Settings router — manage per-user API keys with instance-level fallback."""
+"""Settings router — manage per-org API keys with instance-level fallback."""
 
 import logging
 from typing import Optional
@@ -9,14 +9,19 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
-from app.models import User
+from app.dependencies import get_current_org, get_current_user, require_role
+from app.models import Organization, OrgMember, User
 from app.services.config_resolver import (
     get_all_keys,
+    get_all_org_keys,
     get_all_user_keys,
     get_key,
+    get_org_key,
+    get_org_status,
     get_user_key,
     get_user_status,
+    set_org_key,
+    delete_org_key,
     set_user_key,
     delete_user_key,
     PROVIDERS,
@@ -65,41 +70,41 @@ async def get_instance_id(db: Session = Depends(get_db)):
 @router.get("/keys")
 async def get_key_status(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
 ):
-    """Get status of all API keys for the current user. Never returns actual values."""
-    return get_user_status(db, user.id)
+    """Get status of all API keys for the current org. Never returns actual values."""
+    return get_org_status(db, org.id)
 
 
-@router.post("/keys")
+@router.post("/keys", dependencies=[Depends(require_role("owner", "admin"))])
 async def save_key(
     data: KeySave,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
 ):
-    """Save a single API key for the current user (encrypted)."""
+    """Save a single API key for the current org (encrypted)."""
     if data.key_name not in ALL_KEY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown key: {data.key_name}")
-    set_user_key(db, user.id, data.key_name, data.value)
+    set_org_key(db, org.id, data.key_name, data.value)
     if data.key_name.startswith("livekit_"):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
     return {"status": "saved", "key": data.key_name}
 
 
-@router.post("/keys/bulk")
+@router.post("/keys/bulk", dependencies=[Depends(require_role("owner", "admin"))])
 async def save_keys_bulk(
     data: BulkKeySave,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
 ):
-    """Save multiple API keys for the current user at once."""
+    """Save multiple API keys for the current org at once."""
     saved = []
     for key_name, value in data.keys.items():
         if key_name not in ALL_KEY_NAMES:
             continue
         if value:  # Skip empty strings
-            set_user_key(db, user.id, key_name, value)
+            set_org_key(db, org.id, key_name, value)
             saved.append(key_name)
     if any(k.startswith("livekit_") for k in saved):
         from app.services.telephony_provisioning import clear_sip_uri_cache
@@ -107,16 +112,16 @@ async def save_keys_bulk(
     return {"status": "saved", "keys": saved}
 
 
-@router.delete("/keys/{key_name}")
+@router.delete("/keys/{key_name}", dependencies=[Depends(require_role("owner", "admin"))])
 async def delete_key(
     key_name: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
 ):
-    """Delete a user's key from the DB. Falls back to instance/env if one exists."""
+    """Delete an org's key from the DB. Falls back to instance/env if one exists."""
     if key_name not in ALL_KEY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown key: {key_name}")
-    deleted = delete_user_key(db, user.id, key_name)
+    deleted = delete_org_key(db, org.id, key_name)
     if not deleted:
         raise HTTPException(status_code=404, detail="Key not found in dashboard")
     if key_name.startswith("livekit_"):
@@ -128,22 +133,35 @@ async def delete_key(
 @router.get("/keys/agent")
 async def get_agent_keys(
     db: Session = Depends(get_db),
+    org_id: Optional[str] = Query(None),
     user_id: Optional[str] = Query(None),
 ):
     """Internal endpoint: returns decrypted keys for agent/service use.
 
     Called by the agent process and frontend token route (server-to-server).
-    Accepts either internal DB user ID or auth_id — resolves automatically.
+    Accepts ?org_id= (preferred) or ?user_id= (legacy backward compat).
     Should not be exposed to the public internet — protect via network/firewall.
     """
+    # Prefer org_id if provided
+    if org_id:
+        org = db.query(Organization).filter(Organization.id == org_id).first()
+        if org:
+            return get_all_org_keys(db, org.id)
+
+    # Legacy: resolve via user_id, then find user's org
     if user_id:
-        # Check if it's an internal UUID first, otherwise resolve from auth_id
-        from app.models import User
-        user = db.query(User).filter(User.id == user_id).first()
+        from app.models import User as UserModel
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
         if not user:
-            user = db.query(User).filter(User.auth_id == user_id).first()
+            user = db.query(UserModel).filter(UserModel.auth_id == user_id).first()
         if user:
+            # Try to find the user's org and return org keys
+            membership = db.query(OrgMember).filter(OrgMember.user_id == user.id).first()
+            if membership:
+                return get_all_org_keys(db, membership.org_id)
+            # Final fallback: legacy user keys
             return get_all_user_keys(db, user.id)
+
     return get_all_keys(db)
 
 
@@ -152,9 +170,9 @@ async def test_provider_connection(
     provider: str,
     body: Optional[TestRequest] = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
 ):
-    """Test connection to a provider using the current user's keys.
+    """Test connection to a provider using the current org's keys.
 
     If body.keys is provided, those values are used instead of DB/env keys.
     This allows testing new keys before saving them.
@@ -162,13 +180,13 @@ async def test_provider_connection(
     if provider not in PROVIDERS:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
-    # Build a key resolver that checks body overrides first, then user keys
+    # Build a key resolver that checks body overrides first, then org keys
     override_keys = (body.keys if body else None) or {}
 
     def resolve_key(key_name: str) -> str | None:
         if key_name in override_keys and override_keys[key_name]:
             return override_keys[key_name]
-        return get_user_key(db, user.id, key_name)
+        return get_org_key(db, org.id, key_name)
 
     testers = {
         "livekit": _test_livekit,

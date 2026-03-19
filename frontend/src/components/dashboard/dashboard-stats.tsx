@@ -110,8 +110,9 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
     }, [period, userId, headers]) // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
+        if (!headers.Authorization) return
         fetchData()
-    }, [fetchData])
+    }, [fetchData, headers])
 
     // ── Stats ──────────────────────────────────────────────────────────────
     const callsDelta = prevTotal > 0

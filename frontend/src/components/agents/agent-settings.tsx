@@ -478,7 +478,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-user-id': userId,
+                        ...auth,
                     },
                     body: JSON.stringify({
                         name,
@@ -527,7 +527,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 {
                     method: 'DELETE',
                     headers: {
-                        'x-user-id': userId,
+                        ...auth,
                     },
                 }
             );

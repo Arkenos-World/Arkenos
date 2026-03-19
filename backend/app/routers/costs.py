@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
-from app.dependencies import get_current_user
-from app.models import UsageEvent, VoiceSession, Agent, User
+from app.dependencies import get_current_user, get_current_org
+from app.models import Organization, UsageEvent, VoiceSession, Agent, User
 from app.schemas import (
     CostSummaryResponse,
     TimelinePointResponse,
@@ -28,6 +28,7 @@ def _resolve_user(db: Session, auth_id: str) -> User | None:
 @router.get("/summary", response_model=CostSummaryResponse)
 async def get_cost_summary(
     user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
     db: Session = Depends(get_db),
 ):
     """Total cost, this month's cost, and cost broken down by provider."""
@@ -35,7 +36,7 @@ async def get_cost_summary(
     # Total cost (all time)
     total_row = (
         db.query(func.coalesce(func.sum(UsageEvent.total_cost), 0))
-        .filter(UsageEvent.user_id == user.id)
+        .filter(UsageEvent.org_id == org.id)
         .scalar()
     )
     total_cost = Decimal(str(total_row))
@@ -45,7 +46,7 @@ async def get_cost_summary(
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_row = (
         db.query(func.coalesce(func.sum(UsageEvent.total_cost), 0))
-        .filter(UsageEvent.user_id == user.id, UsageEvent.created_at >= month_start)
+        .filter(UsageEvent.org_id == org.id, UsageEvent.created_at >= month_start)
         .scalar()
     )
     this_month_cost = Decimal(str(month_row))
@@ -53,7 +54,7 @@ async def get_cost_summary(
     # By provider
     provider_rows = (
         db.query(UsageEvent.provider, func.sum(UsageEvent.total_cost))
-        .filter(UsageEvent.user_id == user.id)
+        .filter(UsageEvent.org_id == org.id)
         .group_by(UsageEvent.provider)
         .all()
     )
@@ -69,6 +70,7 @@ async def get_cost_summary(
 @router.get("/timeline", response_model=list[TimelinePointResponse])
 async def get_cost_timeline(
     user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
     period: str = Query("daily", pattern="^(daily|weekly|monthly)$"),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
@@ -80,7 +82,7 @@ async def get_cost_timeline(
         cast(UsageEvent.created_at, Date).label("date"),
         UsageEvent.provider,
         func.sum(UsageEvent.total_cost).label("cost"),
-    ).filter(UsageEvent.user_id == user.id)
+    ).filter(UsageEvent.org_id == org.id)
 
     if start_date:
         try:
@@ -122,6 +124,7 @@ async def get_cost_timeline(
 @router.get("/by-agent", response_model=list[AgentCostResponse])
 async def get_cost_by_agent(
     user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
     db: Session = Depends(get_db),
 ):
     """Cost aggregated per agent."""
@@ -133,7 +136,7 @@ async def get_cost_by_agent(
             func.count(func.distinct(UsageEvent.session_id)).label("session_count"),
             func.count(UsageEvent.id).label("event_count"),
         )
-        .filter(UsageEvent.user_id == user.id, UsageEvent.agent_id.isnot(None))
+        .filter(UsageEvent.org_id == org.id, UsageEvent.agent_id.isnot(None))
         .group_by(UsageEvent.agent_id)
         .all()
     )

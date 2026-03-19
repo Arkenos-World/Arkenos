@@ -162,8 +162,8 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                 setIsLoadingVoices(false);
             }
         };
-        fetchVoices();
-    }, [apiUrl]);
+        if (auth.Authorization) fetchVoices();
+    }, [apiUrl, auth]);
 
     const handleSelectTemplate = (template: AgentTemplate) => {
         setSelectedTemplate(template);
@@ -180,7 +180,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-user-id': userId,
+                        ...auth,
                     },
                     body: JSON.stringify({
                         name: agentName,
@@ -238,7 +238,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                 `${apiUrl}/agents/`,
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+                    headers: { 'Content-Type': 'application/json', ...auth },
                     body: JSON.stringify({
                         name: agentName,
                         description: "Custom code-driven agent",

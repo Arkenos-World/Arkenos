@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Agent, AgentMode, User
+from app.models import Agent, AgentMode, Organization, User
 from app.schemas import AgentCreate, AgentUpdate, AgentResponse
 from app.services.scaffold_templates import scaffold_agent
-from app.dependencies import verify_agent_ownership, get_current_user
+from app.dependencies import verify_agent_ownership, get_current_user, get_current_org
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +34,11 @@ def get_or_create_user(db: Session, auth_id: str) -> User:
 @router.get("/", response_model=list[AgentResponse])
 async def get_agents(
     user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
     db: Session = Depends(get_db),
 ):
-    """Get all agents for the authenticated user."""
-    agents = db.query(Agent).filter(Agent.user_id == user.id, Agent.is_active == True).order_by(Agent.created_at.desc()).all()
+    """Get all agents for the authenticated user's organization."""
+    agents = db.query(Agent).filter(Agent.org_id == org.id, Agent.is_active == True).order_by(Agent.created_at.desc()).all()
     return agents
 
 
@@ -51,10 +52,19 @@ async def get_agent(agent_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=AgentResponse, status_code=201)
-async def create_agent(agent_data: AgentCreate, db: Session = Depends(get_db)):
+async def create_agent(
+    agent_data: AgentCreate,
+    user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
+    db: Session = Depends(get_db),
+):
     """Create a new agent."""
-    user = get_or_create_user(db, agent_data.user_id)
-    
+    # If user_id is provided in body (legacy/agent-worker), resolve that user instead
+    if agent_data.user_id:
+        resolved_user = get_or_create_user(db, agent_data.user_id)
+    else:
+        resolved_user = user
+
     agent_id = str(uuid.uuid4())
     mode = AgentMode(agent_data.agent_mode) if agent_data.agent_mode else AgentMode.STANDARD
 
@@ -64,7 +74,8 @@ async def create_agent(agent_data: AgentCreate, db: Session = Depends(get_db)):
         description=agent_data.description,
         type=agent_data.type,
         config=agent_data.config,
-        user_id=user.id,
+        user_id=resolved_user.id,
+        org_id=org.id,
         agent_mode=mode,
     )
 
@@ -109,9 +120,19 @@ async def delete_agent(
     db: Session = Depends(get_db),
     agent: Agent = Depends(verify_agent_ownership),
 ):
-    """Soft delete an agent (sets is_active to False)."""
-    
-    # Soft delete: mark as inactive instead of removing
+    """Soft delete an agent (sets is_active to False). Releases phone number if assigned."""
+
+    # Release phone number if assigned
+    if agent.phone_number:
+        try:
+            from app.services.telephony_provisioning import remove_number_from_inbound_trunk
+            import asyncio
+            await remove_number_from_inbound_trunk(agent.phone_number)
+        except Exception as e:
+            logger.warning(f"Failed to remove number from LiveKit trunk on delete: {e}")
+        agent.phone_number = None
+        agent.provider_number_sid = None
+
     agent.is_active = False
     db.commit()
     return None

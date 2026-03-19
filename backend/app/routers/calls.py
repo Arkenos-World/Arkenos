@@ -13,12 +13,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_current_org
 from app.services.config_resolver import get_key, require_providers
 from app.models import (
     Agent,
     CallDirection,
     CallStatus,
+    Organization,
     SessionStatus,
     User,
     VoiceSession,
@@ -68,6 +69,7 @@ async def create_outbound_call(
     request: OutboundCallRequest,
     background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
     db: Session = Depends(get_db),
     _=Depends(require_providers("livekit")),
 ):
@@ -83,18 +85,18 @@ async def create_outbound_call(
     # --- Validate inputs ---
     phone = _validate_e164(request.phone_number)
 
-    # --- Validate agent belongs to user ---
+    # --- Validate agent belongs to org ---
     agent = (
         db.query(Agent)
         .filter(
             Agent.id == request.agent_id,
-            Agent.user_id == user.id,
+            Agent.org_id == org.id,
             Agent.is_active == True,
         )
         .first()
     )
     if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found or does not belong to user")
+        raise HTTPException(status_code=404, detail="Agent not found or does not belong to organization")
 
     # --- Create voice session ---
     session_id = str(uuid.uuid4())
@@ -104,6 +106,7 @@ async def create_outbound_call(
         id=session_id,
         room_name=room_name,
         user_id=user.id,
+        org_id=org.id,
         agent_id=agent.id,
         status=SessionStatus.ACTIVE,
         call_direction=CallDirection.OUTBOUND,
@@ -221,6 +224,7 @@ async def create_outbound_call(
 async def end_call(
     call_id: str,
     user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
     db: Session = Depends(get_db),
     _=Depends(require_providers("livekit")),
 ):
@@ -233,7 +237,11 @@ async def end_call(
     if not session:
         raise HTTPException(status_code=404, detail="Call not found")
 
-    if session.user_id != user.id:
+    # Org-scoped check with backward compatibility for legacy sessions
+    if session.org_id:
+        if session.org_id != org.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    elif session.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Delete the LiveKit room to end the call

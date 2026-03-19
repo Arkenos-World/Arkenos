@@ -80,8 +80,65 @@ class InstanceSettings(Base):
     )
 
 
+class Organization(Base):
+    """Arkenos organization — top-level tenant for multi-tenancy."""
+    __tablename__ = "organizations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    ba_org_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)  # Better Auth org ID
+    name: Mapped[str] = mapped_column(String(255))
+    slug: Mapped[str] = mapped_column(String(100), unique=True)
+    plan: Mapped[str] = mapped_column(String(50), default="free", server_default="free")
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    usage_limit_minutes: Mapped[int] = mapped_column(Integer, default=100, server_default="100")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # Relationships
+    members: Mapped[list["OrgMember"]] = relationship(back_populates="organization", cascade="all, delete-orphan")
+    api_keys: Mapped[list["OrgApiKey"]] = relationship(back_populates="organization", cascade="all, delete-orphan")
+    agents: Mapped[list["Agent"]] = relationship(back_populates="organization")
+
+
+class OrgMember(Base):
+    """Organization membership with role."""
+    __tablename__ = "org_members"
+    __table_args__ = (
+        UniqueConstraint("org_id", "user_id", name="uq_org_members_org_user"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(20), default="member", server_default="member")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    organization: Mapped["Organization"] = relationship(back_populates="members")
+    user: Mapped["User"] = relationship(back_populates="org_memberships")
+
+
+class OrgApiKey(Base):
+    """Per-org encrypted API key storage. Composite PK (org_id, key_name)."""
+    __tablename__ = "org_api_keys"
+
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True
+    )
+    key_name: Mapped[str] = mapped_column(String(100), primary_key=True)
+    encrypted_value: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    organization: Mapped["Organization"] = relationship(back_populates="api_keys")
+
+
 class UserApiKey(Base):
-    """Per-user encrypted API key storage. Composite PK (user_id, key_name)."""
+    """Per-user encrypted API key storage (legacy, migrated to org_api_keys)."""
     __tablename__ = "user_api_keys"
 
     user_id: Mapped[str] = mapped_column(
@@ -112,6 +169,7 @@ class User(Base):
     agents: Mapped[list["Agent"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     sessions: Mapped[list["VoiceSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     api_keys: Mapped[list["UserApiKey"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    org_memberships: Mapped[list["OrgMember"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Agent(Base):
@@ -148,9 +206,13 @@ class Agent(Base):
 
     # Foreign keys
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    org_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="agents")
+    organization: Mapped["Organization | None"] = relationship(back_populates="agents")
     sessions: Mapped[list["VoiceSession"]] = relationship(back_populates="agent")
     files: Mapped[list["AgentFile"]] = relationship(back_populates="agent", cascade="all, delete-orphan")
     containers: Mapped[list["AgentContainer"]] = relationship(back_populates="agent", cascade="all, delete-orphan")
@@ -186,6 +248,9 @@ class VoiceSession(Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
     agent_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
+    )
+    org_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True
     )
 
     # Relationships
@@ -237,6 +302,9 @@ class UsageEvent(Base):
     )
     agent_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
+    )
+    org_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True
     )
 
     # Relationships

@@ -1,13 +1,11 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { AgentList } from "@/components/agents/agent-list";
 import { getApiUrl } from "@/lib/api";
+import { getServerAuthHeaders } from "@/lib/server-auth";
 
 export default async function AgentsPage() {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const userId = session?.user?.id;
+    const { headers: reqHeaders, userId } = await getServerAuthHeaders();
 
     if (!userId) {
         redirect("/");
@@ -20,10 +18,8 @@ export default async function AgentsPage() {
         const response = await fetch(
             `${apiUrl}/agents/`,
             {
-                headers: {
-                    'x-user-id': userId,
-                },
-                cache: 'no-store', // Always fetch fresh data
+                headers: reqHeaders,
+                cache: 'no-store',
             }
         );
         if (response.ok) {

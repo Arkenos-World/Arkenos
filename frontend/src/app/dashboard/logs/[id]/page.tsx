@@ -1,7 +1,6 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getServerAuthHeaders } from "@/lib/server-auth";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +43,7 @@ export default async function CallDetailsPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const authSession = await auth.api.getSession({ headers: await headers() });
-    const userId = authSession?.user?.id;
+    const { headers: reqHeaders, userId } = await getServerAuthHeaders();
     const { id } = await params;
 
     if (!userId) {
@@ -59,7 +57,6 @@ export default async function CallDetailsPage({
 
     try {
         const apiUrl = getApiUrl();
-        const reqHeaders = { 'x-user-id': userId };
         const sessionResponse = await fetch(
             `${apiUrl}/sessions/${id}`,
             { headers: reqHeaders, cache: 'no-store' }

@@ -1,8 +1,5 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-// Dashboard layout and analytics
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +8,7 @@ import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { MicrophoneIcon, PhoneIcon } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
 import { getApiUrl } from "@/lib/api";
+import { getServerAuthHeaders } from "@/lib/server-auth";
 import type { VoiceSession, SessionsPage, KeyStatusResponse } from "@/lib/api";
 
 // ─── Session label resolver ──────────────────────────────────────────────────
@@ -29,15 +27,13 @@ function resolveSessionLabel(session: { agent_name?: string | null; room_name: s
 }
 
 export default async function DashboardPage() {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const userId = session?.user?.id;
+    const { headers: reqHeaders, userId, user } = await getServerAuthHeaders();
 
     if (!userId) {
         redirect("/");
     }
 
     const apiUrl = getApiUrl();
-    const reqHeaders = { 'x-user-id': userId };
 
     const [recentRes, keyStatusRes] = await Promise.all([
         fetch(`${apiUrl}/sessions/?limit=5`, { headers: reqHeaders, cache: 'no-store' }),
@@ -60,8 +56,8 @@ export default async function DashboardPage() {
             <div className="space-y-6">
                 {/* Welcome */}
                 <div>
-                    <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
-                    <h1 className="text-2xl font-bold">Welcome {session?.user?.name || "back"}!</h1>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <h1 className="text-2xl font-bold">Welcome {user?.name || "back"}!</h1>
                 </div>
 
                 {/* Stat Row + Call Volume Chart */}

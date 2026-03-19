@@ -18,6 +18,7 @@ import {
 } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 
 function resolveSessionLabel(session: { agent_name?: string | null; room_name: string; outbound_phone_number?: string | null }): {
     primary: string
@@ -71,6 +72,7 @@ interface CallLogsClientProps {
 }
 
 export function CallLogsClient({ userId }: CallLogsClientProps) {
+    const auth = useAuthHeaders();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
@@ -98,7 +100,7 @@ export function CallLogsClient({ userId }: CallLogsClientProps) {
             const response = await fetch(
                 `${getApiUrl()}/sessions/?${params}`,
                 {
-                    headers: { 'x-user-id': userId },
+                    headers: auth,
                 }
             );
 
@@ -112,7 +114,7 @@ export function CallLogsClient({ userId }: CallLogsClientProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [userId, page, limit, startDate, endDate, directionFilter]);
+    }, [auth, page, limit, startDate, endDate, directionFilter]);
 
     useEffect(() => {
         fetchSessions();

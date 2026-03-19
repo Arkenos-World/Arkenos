@@ -669,7 +669,7 @@ function PreviewPageContent() {
     // Fetch user's agents from API
     useEffect(() => {
         async function fetchAgents() {
-            if (!userId) {
+            if (!userId || !auth.Authorization) {
                 setIsLoadingAgents(false);
                 return;
             }
@@ -679,7 +679,7 @@ function PreviewPageContent() {
                     {
                         headers: {
                             "Content-Type": "application/json",
-                            "X-User-Id": userId,
+                            ...auth,
                         },
                     }
                 );
@@ -694,7 +694,7 @@ function PreviewPageContent() {
             }
         }
         fetchAgents();
-    }, [userId]);
+    }, [userId, auth]);
 
     const startSession = useCallback(async () => {
         setConnectionState("connecting");

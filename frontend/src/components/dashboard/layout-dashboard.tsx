@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,14 @@ interface DashboardLayoutProps {
 
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {
     const session = await auth.api.getSession({ headers: await headers() });
+
+    // Redirect to onboarding if user has no organizations
+    if (session?.user?.id) {
+        const orgs = await auth.api.listOrganizations({ headers: await headers() });
+        if (!orgs || orgs.length === 0) {
+            redirect("/onboarding");
+        }
+    }
 
     return (
         <div className="flex min-h-screen bg-background">

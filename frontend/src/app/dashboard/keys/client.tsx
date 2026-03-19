@@ -270,15 +270,15 @@ function ProviderCard({
                             {keyInfo.status === "set" && (
                                 <div className="flex items-center gap-1">
                                     <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${
-                                        keyInfo.source === "user"
+                                        keyInfo.source === "org" || keyInfo.source === "user"
                                             ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                                             : keyInfo.source === "db"
                                             ? "bg-green-500/10 text-green-500 border-green-500/20"
                                             : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                     }`}>
-                                        {keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
+                                        {keyInfo.source === "org" ? "org key" : keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
                                     </Badge>
-                                    {keyInfo.source === "user" && (
+                                    {(keyInfo.source === "org" || keyInfo.source === "user") && (
                                         <button
                                             type="button"
                                             onClick={async () => {
@@ -635,15 +635,15 @@ function SelectedGroupedProvider({
                         {keyInfo.status === "set" && (
                             <div className="flex items-center gap-1">
                                 <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${
-                                    keyInfo.source === "user"
+                                    keyInfo.source === "org" || keyInfo.source === "user"
                                         ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                                         : keyInfo.source === "db"
                                         ? "bg-green-500/10 text-green-500 border-green-500/20"
                                         : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                 }`}>
-                                    {keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
+                                    {keyInfo.source === "org" ? "org key" : keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
                                 </Badge>
-                                {keyInfo.source === "user" && (
+                                {(keyInfo.source === "org" || keyInfo.source === "user") && (
                                     <button
                                         type="button"
                                         onClick={async () => {
@@ -655,10 +655,10 @@ function SelectedGroupedProvider({
                                                 toast.error("Failed to delete key");
                                             }
                                         }}
-                                        className="text-muted-foreground hover:text-destructive transition-colors"
+                                        className="ml-1 rounded p-1 bg-destructive/10 hover:bg-destructive/25 text-destructive transition-colors"
                                         title="Remove from dashboard"
                                     >
-                                        <XCircle className="h-3.5 w-3.5" />
+                                        <Trash2 className="h-3 w-3" />
                                     </button>
                                 )}
                             </div>
@@ -740,6 +740,7 @@ export function APIKeysClient() {
     }, [auth]);
 
     useEffect(() => {
+        if (!auth.Authorization) return; // Wait for auth to load
         fetchStatus();
     }, [fetchStatus]);
 

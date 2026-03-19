@@ -208,7 +208,7 @@ export interface FileTreeNode {
 
 export interface KeyInfo {
   status: "set" | "missing";
-  source: "user" | "db" | "env" | null;
+  source: "org" | "user" | "db" | "env" | null;
 }
 
 export interface ProviderStatus {

@@ -1,17 +1,15 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { CustomAgentEditor } from "@/components/custom-agents/custom-agent-editor";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { getApiUrl } from "@/lib/api";
+import { getServerAuthHeaders } from "@/lib/server-auth";
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
 export default async function CustomAgentCodePage({ params }: PageProps) {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const userId = session?.user?.id;
+    const { headers: reqHeaders, userId, user } = await getServerAuthHeaders();
     const resolvedParams = await params;
 
     if (!userId) {
@@ -24,7 +22,7 @@ export default async function CustomAgentCodePage({ params }: PageProps) {
         const response = await fetch(
             `${apiUrl}/agents/${resolvedParams.id}`,
             {
-                headers: { "x-user-id": userId },
+                headers: reqHeaders,
                 cache: "no-store",
             }
         );
@@ -49,8 +47,8 @@ export default async function CustomAgentCodePage({ params }: PageProps) {
     return (
         <div className="flex h-screen bg-background">
             <Sidebar
-                userEmail={session?.user?.email || undefined}
-                userName={session?.user?.name || undefined}
+                userEmail={user?.email || undefined}
+                userName={user?.name || undefined}
                 collapsed
             />
             <div className="flex-1 min-w-0">

@@ -64,7 +64,7 @@ export default function VoicePage() {
     // Fetch user's agents from the API
     useEffect(() => {
         async function fetchAgents() {
-            if (!userId) {
+            if (!userId || !auth.Authorization) {
                 setIsLoadingAgents(false);
                 return;
             }
@@ -72,9 +72,7 @@ export default function VoicePage() {
                 const response = await fetch(
                     `${getApiUrl()}/agents/`,
                     {
-                        headers: {
-                            'x-user-id': userId,
-                        },
+                        headers: auth,
                     }
                 );
                 if (response.ok) {
@@ -89,7 +87,7 @@ export default function VoicePage() {
             }
         }
         fetchAgents();
-    }, [userId]);
+    }, [userId, auth]);
 
     const startSession = useCallback(async () => {
         setConnectionState("connecting");

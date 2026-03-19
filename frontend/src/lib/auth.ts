@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { organization } from "better-auth/plugins";
 import { Pool } from "pg";
 
 const pool = new Pool({
@@ -14,6 +15,13 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "arkenos-default-secret-change-in-production",
   baseURL,
   trustedOrigins: [baseURL, backendUrl],
+  plugins: [
+    organization({
+      allowUserToCreateOrganization: true,
+      organizationLimit: 5,
+      membershipLimit: 100,
+    }),
+  ],
 });
 
 // Auto-create BetterAuth tables if they don't exist
@@ -37,7 +45,8 @@ async function autoMigrate() {
         "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
         "ipAddress" TEXT,
         "userAgent" TEXT,
-        "userId" TEXT NOT NULL REFERENCES "user"(id)
+        "userId" TEXT NOT NULL REFERENCES "user"(id),
+        "activeOrganizationId" TEXT
       );
       CREATE TABLE IF NOT EXISTS "account" (
         id TEXT PRIMARY KEY,
@@ -51,6 +60,34 @@ async function autoMigrate() {
         "refreshTokenExpiresAt" TIMESTAMP,
         scope TEXT,
         password TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS "organization" (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT UNIQUE,
+        logo TEXT,
+        metadata TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS "member" (
+        id TEXT PRIMARY KEY,
+        "organizationId" TEXT NOT NULL REFERENCES "organization"(id),
+        "userId" TEXT NOT NULL REFERENCES "user"(id),
+        role TEXT NOT NULL DEFAULT 'member',
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS "invitation" (
+        id TEXT PRIMARY KEY,
+        "organizationId" TEXT NOT NULL REFERENCES "organization"(id),
+        email TEXT NOT NULL,
+        role TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        "expiresAt" TIMESTAMP NOT NULL,
+        "inviterId" TEXT NOT NULL REFERENCES "user"(id),
         "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
       );

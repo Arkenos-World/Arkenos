@@ -478,28 +478,47 @@ def get_org_key(db: Session, org_id: str, key_name: str) -> str | None:
     return val if val else None
 
 
+def _mask_value(value: str) -> str:
+    """Return last 4 characters of a key value, masked. E.g. '••••••ab3F'."""
+    if not value or len(value) < 4:
+        return "••••"
+    return "••••••" + value[-4:]
+
+
 def get_org_status(db: Session, org_id: str) -> dict:
     """Get status of all providers for a specific organization.
 
     Source priority: "org" (org_api_keys) → "db" (instance_settings) → "env" (.env)
+    Includes a masked hint (last 4 chars) for each set key.
     """
     settings = get_settings()
 
-    # Load org keys and instance keys
-    org_keys = {r.key_name for r in db.query(OrgApiKey).filter(OrgApiKey.org_id == org_id).all()}
-    instance_keys = {r.key for r in db.query(InstanceSettings).all()}
+    # Load org keys with values for masking
+    org_key_rows = {r.key_name: r.encrypted_value for r in db.query(OrgApiKey).filter(OrgApiKey.org_id == org_id).all()}
+    instance_key_rows = {r.key: r.encrypted_value for r in db.query(InstanceSettings).all()}
 
     result = {"providers": {}, "all_required_set": True}
 
     for provider_id, provider in PROVIDERS.items():
         keys_status = {}
         for key_name in provider["keys"]:
-            if key_name in org_keys:
-                keys_status[key_name] = {"status": "set", "source": "org"}
-            elif key_name in instance_keys:
-                keys_status[key_name] = {"status": "set", "source": "db"}
+            if key_name in org_key_rows:
+                hint = ""
+                try:
+                    hint = _mask_value(decrypt(org_key_rows[key_name]))
+                except Exception:
+                    hint = "••••••"
+                keys_status[key_name] = {"status": "set", "source": "org", "hint": hint}
+            elif key_name in instance_key_rows:
+                hint = ""
+                try:
+                    hint = _mask_value(decrypt(instance_key_rows[key_name]))
+                except Exception:
+                    hint = "••••••"
+                keys_status[key_name] = {"status": "set", "source": "db", "hint": hint}
             elif getattr(settings, key_name, None):
-                keys_status[key_name] = {"status": "set", "source": "env"}
+                val = getattr(settings, key_name)
+                keys_status[key_name] = {"status": "set", "source": "env", "hint": _mask_value(val)}
             else:
                 keys_status[key_name] = {"status": "missing", "source": None}
 

@@ -304,7 +304,7 @@ function ProviderCard({
                                 type={showValues[keyName] ? "text" : "password"}
                                 placeholder={
                                     keyInfo.status === "set"
-                                        ? "••••••••  (saved — enter new value to update)"
+                                        ? `${keyInfo.hint || "••••••"}  (saved — enter new value to update)`
                                         : meta.keyPlaceholders[keyName] || "Enter key..."
                                 }
                                 value={values[keyName] || ""}

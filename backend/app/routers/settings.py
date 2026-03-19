@@ -1,10 +1,12 @@
 """Settings router — manage per-org API keys with instance-level fallback."""
 
+import asyncio
+import json
 import logging
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -54,6 +56,48 @@ class TestResult(BaseModel):
     message: str
 
 
+# --- Agent WebSocket for live config reload ---
+
+_agent_connections: set[WebSocket] = set()
+
+
+async def notify_agents(event_type: str, **kwargs):
+    """Broadcast a message to all connected agent workers."""
+    message = json.dumps({"type": event_type, **kwargs})
+    dead = []
+    for ws in _agent_connections:
+        try:
+            await ws.send_text(message)
+        except Exception:
+            dead.append(ws)
+    for ws in dead:
+        _agent_connections.discard(ws)
+
+
+@router.websocket("/ws/agent")
+async def agent_websocket(ws: WebSocket):
+    """Persistent WebSocket for agent workers.
+
+    Agents connect on startup and stay connected. Backend pushes config
+    change notifications (e.g. livekit_keys_changed) so agents can
+    react instantly without polling.
+    """
+    await ws.accept()
+    _agent_connections.add(ws)
+    logger.info(f"[WS] Agent connected ({len(_agent_connections)} total)")
+    try:
+        while True:
+            # Keep connection alive — agent may send pings
+            data = await ws.receive_text()
+            if data == "ping":
+                await ws.send_text("pong")
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _agent_connections.discard(ws)
+        logger.info(f"[WS] Agent disconnected ({len(_agent_connections)} total)")
+
+
 # --- Endpoints ---
 
 
@@ -89,6 +133,10 @@ async def save_key(
     if data.key_name.startswith("livekit_"):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
+        try:
+            await notify_agents("livekit_keys_changed", key=data.key_name)
+        except Exception as e:
+            logger.warning(f"Failed to notify agents of key change: {e}")
     return {"status": "saved", "key": data.key_name}
 
 
@@ -109,6 +157,11 @@ async def save_keys_bulk(
     if any(k.startswith("livekit_") for k in saved):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
+        try:
+            await notify_agents("livekit_keys_changed", keys=[k for k in saved if k.startswith("livekit_")])
+        except Exception as e:
+            logger.warning(f"Failed to notify agents of key change: {e}")
+            logger.warning(f"Failed to notify agents of key change: {e}")
     return {"status": "saved", "keys": saved}
 
 
@@ -162,7 +215,30 @@ async def get_agent_keys(
             # Final fallback: legacy user keys
             return get_all_user_keys(db, user.id)
 
-    return get_all_keys(db)
+    # No org/user context — try to find LiveKit keys from any org so the
+    # agent worker can register on startup without .env configuration.
+    from app.models import OrgApiKey
+    from app.services.encryption import decrypt
+
+    base_keys = get_all_keys(db)
+
+    # Check if base already has LiveKit keys (from instance_settings or .env)
+    if base_keys.get("livekit_url") and base_keys.get("livekit_api_key"):
+        return base_keys
+
+    # Fall back to first org that has LiveKit keys configured
+    lk_org_key = db.query(OrgApiKey).filter(
+        OrgApiKey.key_name == "livekit_url"
+    ).first()
+    if lk_org_key:
+        org_keys = get_all_org_keys(db, lk_org_key.org_id)
+        # Merge: org keys fill gaps in base keys
+        for k, v in org_keys.items():
+            if v and not base_keys.get(k):
+                base_keys[k] = v
+        return base_keys
+
+    return base_keys
 
 
 @router.post("/test/{provider}", response_model=TestResult)

@@ -32,7 +32,11 @@ def verify_session_token(db: Session, token: str) -> Optional[User]:
     """Verify a Better Auth session token against the session table.
 
     Single indexed query — sub-millisecond. Returns the backend User or None.
+    Auto-creates a backend User record if a valid BA session exists but no
+    backend user is found yet (first login after Better Auth signup).
     """
+    import uuid
+
     result = db.execute(
         text(
             'SELECT "userId" FROM "session" '
@@ -43,7 +47,35 @@ def verify_session_token(db: Session, token: str) -> Optional[User]:
     if not result:
         return None
     auth_user_id = result[0]
-    return db.query(User).filter(User.auth_id == auth_user_id).first()
+
+    user = db.query(User).filter(User.auth_id == auth_user_id).first()
+    if user:
+        return user
+
+    # Auto-create backend User from Better Auth user table
+    ba_user = db.execute(
+        text('SELECT id, name, email FROM "user" WHERE id = :id'),
+        {"id": auth_user_id},
+    ).fetchone()
+    if not ba_user:
+        return None
+
+    user = User(
+        id=str(uuid.uuid4()),
+        auth_id=ba_user[0],
+        name=ba_user[1],
+        email=ba_user[2],
+    )
+    db.add(user)
+    try:
+        db.commit()
+        logger.info(f"Auto-created backend user {user.id} from BA user {auth_user_id}")
+    except Exception:
+        db.rollback()
+        # May have been created concurrently — try to fetch again
+        user = db.query(User).filter(User.auth_id == auth_user_id).first()
+
+    return user
 
 
 def get_active_org_from_session(db: Session, token: str) -> Optional[str]:

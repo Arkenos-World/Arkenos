@@ -16,20 +16,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def get_or_create_user(db: Session, auth_id: str) -> User:
-    """Get or create a user by auth provider ID."""
-    user = db.query(User).filter(User.auth_id == auth_id).first()
-    if not user:
-        user = User(
-            id=str(uuid.uuid4()),
-            auth_id=auth_id,
-            email=f"{auth_id}@placeholder.com",
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    return user
-
 
 @router.get("/", response_model=list[AgentResponse])
 async def get_agents(
@@ -59,12 +45,6 @@ async def create_agent(
     db: Session = Depends(get_db),
 ):
     """Create a new agent."""
-    # If user_id is provided in body (legacy/agent-worker), resolve that user instead
-    if agent_data.user_id:
-        resolved_user = get_or_create_user(db, agent_data.user_id)
-    else:
-        resolved_user = user
-
     agent_id = str(uuid.uuid4())
     mode = AgentMode(agent_data.agent_mode) if agent_data.agent_mode else AgentMode.STANDARD
 
@@ -74,7 +54,7 @@ async def create_agent(
         description=agent_data.description,
         type=agent_data.type,
         config=agent_data.config,
-        user_id=resolved_user.id,
+        user_id=user.id,
         org_id=org.id,
         agent_mode=mode,
     )

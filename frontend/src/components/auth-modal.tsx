@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 import { signIn, signUp } from "@/lib/auth-client";
 import { trackSignIn, trackSignUp } from "@/lib/tracking";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,6 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthModalProps) {
-    const router = useRouter();
     const [mode, setMode] = useState<AuthMode>(defaultMode);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -43,9 +41,22 @@ export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthM
         setPassword("");
     }
 
+    const passwordChecks = useMemo(() => ({
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+    }), [password]);
+
+    const isPasswordValid = mode === "sign-in" || Object.values(passwordChecks).every(Boolean);
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
+        if (mode === "sign-up" && !isPasswordValid) {
+            setError("Please meet all password requirements");
+            return;
+        }
         setLoading(true);
 
         try {
@@ -56,7 +67,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthM
                 } else {
                     trackSignUp();
                     onOpenChange(false);
-                    router.push("/dashboard");
+                    window.location.href = "/dashboard";
                 }
             } else {
                 const result = await signIn.email({ email, password });
@@ -65,7 +76,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthM
                 } else {
                     trackSignIn();
                     onOpenChange(false);
-                    router.push("/dashboard");
+                    window.location.href = "/dashboard";
                 }
             }
         } catch {
@@ -124,11 +135,25 @@ export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthM
                             required
                             minLength={8}
                         />
+                        {mode === "sign-up" && password.length > 0 && (
+                            <div className="grid grid-cols-2 gap-1 text-xs">
+                                {([
+                                    ["length", "8+ characters"],
+                                    ["uppercase", "Uppercase letter"],
+                                    ["lowercase", "Lowercase letter"],
+                                    ["number", "Number"],
+                                ] as const).map(([key, label]) => (
+                                    <span key={key} className={passwordChecks[key] ? "text-emerald-500" : "text-muted-foreground"}>
+                                        {passwordChecks[key] ? "\u2713" : "\u2022"} {label}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     {error && (
                         <p className="text-sm text-destructive">{error}</p>
                     )}
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full" disabled={loading || !isPasswordValid}>
                         {loading
                             ? (mode === "sign-in" ? "Signing in..." : "Creating account...")
                             : (mode === "sign-in" ? "Sign In" : "Create Account")}

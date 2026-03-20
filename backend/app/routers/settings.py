@@ -1,4 +1,4 @@
-"""Settings router — manage per-org API keys with instance-level fallback."""
+"""Settings router — manage per-org API keys (no instance-level fallback)."""
 
 import asyncio
 import json
@@ -14,18 +14,11 @@ from app.database import get_db
 from app.dependencies import get_current_org, get_current_user, require_role
 from app.models import Organization, OrgMember, User
 from app.services.config_resolver import (
-    get_all_keys,
     get_all_org_keys,
-    get_all_user_keys,
-    get_key,
     get_org_key,
     get_org_status,
-    get_user_key,
-    get_user_status,
     set_org_key,
     delete_org_key,
-    set_user_key,
-    delete_user_key,
     PROVIDERS,
     ALL_KEY_NAMES,
 )
@@ -187,58 +180,29 @@ async def delete_key(
 async def get_agent_keys(
     db: Session = Depends(get_db),
     org_id: Optional[str] = Query(None),
-    user_id: Optional[str] = Query(None),
 ):
-    """Internal endpoint: returns decrypted keys for agent/service use.
+    """Internal endpoint: returns decrypted org keys for agent/service use.
 
     Called by the agent process and frontend token route (server-to-server).
-    Accepts ?org_id= (preferred) or ?user_id= (legacy backward compat).
-    Should not be exposed to the public internet — protect via network/firewall.
+    Accepts ?org_id= to scope to a specific org. Without it, returns keys
+    from the first org that has LiveKit configured (single-tenant bootstrap).
     """
-    # Prefer org_id if provided
+    from app.models import OrgApiKey
+
+    # If org_id provided, return that org's keys directly
     if org_id:
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if org:
             return get_all_org_keys(db, org.id)
 
-    # Legacy: resolve via user_id, then find user's org
-    if user_id:
-        from app.models import User as UserModel
-        user = db.query(UserModel).filter(UserModel.id == user_id).first()
-        if not user:
-            user = db.query(UserModel).filter(UserModel.auth_id == user_id).first()
-        if user:
-            # Try to find the user's org and return org keys
-            membership = db.query(OrgMember).filter(OrgMember.user_id == user.id).first()
-            if membership:
-                return get_all_org_keys(db, membership.org_id)
-            # Final fallback: legacy user keys
-            return get_all_user_keys(db, user.id)
-
-    # No org/user context — try to find LiveKit keys from any org so the
-    # agent worker can register on startup without .env configuration.
-    from app.models import OrgApiKey
-    from app.services.encryption import decrypt
-
-    base_keys = get_all_keys(db)
-
-    # Check if base already has LiveKit keys (from instance_settings or .env)
-    if base_keys.get("livekit_url") and base_keys.get("livekit_api_key"):
-        return base_keys
-
-    # Fall back to first org that has LiveKit keys configured
+    # No org context — find first org with LiveKit keys (agent bootstrap)
     lk_org_key = db.query(OrgApiKey).filter(
         OrgApiKey.key_name == "livekit_url"
     ).first()
     if lk_org_key:
-        org_keys = get_all_org_keys(db, lk_org_key.org_id)
-        # Merge: org keys fill gaps in base keys
-        for k, v in org_keys.items():
-            if v and not base_keys.get(k):
-                base_keys[k] = v
-        return base_keys
+        return get_all_org_keys(db, lk_org_key.org_id)
 
-    return base_keys
+    return {}
 
 
 @router.post("/test/{provider}", response_model=TestResult)

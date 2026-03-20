@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { organization } from "better-auth/plugins";
+import { nextCookies } from "better-auth/next-js";
 import { Pool } from "pg";
 
 const pool = new Pool({
@@ -21,6 +22,7 @@ export const auth = betterAuth({
       organizationLimit: 5,
       membershipLimit: 100,
     }),
+    nextCookies(),
   ],
 });
 

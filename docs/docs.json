@@ -29,7 +29,7 @@
           {
             "group": "Architecture",
             "icon": "diagram-project",
-            "pages": ["architecture/overview", "architecture/voice-pipeline", "architecture/database"]
+            "pages": ["architecture/overview", "architecture/authentication", "architecture/voice-pipeline", "architecture/database"]
           },
           {
             "group": "Configuration",

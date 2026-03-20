@@ -30,19 +30,9 @@ from app.services.config_resolver import get_key, require_providers
 router = APIRouter()
 
 
-def get_or_create_user(db: Session, auth_id: str) -> User:
-    """Get or create a user by auth provider ID."""
-    user = db.query(User).filter(User.auth_id == auth_id).first()
-    if not user:
-        user = User(
-            id=str(uuid.uuid4()),
-            auth_id=auth_id,
-            email=f"{auth_id}@placeholder.com",
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    return user
+def _lookup_user_by_auth_id(db: Session, auth_id: str) -> Optional[User]:
+    """Look up a user by auth provider ID. Returns None if not found."""
+    return db.query(User).filter(User.auth_id == auth_id).first()
 
 
 @router.get("/")
@@ -177,21 +167,24 @@ async def create_session(
     """Create a new voice session.
 
     user_id can be either:
-    - An auth provider ID (browser sessions): looked up or created via get_or_create_user
+    - An auth provider ID (browser sessions): looked up via auth_id
     - An internal DB user UUID (SIP sessions): looked up directly by primary key
     """
     incoming_user_id = session_data.user_id
-    
+
     # Check if the incoming user_id is an internal DB UUID (36-char UUID format)
-    # vs an auth provider ID (e.g. "user_2abc..." or "sip-caller")
+    # vs an auth provider ID (e.g. "ONsgSNfu..." from Better Auth)
     user = None
     if len(incoming_user_id) == 36 and incoming_user_id.count('-') == 4:
         # Looks like a UUID — try to find the user by internal primary key first
         user = db.query(User).filter(User.id == incoming_user_id).first()
-    
+
     if user is None:
-        # Fall back to auth provider ID lookup / creation
-        user = get_or_create_user(db, incoming_user_id)
+        # Fall back to auth provider ID lookup
+        user = _lookup_user_by_auth_id(db, incoming_user_id)
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
 
     # If a session with this room_name already exists, return it (don't duplicate)
     existing = db.query(VoiceSession).filter(

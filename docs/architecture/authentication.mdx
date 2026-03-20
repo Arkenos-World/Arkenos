@@ -1,0 +1,98 @@
+---
+title: Authentication
+description: How authentication works across Arkenos services.
+---
+
+# Authentication
+
+Arkenos uses [Better Auth](https://better-auth.com) for authentication, with a clear separation between auth data and business data.
+
+## Architecture
+
+```
+Browser                    Frontend (Next.js)              Backend (FastAPI)
+  |                              |                               |
+  |-- Sign up/Sign in --------→ |                               |
+  |                              |-- Better Auth handles it --→  |
+  |                              |   (creates "user" + "session")|
+  |  ← session cookie ----------|                               |
+  |                              |                               |
+  |-- API request (Bearer token) ----------------------------→  |
+  |                              |                    verifies session token
+  |                              |                    auto-creates "users" row
+  |                              |                    auto-creates "organizations" row
+  |                              |                    ← returns data
+```
+
+## Two User Tables
+
+| Table | Owned by | Contains |
+|-------|----------|----------|
+| `"user"` | Better Auth | Auth credentials, email verification, session management |
+| `"users"` | Backend | Business data references — all FKs (agents, sessions, API keys) point here |
+
+This separation is intentional. The `users` table is an **auth-agnostic abstraction layer**. If the auth provider changes, only the sync logic updates — all business data stays intact.
+
+### Auto-Sync Flow
+
+1. User signs up → Better Auth creates a row in `"user"` table
+2. User makes first API request → backend receives Bearer token
+3. `verify_session_token()` validates the token against Better Auth's `"session"` table
+4. If no matching `users` row exists, it reads from `"user"` and auto-creates one
+5. Same pattern for organizations: `_auto_create_org_from_ba()` syncs Better Auth orgs to `organizations`
+
+## Authentication Methods
+
+### Browser → Backend (Session Token)
+
+Dashboard API calls include a Bearer token from the Better Auth session:
+
+```
+Authorization: Bearer <session_token>
+```
+
+The backend verifies this against the `"session"` table (single indexed query).
+
+### Agent → Backend (X-User-Id)
+
+The agent worker uses a trusted server-to-server header:
+
+```
+X-User-Id: <auth_id>
+```
+
+This is only accepted for internal calls (agent worker, backend-to-backend).
+
+### Organization Context
+
+Every API request resolves an organization via (in priority order):
+
+1. `x-org-id` header — explicit org selection from the frontend
+2. `activeOrganizationId` from the Better Auth session
+3. User's first org membership (fallback for single-org users)
+
+If the org exists in Better Auth but not in the backend's `organizations` table, it is auto-created.
+
+## Frontend Auth Setup
+
+Better Auth is configured in `frontend/src/lib/auth.ts` with:
+
+- Email/password authentication
+- Organization plugin (multi-tenancy)
+- `nextCookies` plugin (proper cookie handling for Next.js server components)
+- Auto-migration of Better Auth tables on startup
+
+### Post-Login Navigation
+
+After sign-in, the frontend uses `window.location.href` (not `router.push`) to navigate to the dashboard. This forces a full page load, ensuring auth cookies are properly sent to server components during the initial render.
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `frontend/src/lib/auth.ts` | Better Auth server config (plugins, DB connection) |
+| `frontend/src/lib/auth-client.ts` | Better Auth client SDK (signIn, signUp, useSession) |
+| `frontend/src/lib/server-auth.ts` | Server component auth helper (getServerAuthHeaders) |
+| `frontend/src/lib/auth-headers.ts` | Client component auth hook (useAuthHeaders) |
+| `backend/app/dependencies.py` | Session verification, user/org resolution, auto-creation |
+| `backend/app/main.py` | UserContextMiddleware (sets user/org context per request) |

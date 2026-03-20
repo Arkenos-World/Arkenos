@@ -141,7 +141,8 @@ def _run_migrations():
 try:
     _run_migrations()
 except Exception as e:
-    logger.error(f"Failed to run migrations: {e}")
+    logger.error(f"Failed to run migrations: {e}", exc_info=True)
+    raise
 
 
 def _ensure_instance_id():

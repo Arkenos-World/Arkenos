@@ -34,7 +34,6 @@ class AgentBase(BaseModel):
 
 
 class AgentCreate(AgentBase):
-    user_id: Optional[str] = None
     agent_mode: str = "STANDARD"
 
 

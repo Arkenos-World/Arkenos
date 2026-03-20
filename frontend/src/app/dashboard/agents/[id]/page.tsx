@@ -1,17 +1,15 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { AgentSettings } from "@/components/agents/agent-settings";
 import { getApiUrl } from "@/lib/api";
+import { getServerAuthHeaders } from "@/lib/server-auth";
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
 export default async function AgentDetailPage({ params }: PageProps) {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const userId = session?.user?.id;
+    const { headers: reqHeaders, userId } = await getServerAuthHeaders();
     const resolvedParams = await params;
 
     if (!userId) {
@@ -25,9 +23,7 @@ export default async function AgentDetailPage({ params }: PageProps) {
         const response = await fetch(
             `${apiUrl}/agents/${resolvedParams.id}`,
             {
-                headers: {
-                    'x-user-id': userId,
-                },
+                headers: reqHeaders,
                 cache: 'no-store',
             }
         );

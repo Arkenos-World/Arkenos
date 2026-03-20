@@ -315,7 +315,7 @@ async def assign_existing_number(
     if not phone.startswith("+"):
         phone = f"+{phone}"
 
-    # Validate ownership — check selected provider first, then detect correct one
+    # Validate ownership in the selected provider only
     provider_number_sid = None
     try:
         provider_impl = get_provider(request.provider, db)
@@ -356,72 +356,30 @@ async def assign_existing_number(
     db.commit()
     db.refresh(agent)
 
-    # Provision LiveKit SIP infrastructure
-    from app.services.telephony_provisioning import (
-        add_number_to_inbound_trunk,
-        ensure_dispatch_rule,
-        ensure_inbound_trunk,
-        get_sip_uri,
-    )
+    logger.info(f"Assigned number {phone} to agent {agent.name} via {request.provider}")
 
+    # Auto-provision the full SIP pipeline (LiveKit trunk + dispatch + provider SIP)
+    pipeline_result = None
     try:
-        await ensure_inbound_trunk(phone)
-        await ensure_dispatch_rule()
-        await add_number_to_inbound_trunk(phone)
+        pipeline_result = await _run_provision(agent, request.provider, db)
     except Exception as e:
-        logger.warning(f"LiveKit SIP provisioning failed (non-fatal): {e}")
+        logger.warning(f"Auto-provision after assign failed (non-fatal): {e}")
 
-    # Associate with provider SIP trunk — routes directly to LiveKit
-    if provider_number_sid:
-        try:
-            provider_impl = get_provider(request.provider, db)
-            sip_uri = get_sip_uri()
-
-            # Warn if SIP URI was auto-derived rather than explicitly set
-            from app.services.config_resolver import get_key as _get_key
-            explicit = _get_key(db, "livekit_sip_uri")
-            if not explicit:
-                logger.warning(
-                    f"SIP URI was auto-derived ({sip_uri}) — may be incorrect. "
-                    f"Set livekit_sip_uri in API Keys."
-                )
-
-            await provider_impl.configure_sip_inbound(sip_uri)
-            await provider_impl.associate_number_with_sip(provider_number_sid)
-        except Exception as e:
-            logger.warning(f"Provider SIP trunk association failed: {e}")
-
-    logger.info(f"Assigned existing number {phone} to agent {agent.name} via {request.provider}")
     return {
         "status": "assigned",
         "phone_number": phone,
         "provider_number_sid": provider_number_sid,
         "agent_id": agent.id,
+        "pipeline_result": pipeline_result,
     }
 
 
-@router.post("/numbers/provision")
-async def provision_pipeline(
-    request: ProvisionRequest,
-    db: Session = Depends(get_db),
-    _=Depends(require_providers("livekit")),
-):
-    """Test and set up the full SIP pipeline for an agent's phone number.
-    Checks each step, provisions anything missing, and returns per-step results."""
-    agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    if not agent.phone_number:
-        raise HTTPException(status_code=400, detail="Agent has no phone number to provision")
+async def _run_provision(agent, provider_name: str, db, force_outbound: bool = False) -> dict:
+    """Shared provisioning logic — sets up the full SIP pipeline for an agent.
 
-    # Update telephony_provider if frontend sends it
-    if request.provider and request.provider != agent.telephony_provider:
-        agent.telephony_provider = request.provider
-        db.commit()
-        db.refresh(agent)
-
-    provider_name = agent.telephony_provider or "twilio"
-
+    Called by both assign (auto-provision) and the provision endpoint (manual test).
+    Returns {status, phone_number, agent_id, steps[]}.
+    """
     from app.services.telephony_provisioning import (
         add_number_to_inbound_trunk,
         clear_provisioning_cache,
@@ -430,6 +388,7 @@ async def provision_pipeline(
         ensure_outbound_trunk,
         get_sip_uri,
     )
+    from app.services.config_resolver import get_key as _get_key
 
     # Clear all cached trunk/rule IDs so we always re-check LiveKit fresh.
     # This self-heals after LiveKit project changes without needing a restart.
@@ -437,8 +396,7 @@ async def provision_pipeline(
 
     steps = []
 
-    # Step 0: SIP URI check — must be explicitly set (auto-derive is unreliable)
-    from app.services.config_resolver import get_key as _get_key
+    # Step 0: SIP URI check
     explicit_sip_uri = _get_key(db, "livekit_sip_uri")
     if explicit_sip_uri:
         sip_uri_value = get_sip_uri()
@@ -473,9 +431,6 @@ async def provision_pipeline(
         steps.append({"step": "Number on Inbound Trunk", "status": "error", "detail": str(e)})
 
     # Step 4: Provider SIP Trunk association
-    # Always re-resolve the SID via the provider to ensure we have the correct resource ID.
-    # Telnyx order IDs differ from phone number resource IDs, and switching providers
-    # means the stored SID is invalid for the new provider.
     try:
         provider_impl = get_provider(provider_name, db)
         phone_sid = await provider_impl.validate_ownership(agent.phone_number)
@@ -485,10 +440,10 @@ async def provision_pipeline(
             db.commit()
             logger.info(f"Resolved {provider_name} SID {phone_sid} for {agent.phone_number}")
         else:
-            phone_sid = agent.provider_number_sid  # Fallback to stored
+            phone_sid = agent.provider_number_sid
     except Exception as e:
         logger.warning(f"Could not resolve provider SID for {agent.phone_number}: {e}")
-        phone_sid = agent.provider_number_sid  # Fallback to stored
+        phone_sid = agent.provider_number_sid
 
     if phone_sid:
         try:
@@ -506,15 +461,13 @@ async def provision_pipeline(
     else:
         steps.append({"step": "Provider SIP Trunk", "status": "warning", "detail": "Number not found in provider account — verify it exists and matches your credentials"})
 
-    # Step 5: LiveKit outbound trunk (for making outbound calls)
+    # Step 5: LiveKit outbound trunk
     try:
-        # Force-delete stale outbound trunk if requested (e.g. after credential connection recreation)
-        if request.force_outbound and provider_name == "telnyx":
+        if force_outbound and provider_name == "telnyx":
             from app.services.telephony_provisioning import _get_lk, _state
             from livekit.api import ListSIPOutboundTrunkRequest
             from livekit.protocol.sip import DeleteSIPTrunkRequest
             trunk_name = f"Arkenos Outbound ({provider_name})"
-            # Delete LiveKit outbound trunk
             lk = _get_lk()
             try:
                 resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
@@ -525,7 +478,6 @@ async def provision_pipeline(
                         _state.outbound_trunk_ids.pop(provider_name, None)
             finally:
                 await lk.aclose()
-            # Delete provider-side credential connection so fresh credentials are generated
             if provider_name == "telnyx":
                 provider_impl = get_provider(provider_name, db)
                 import httpx
@@ -556,6 +508,28 @@ async def provision_pipeline(
     }
 
 
+@router.post("/numbers/provision")
+async def provision_pipeline(
+    request: ProvisionRequest,
+    db: Session = Depends(get_db),
+    _=Depends(require_providers("livekit")),
+):
+    """Test and set up the full SIP pipeline for an agent's phone number."""
+    agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    if not agent.phone_number:
+        raise HTTPException(status_code=400, detail="Agent has no phone number to provision")
+
+    if request.provider and request.provider != agent.telephony_provider:
+        agent.telephony_provider = request.provider
+        db.commit()
+        db.refresh(agent)
+
+    provider_name = agent.telephony_provider or "twilio"
+    return await _run_provision(agent, provider_name, db, force_outbound=request.force_outbound or False)
+
+
 @router.get("/numbers/check")
 async def check_number_assignment(
     phone_number: str = Query(..., description="Phone number to check (E.164)"),
@@ -568,7 +542,7 @@ async def check_number_assignment(
 
     agents = (
         db.query(models.Agent)
-        .filter(models.Agent.phone_number.isnot(None))
+        .filter(models.Agent.phone_number.isnot(None), models.Agent.is_active == True)
         .all()
     )
 

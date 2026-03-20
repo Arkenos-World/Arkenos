@@ -24,7 +24,8 @@ from app.schemas import (
 )
 from app.services import minio_client
 from app.services.coding_agent_prompt import SYSTEM_PROMPT
-from app.dependencies import verify_agent_ownership
+from app.dependencies import verify_agent_ownership, get_current_user
+from app.models import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -179,15 +180,15 @@ async def list_conversations(
 @router.post("/conversations")
 async def create_conversation(
     agent_id: str = Path(...),
-    x_user_id: str = Header(...),
     db: Session = Depends(get_db),
     _agent: Agent = Depends(verify_agent_ownership),
+    user: User = Depends(get_current_user),
 ):
     """Create a new empty conversation."""
     conv = CodingAgentConversation(
         id=str(uuid.uuid4()),
         agent_id=agent_id,
-        user_id=x_user_id,
+        user_id=user.auth_id,
         title="New conversation",
     )
     db.add(conv)
@@ -254,10 +255,10 @@ async def delete_conversation(
 async def chat_stream(
     request: CodingAgentRequest,
     agent_id: str = Path(...),
-    x_user_id: str = Header(...),
     db: Session = Depends(get_db),
     _=Depends(require_providers("google")),
     _agent: Agent = Depends(verify_agent_ownership),
+    user: User = Depends(get_current_user),
 ):
     """Stream coding agent responses with Cursor-like rich events."""
 
@@ -284,7 +285,7 @@ async def chat_stream(
                 conv = CodingAgentConversation(
                     id=str(uuid.uuid4()),
                     agent_id=agent_id,
-                    user_id=x_user_id,
+                    user_id=user.auth_id,
                     title=title,
                 )
                 db.add(conv)

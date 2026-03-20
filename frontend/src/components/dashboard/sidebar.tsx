@@ -13,6 +13,7 @@ import {
     MenuIcon, XIcon, ChevronLeftIcon, ChevronRightIcon,
 } from "@/components/icons";
 import { ArkenosLogo, ArkenosLogoMark } from "@/components/ui/arkenos-logo";
+import { OrgSwitcher } from "@/components/dashboard/org-switcher";
 
 interface SidebarProps {
     userEmail?: string;
@@ -65,6 +66,9 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
                     <p className="text-xs text-muted-foreground mt-1 truncate">{userEmail}</p>
                 )}
             </div>
+
+            {/* Org Switcher */}
+            <OrgSwitcher collapsed={collapsed} />
 
             {/* Search */}
             {!collapsed && (

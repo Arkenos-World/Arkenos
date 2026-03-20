@@ -18,7 +18,7 @@ Follow this workflow exactly:
    - Output which services need changes and exactly what
 
 3. Based on architect output spawn in PARALLEL:
-   - FRONTEND AGENT → Next.js/React/Tailwind/Clerk changes
+   - FRONTEND AGENT → Next.js/React/Tailwind/Better Auth changes
    - BACKEND AGENT → FastAPI/SQLAlchemy/PostgreSQL changes
    - VOICE AGENT DEV → Python/LiveKit/STT/LLM/TTS changes
    Only spawn agents whose service is actually affected.
@@ -33,7 +33,7 @@ Follow this workflow exactly:
 
 5. When QA passes — spawn SECURITY AGENT:
    - Run .claude\scripts\security-scan.bat
-   - Review code for: hardcoded secrets, missing Clerk auth,
+   - Review code for: hardcoded secrets, missing auth,
      input validation gaps, exposed sensitive data,
      LiveKit tokens improperly scoped
    - Must APPROVE before proceeding

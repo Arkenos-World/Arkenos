@@ -37,6 +37,7 @@ import { Code2 } from "lucide-react";
 import { STATUS_BG } from "@/lib/design-tokens";
 import { useKeyStatus } from "@/hooks/use-key-status";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 
 interface ResembleVoice {
     id: string;
@@ -128,6 +129,7 @@ interface AgentListProps {
 
 export function AgentList({ initialAgents, userId }: AgentListProps) {
     const router = useRouter();
+    const auth = useAuthHeaders();
     const [agents, setAgents] = useState<Agent[]>(initialAgents);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -145,7 +147,9 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
     useEffect(() => {
         const fetchVoices = async () => {
             try {
-                const res = await fetch(`${apiUrl}/resemble/voices`);
+                const res = await fetch(`${apiUrl}/resemble/voices`, {
+                    headers: auth,
+                });
                 if (!res.ok) throw new Error("Failed to fetch voices");
                 const data: { voices: ResembleVoice[] } = await res.json();
                 const voices = data.voices ?? [];
@@ -158,8 +162,8 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                 setIsLoadingVoices(false);
             }
         };
-        fetchVoices();
-    }, [apiUrl]);
+        if (auth.Authorization) fetchVoices();
+    }, [apiUrl, auth]);
 
     const handleSelectTemplate = (template: AgentTemplate) => {
         setSelectedTemplate(template);
@@ -176,6 +180,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        ...auth,
                     },
                     body: JSON.stringify({
                         name: agentName,
@@ -233,7 +238,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                 `${apiUrl}/agents/`,
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...auth },
                     body: JSON.stringify({
                         name: agentName,
                         description: "Custom code-driven agent",

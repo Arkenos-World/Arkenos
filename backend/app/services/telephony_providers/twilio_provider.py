@@ -51,10 +51,46 @@ class TwilioProvider(TelephonyProvider):
             for num in available
         ]
 
+    def _find_trunk_sid(self) -> str | None:
+        """Find the 'Arkenos Inbound' Elastic SIP Trunk SID. Caches result."""
+        if self.twilio_trunk_sid:
+            return self.twilio_trunk_sid
+        client = self._get_client()
+        for trunk in client.trunking.v1.trunks.list():
+            if trunk.friendly_name == "Arkenos Inbound":
+                self.twilio_trunk_sid = trunk.sid
+                return trunk.sid
+        return None
+
+    def _clear_voice_overrides(self, number_sid: str) -> None:
+        """Clear voice_url and voice_application_sid on a Twilio number.
+
+        If either is set, Twilio routes calls to the webhook instead of the
+        SIP trunk — silently breaking inbound SIP routing.
+        """
+        client = self._get_client()
+        try:
+            number = client.incoming_phone_numbers(number_sid).fetch()
+            needs_update = bool(number.voice_url or number.voice_application_sid)
+            if needs_update:
+                update_kwargs = {}
+                if number.voice_url:
+                    logger.info(f"Clearing voice_url '{number.voice_url}' on {number_sid}")
+                    update_kwargs["voice_url"] = ""
+                if number.voice_application_sid:
+                    logger.info(f"Clearing voice_application_sid '{number.voice_application_sid}' on {number_sid}")
+                    update_kwargs["voice_application_sid"] = ""
+                client.incoming_phone_numbers(number_sid).update(**update_kwargs)
+                logger.info(f"Cleared voice overrides on {number_sid} — SIP trunk will now handle calls")
+        except Exception as e:
+            logger.warning(f"Could not clear voice overrides on {number_sid}: {e}")
+
     async def buy_number(self, phone_number: str) -> dict:
         """Purchase a Twilio phone number. Returns {sid, phone_number}."""
         client = self._get_client()
         incoming = client.incoming_phone_numbers.create(phone_number=phone_number)
+        # Clear any default voice URL so SIP trunk routing works
+        self._clear_voice_overrides(incoming.sid)
         return {
             "sid": incoming.sid,
             "phone_number": incoming.phone_number,
@@ -95,9 +131,15 @@ class TwilioProvider(TelephonyProvider):
                     break
 
         if existing_trunk:
+            # Ensure trunk uses secure (TLS/TCP) — LiveKit SIP requires TCP
+            # Ensure trunk is NOT secure — LiveKit SIP uses TCP, not TLS
+            if existing_trunk.secure:
+                client.trunking.v1.trunks(existing_trunk.sid).update(secure=False)
+                logger.info(f"Disabled secure (TLS) on trunk {existing_trunk.sid} — LiveKit uses TCP")
+
             # Verify origination URIs point to the correct SIP URI
             if sip_uri:
-                expected_sip_url = f"sip:{sip_uri}"
+                expected_sip_url = f"sip:{sip_uri};transport=tcp"
                 orig_urls = client.trunking.v1.trunks(existing_trunk.sid).origination_urls.list()
                 has_correct_uri = False
                 for orig in orig_urls:
@@ -134,10 +176,10 @@ class TwilioProvider(TelephonyProvider):
 
         trunk = client.trunking.v1.trunks.create(friendly_name="Arkenos Inbound")
 
-        # Add origination URI pointing to LiveKit SIP
+        # Add origination URI pointing to LiveKit SIP (TCP required)
         trunk.origination_urls.create(
             friendly_name="LiveKit SIP",
-            sip_url=f"sip:{sip_uri}",
+            sip_url=f"sip:{sip_uri};transport=tcp",
             weight=10,
             priority=10,
             enabled=True,
@@ -150,16 +192,22 @@ class TwilioProvider(TelephonyProvider):
     async def associate_number_with_sip(self, number_sid: str) -> None:
         """Associate a Twilio phone number with the Elastic SIP Trunk.
         Routes inbound calls directly to LiveKit via SIP origination.
+
+        Also clears voice_url/voice_application_sid on the number — if set,
+        they override the SIP trunk and silently break inbound routing.
         """
-        trunk_sid = self.twilio_trunk_sid
+        # Find the trunk (don't call configure_sip_inbound with empty URI)
+        trunk_sid = self._find_trunk_sid()
         if not trunk_sid:
-            # Ensure the trunk exists first
-            result = await self.configure_sip_inbound("")
-            trunk_sid = result.get("trunk_id") if isinstance(result, dict) else result
-            if not trunk_sid:
-                raise ValueError("No Twilio SIP trunk available")
+            raise ValueError(
+                "No 'Arkenos Inbound' Twilio SIP trunk found. "
+                "Run configure_sip_inbound first."
+            )
 
         client = self._get_client()
+
+        # Clear voice_url / voice_application_sid — these override SIP trunk routing
+        self._clear_voice_overrides(number_sid)
 
         # Check if already associated (reuse-first)
         existing = client.trunking.v1.trunks(trunk_sid).phone_numbers.list()
@@ -175,24 +223,16 @@ class TwilioProvider(TelephonyProvider):
 
     async def disassociate_number_from_sip(self, number_sid: str) -> None:
         """Remove a phone number from the Twilio Elastic SIP Trunk."""
-        if not self.twilio_trunk_sid:
-            # Try to find existing trunk
-            client = self._get_client()
-            trunks = client.trunking.v1.trunks.list()
-            for trunk in trunks:
-                if trunk.friendly_name == "Arkenos Inbound":
-                    self.twilio_trunk_sid = trunk.sid
-                    break
-
-        if not self.twilio_trunk_sid:
+        trunk_sid = self._find_trunk_sid()
+        if not trunk_sid:
             logger.warning("No Twilio SIP trunk found, nothing to disassociate from")
             return
 
         client = self._get_client()
 
         try:
-            client.trunking.v1.trunks(self.twilio_trunk_sid).phone_numbers(number_sid).delete()
-            logger.info(f"Disassociated number {number_sid} from trunk {self.twilio_trunk_sid}")
+            client.trunking.v1.trunks(trunk_sid).phone_numbers(number_sid).delete()
+            logger.info(f"Disassociated number {number_sid} from trunk {trunk_sid}")
         except Exception as e:
             logger.warning(f"Could not disassociate number from trunk: {e}")
 
@@ -227,16 +267,7 @@ class TwilioProvider(TelephonyProvider):
             self.credential_list_sid = cred_list.sid
 
         # Reuse existing Twilio Elastic SIP Trunk (trial allows only one)
-        trunk_sid = self.twilio_trunk_sid
-        if not trunk_sid:
-            # Try to find existing trunk
-            trunks = client.trunking.v1.trunks.list()
-            for trunk in trunks:
-                if trunk.friendly_name == "Arkenos Inbound":
-                    trunk_sid = trunk.sid
-                    self.twilio_trunk_sid = trunk_sid
-                    break
-
+        trunk_sid = self._find_trunk_sid()
         if not trunk_sid:
             raise ValueError("No Twilio SIP trunk found — configure inbound first")
 

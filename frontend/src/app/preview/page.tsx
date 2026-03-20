@@ -39,6 +39,7 @@ import {
 import { ArkenosLogo } from "@/components/ui/arkenos-logo";
 import { PIPELINE_COLORS } from "@/lib/design-tokens";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import "./preview.css";
 
 // Models configuration
@@ -138,11 +139,14 @@ function PreviewContent({
     onDisconnect,
     selectedModel,
     agentName,
+    userId,
 }: {
     onDisconnect: () => void;
     selectedModel: string;
     agentName: string;
+    userId: string;
 }) {
+    const auth = useAuthHeaders();
     const room = useRoomContext();
     const connectionState = useConnectionState();
     const participants = useParticipants();
@@ -208,7 +212,7 @@ function PreviewContent({
                 `${getApiUrl()}/sessions/by-room/${room.name}/transcripts`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", ...auth },
                     body: JSON.stringify({
                         content: text,
                         speaker: speaker.toUpperCase(),
@@ -632,6 +636,7 @@ function PreviewPageContent() {
     const searchParams = useSearchParams();
     const { data: session } = useSession();
     const userId = session?.user?.id;
+    const auth = useAuthHeaders();
     const [connectionState, setConnectionState] = useState<ConnectionStateType>("idle");
     const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
     const [connectionData, setConnectionData] = useState<{
@@ -664,7 +669,7 @@ function PreviewPageContent() {
     // Fetch user's agents from API
     useEffect(() => {
         async function fetchAgents() {
-            if (!userId) {
+            if (!userId || !auth.Authorization) {
                 setIsLoadingAgents(false);
                 return;
             }
@@ -674,7 +679,7 @@ function PreviewPageContent() {
                     {
                         headers: {
                             "Content-Type": "application/json",
-                            "X-User-Id": userId,
+                            ...auth,
                         },
                     }
                 );
@@ -689,7 +694,7 @@ function PreviewPageContent() {
             }
         }
         fetchAgents();
-    }, [userId]);
+    }, [userId, auth]);
 
     const startSession = useCallback(async () => {
         setConnectionState("connecting");
@@ -737,7 +742,7 @@ function PreviewPageContent() {
             try {
                 await fetch(
                     `${getApiUrl()}/sessions/by-room/${connectionData.roomName}/end`,
-                    { method: "POST" }
+                    { method: "POST", headers: auth }
                 );
             } catch (error) {
                 console.error("Failed to end session:", error);
@@ -879,6 +884,7 @@ function PreviewPageContent() {
                                 onDisconnect={handleDisconnect}
                                 selectedModel={selectedModel}
                                 agentName={agents.find(a => a.id === selectedAgent)?.name || "AI Agent"}
+                                userId={userId!}
                             />
                         </LiveKitRoom>
                     )}

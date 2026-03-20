@@ -21,6 +21,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 
 function PhoneOutgoingIcon({ className }: { className?: string }) {
     return (
@@ -98,6 +99,7 @@ interface OutboundCallModalProps {
 
 export function OutboundCallModal({ open, onOpenChange, agentId, agentName, userId }: OutboundCallModalProps) {
     const apiUrl = getApiUrl();
+    const auth = useAuthHeaders();
 
     // Dialer state
     const [countryCode, setCountryCode] = useState("+1");
@@ -128,7 +130,7 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
         pollIntervalRef.current = setInterval(async () => {
             try {
                 const res = await fetch(`${apiUrl}/calls/${id}/status`, {
-                    headers: { "x-user-id": userId },
+                    headers: auth,
                 });
                 if (!res.ok) return;
                 const data = await res.json();
@@ -178,7 +180,7 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-user-id": userId,
+                    ...auth,
                 },
                 body: JSON.stringify({
                     agent_id: agentId,
@@ -210,7 +212,7 @@ export function OutboundCallModal({ open, onOpenChange, agentId, agentName, user
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-user-id": userId,
+                    ...auth,
                 },
             });
             setCallStatus("completed");

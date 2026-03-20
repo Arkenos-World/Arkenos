@@ -39,29 +39,38 @@ logger = logging.getLogger("voice-agent")
 _raw_backend_url = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api")
 BACKEND_API_URL = _raw_backend_url if _raw_backend_url.endswith("/api") else f"{_raw_backend_url.rstrip('/')}/api"
 
+# Per-event-loop HTTP client cache. With THREAD executor, each job may run on
+# a different event loop. httpx.AsyncClient binds to the loop it's created on,
+# so we cache one client per loop to avoid "bound to a different event loop" errors
+# while still reusing connections within the same loop.
+_http_clients: dict[int, httpx.AsyncClient] = {}
 
-def fetch_and_inject_keys(quiet: bool = False):
-    """Fetch API keys from backend and inject into os.environ.
 
-    Dashboard values always overwrite existing env vars so that key
-    changes in the UI take effect without restarting the agent.
+def _get_http_client() -> httpx.AsyncClient:
+    """Return an httpx client for the current event loop."""
+    loop = asyncio.get_event_loop()
+    loop_id = id(loop)
+    client = _http_clients.get(loop_id)
+    if client is None or client.is_closed:
+        client = httpx.AsyncClient(timeout=15)
+        _http_clients[loop_id] = client
+    return client
+
+
+def fetch_and_inject_keys_sync(user_id: str = None, quiet: bool = False):
+    """Fetch API keys from backend (synchronous). Only safe at module level / startup.
+
+    Do NOT call this inside the async entrypoint — use fetch_and_inject_keys() instead.
     Set quiet=True to suppress routine log messages (used by background watcher).
     """
     import httpx as _httpx
     try:
-        resp = _httpx.get(f"{BACKEND_API_URL}/settings/keys/agent", timeout=5)
+        url = f"{BACKEND_API_URL}/settings/keys/agent"
+        if user_id:
+            url += f"?user_id={user_id}"
+        resp = _httpx.get(url, timeout=5)
         if resp.status_code == 200:
-            keys = resp.json()
-            injected = []
-            for key_name, value in keys.items():
-                env_name = key_name.upper()
-                if value:  # Only overwrite if dashboard has a non-empty value
-                    os.environ[env_name] = value
-                    injected.append(env_name)
-            if injected and not quiet:
-                logger.info(f"Injected {len(injected)} keys from backend dashboard: {', '.join(injected)}")
-            elif not injected and not quiet:
-                logger.info("No keys returned from backend dashboard")
+            _apply_keys(resp.json(), quiet=quiet)
         else:
             logger.warning(f"Failed to fetch keys from backend: {resp.status_code}")
     except Exception as e:
@@ -69,8 +78,39 @@ def fetch_and_inject_keys(quiet: bool = False):
             logger.warning(f"Could not fetch keys from backend (will use .env): {e}")
 
 
-# Fetch keys from backend dashboard (non-blocking fallback to .env)
-fetch_and_inject_keys()
+async def fetch_and_inject_keys(user_id: str = None, quiet: bool = False):
+    """Fetch API keys from backend (async). Safe to call inside the entrypoint."""
+    try:
+        url = f"{BACKEND_API_URL}/settings/keys/agent"
+        if user_id:
+            url += f"?user_id={user_id}"
+        client = _get_http_client()
+        resp = await client.get(url)
+        if resp.status_code == 200:
+            _apply_keys(resp.json(), quiet=quiet)
+        else:
+            logger.warning(f"Failed to fetch keys from backend: {resp.status_code}")
+    except Exception as e:
+        if not quiet:
+            logger.warning(f"Could not fetch keys from backend (will use .env): {e}")
+
+
+def _apply_keys(keys: dict, quiet: bool = False):
+    """Inject API keys into os.environ."""
+    injected = []
+    for key_name, value in keys.items():
+        env_name = key_name.upper()
+        if value:
+            os.environ[env_name] = value
+            injected.append(env_name)
+    if injected and not quiet:
+        logger.info(f"Injected {len(injected)} keys from backend dashboard: {', '.join(injected)}")
+    elif not injected and not quiet:
+        logger.info("No keys returned from backend dashboard")
+
+
+# Fetch keys from backend dashboard at startup (sync is OK here — not in event loop yet)
+fetch_and_inject_keys_sync()
 
 # Store LiveKit keys at boot — used to detect changes later
 _BOOT_LIVEKIT_KEYS = {
@@ -93,7 +133,7 @@ def _watch_livekit_keys(interval: int = 60):
     while True:
         time.sleep(interval)
         try:
-            fetch_and_inject_keys(quiet=True)
+            fetch_and_inject_keys_sync(quiet=True)
             current = {
                 "url": os.environ.get("LIVEKIT_URL", ""),
                 "key": os.environ.get("LIVEKIT_API_KEY", ""),
@@ -116,13 +156,13 @@ DEFAULT_INSTRUCTIONS = """You are a voice assistant. The service is currently no
 async def fetch_agent_config(agent_id: str) -> dict | None:
     """Fetch agent configuration from the backend API."""
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{BACKEND_API_URL}/agents/{agent_id}", timeout=10)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logger.warning(f"Failed to fetch agent config: {response.status_code}")
-                return None
+        client = _get_http_client()
+        response = await client.get(f"{BACKEND_API_URL}/agents/{agent_id}")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.warning(f"Failed to fetch agent config: {response.status_code}")
+            return None
     except Exception as e:
         logger.error(f"Error fetching agent config: {e}")
         return None
@@ -131,17 +171,16 @@ async def fetch_agent_config(agent_id: str) -> dict | None:
 async def lookup_agent_by_phone(phone_number: str) -> dict | None:
     """Look up an agent by its assigned Twilio phone number."""
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{BACKEND_API_URL}/telephony/lookup",
-                params={"phone_number": phone_number},
-                timeout=10,
-            )
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logger.warning(f"No agent found for phone {phone_number}: {response.status_code}")
-                return None
+        client = _get_http_client()
+        response = await client.get(
+            f"{BACKEND_API_URL}/telephony/lookup",
+            params={"phone_number": phone_number},
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.warning(f"No agent found for phone {phone_number}: {response.status_code}")
+            return None
     except Exception as e:
         logger.error(f"Error looking up agent by phone: {e}")
         return None
@@ -206,22 +245,22 @@ def get_sip_phone_number(room) -> str | None:
 async def create_backend_session(room_name: str, user_id: str, agent_id: str | None) -> str | None:
     """Create a VoiceSession in the backend. Returns session ID."""
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{BACKEND_API_URL}/sessions/",
-                json={
-                    "room_name": room_name,
-                    "user_id": user_id,
-                    "agent_id": agent_id,
-                    "session_data": {},
-                },
-            )
-            if response.status_code == 201:
-                data = response.json()
-                logger.info(f"Created backend session: {data.get('id')}")
-                return data.get("id")
-            else:
-                logger.warning(f"Failed to create session: {response.status_code} {response.text}")
+        client = _get_http_client()
+        response = await client.post(
+            f"{BACKEND_API_URL}/sessions/",
+            json={
+                "room_name": room_name,
+                "user_id": user_id,
+                "agent_id": agent_id,
+                "session_data": {},
+            },
+        )
+        if response.status_code == 201:
+            data = response.json()
+            logger.info(f"Created backend session: {data.get('id')}")
+            return data.get("id")
+        else:
+            logger.warning(f"Failed to create session: {response.status_code} {response.text}")
     except Exception as e:
         logger.error(f"Error creating backend session: {e}")
     return None
@@ -232,11 +271,11 @@ async def save_transcript_to_backend(room_name: str, content: str, speaker: str)
     if not content or not content.strip():
         return
     try:
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{BACKEND_API_URL}/sessions/by-room/{room_name}/transcripts",
-                json={"content": content, "speaker": speaker.upper()},
-            )
+        client = _get_http_client()
+        await client.post(
+            f"{BACKEND_API_URL}/sessions/by-room/{room_name}/transcripts",
+            json={"content": content, "speaker": speaker.upper()},
+        )
     except Exception as e:
         logger.error(f"Error saving transcript: {e}")
 
@@ -244,9 +283,9 @@ async def save_transcript_to_backend(room_name: str, content: str, speaker: str)
 async def end_backend_session(room_name: str):
     """End the session in the backend to calculate duration."""
     try:
-        async with httpx.AsyncClient() as client:
-            await client.post(f"{BACKEND_API_URL}/sessions/by-room/{room_name}/end")
-            logger.info(f"Ended backend session for room {room_name}")
+        client = _get_http_client()
+        await client.post(f"{BACKEND_API_URL}/sessions/by-room/{room_name}/end")
+        logger.info(f"Ended backend session for room {room_name}")
     except Exception as e:
         logger.error(f"Error ending backend session: {e}")
 
@@ -314,14 +353,14 @@ def create_transfer_call_tool(room_name: str, session_id_holder: dict) -> object
             return "Error: No active session to transfer"
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{BACKEND_API_URL}/sessions/{session_id}/transfer",
-                    json={"phone_number": phone_number, "type": transfer_type.upper()},
-                    timeout=10,
-                )
-                response.raise_for_status()
-                result = response.json()
+            client = _get_http_client()
+            response = await client.post(
+                f"{BACKEND_API_URL}/sessions/{session_id}/transfer",
+                json={"phone_number": phone_number, "type": transfer_type.upper()},
+                timeout=10,
+            )
+            response.raise_for_status()
+            result = response.json()
         except Exception as e:
             logger.error(f"Transfer API call failed: {e}")
             if session:
@@ -416,31 +455,31 @@ def create_function_tools(functions_config: list[dict], room_name: str) -> list:
 
                 result_text = ""
                 try:
-                    async with httpx.AsyncClient() as client:
-                        if method in ("POST", "PUT", "PATCH"):
-                            response = await client.request(
-                                method=method,
-                                url=url,
-                                json=raw_arguments,
-                                headers=header_dict,
-                                timeout=timeout,
-                            )
-                        else:  # GET, DELETE — send args as query params
-                            response = await client.request(
-                                method=method,
-                                url=url,
-                                params={k: str(v) for k, v in raw_arguments.items()},
-                                headers=header_dict,
-                                timeout=timeout,
-                            )
+                    client = _get_http_client()
+                    if method in ("POST", "PUT", "PATCH"):
+                        response = await client.request(
+                            method=method,
+                            url=url,
+                            json=raw_arguments,
+                            headers=header_dict,
+                            timeout=timeout,
+                        )
+                    else:  # GET, DELETE — send args as query params
+                        response = await client.request(
+                            method=method,
+                            url=url,
+                            params={k: str(v) for k, v in raw_arguments.items()},
+                            headers=header_dict,
+                            timeout=timeout,
+                        )
 
-                        response.raise_for_status()
+                    response.raise_for_status()
 
-                        content_type = response.headers.get("content-type", "")
-                        if "application/json" in content_type:
-                            result_data = response.json()
-                            result_text = json.dumps(result_data)
-                        else:
+                    content_type = response.headers.get("content-type", "")
+                    if "application/json" in content_type:
+                        result_data = response.json()
+                        result_text = json.dumps(result_data)
+                    else:
                             result_text = response.text
 
                 except httpx.TimeoutException:
@@ -481,29 +520,38 @@ class VoiceAssistant(Agent):
         )
 
 
-# Create the agent server
-server = AgentServer()
+# Detect dev vs production mode from sys.argv (before AgentServer is created).
+# Dev mode: use THREAD executor (Windows-compatible, simpler, works with hot reload).
+# Production (start): use PROCESS executor with idle processes for true isolation.
+_is_dev_mode = "dev" in sys.argv
+
+if _is_dev_mode:
+    # THREAD executor: jobs run as async tasks in the main process.
+    # room.disconnect() at end of each call ensures fast cleanup.
+    server = AgentServer(
+        job_executor_type=agents.JobExecutorType.THREAD,
+        shutdown_process_timeout=5.0,
+    )
+    logger.info("[INIT] Dev mode — using THREAD executor (single process, async concurrency)")
+else:
+    # PROCESS executor: each call runs in its own subprocess.
+    # Pre-warmed idle processes for instant call pickup.
+    server = AgentServer(
+        job_executor_type=agents.JobExecutorType.PROCESS,
+        num_idle_processes=3,
+        initialize_process_timeout=30.0,
+        shutdown_process_timeout=5.0,
+    )
+    logger.info("[INIT] Production mode — using PROCESS executor (3 idle processes)")
 
 
 @server.rtc_session(agent_name="arkenos-agent")
 async def entrypoint(ctx: agents.JobContext):
     """Main entrypoint for the voice agent session."""
-    
+
     call_start_time = time.time()
     logger.info(f"[CALL] ========== NEW CALL ==========")
     logger.info(f"[CALL] Room: {ctx.room.name}")
-    logger.info(f"[CALL] Backend API URL: {BACKEND_API_URL}")
-
-    # Re-fetch keys from dashboard so new/changed keys take effect without restart
-    fetch_and_inject_keys()
-
-    # Log current LiveKit config for debugging connection issues
-    lk_url = os.environ.get("LIVEKIT_URL", "NOT SET")
-    lk_key = os.environ.get("LIVEKIT_API_KEY", "NOT SET")
-    lk_secret = os.environ.get("LIVEKIT_API_SECRET", "")
-    logger.info(f"[CALL] LiveKit URL: {lk_url}")
-    logger.info(f"[CALL] LiveKit API Key: {lk_key}")
-    logger.info(f"[CALL] LiveKit API Secret: {'***' + lk_secret[-4:] if len(lk_secret) > 4 else 'NOT SET'}")
 
     # Wait for room to be fully connected
     logger.info("[CALL] Connecting to room...")
@@ -597,6 +645,12 @@ async def entrypoint(ctx: agents.JobContext):
         return
 
     logger.info(f"Full agent config: {agent_config}")
+
+    # Re-fetch keys scoped to the agent owner so each user's keys are used
+    owner_user_id = agent_config.get("user_id")
+    if owner_user_id:
+        await fetch_and_inject_keys(user_id=owner_user_id)
+
     config = agent_config.get("config", {})
     system_prompt = config.get("system_prompt")
     if not system_prompt:
@@ -709,7 +763,7 @@ async def entrypoint(ctx: agents.JobContext):
     
     # --- CREATE BACKEND SESSION ---
     # For SIP calls, use the agent owner's user_id so sessions appear in their call log.
-    # For browser calls, use the Clerk userId from room metadata.
+    # For browser calls, use the userId from room metadata.
     # agent_config["user_id"] is the agent owner's internal DB user UUID.
     if metadata.get("userId"):
         session_user_id = metadata["userId"]
@@ -935,11 +989,11 @@ async def entrypoint(ctx: agents.JobContext):
     logger.info(f"[CALL] Room: {ctx.room.name}, total duration: {call_duration:.1f}s")
 
     # --- POST-CALL WEBHOOK EXECUTION ---
-    # This runs after the room is disconnected/shutdown
+    # Must run BEFORE room.disconnect() — once disconnected the job exits immediately.
     if agent_config:
          webhooks = agent_config.get("config", {}).get("webhooks", {})
          post_call = webhooks.get("post_call", {})
-         
+
          if post_call.get("enabled"):
             logger.info("Executing post-call webhook...")
             try:
@@ -948,9 +1002,9 @@ async def entrypoint(ctx: agents.JobContext):
                     "agent_id": agent_id,
                     "room_name": ctx.room.name,
                     "user_id": metadata.get("userId") if metadata else None,
-                    "reason": "disconnected", # Generic reason as detailed reason might not be available
+                    "reason": "disconnected",
                 }
-                
+
                 # Construct body
                 body_template = post_call.get("body", "{}")
                 body_str = body_template
@@ -958,13 +1012,13 @@ async def entrypoint(ctx: agents.JobContext):
                     placeholder = "{{" + key + "}}"
                     if body_str:
                         body_str = body_str.replace(placeholder, str(val))
-                
+
                 req_body = None
                 try:
                     if body_str:
                         req_body = json.loads(body_str)
                     else:
-                        req_body = variables # Default payload
+                        req_body = variables
                 except:
                     req_body = variables
 
@@ -979,6 +1033,13 @@ async def entrypoint(ctx: agents.JobContext):
             except Exception as e:
                 logger.error(f"Post-call webhook failed: {e}")
 
+    # Note: We intentionally do NOT call ctx.room.disconnect() here.
+    # With THREAD executor, room.disconnect() triggers LiveKit's internal
+    # http_session cleanup which corrupts the shared event loop state,
+    # preventing subsequent calls from being dispatched. The room will
+    # close automatically when the entrypoint returns (LiveKit SDK handles this).
+    logger.info("[CALL] Entrypoint complete, room will close automatically")
+
 async def execute_webhook(url: str, method: str, headers: list, body: dict | None, timeout: int) -> dict | None:
     """Execute a webhook request."""
     if not url:
@@ -987,19 +1048,19 @@ async def execute_webhook(url: str, method: str, headers: list, body: dict | Non
     try:
         # Convert list of headers to dict
         header_dict = {h["key"]: h["value"] for h in headers if h["key"]}
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                method=method,
-                url=url,
-                headers=header_dict,
-                json=body,
-                timeout=timeout
-            )
-            response.raise_for_status()
-            if response.headers.get("content-type") == "application/json":
-                return response.json()
-            return None
+
+        client = _get_http_client()
+        response = await client.request(
+            method=method,
+            url=url,
+            headers=header_dict,
+            json=body,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        if response.headers.get("content-type") == "application/json":
+            return response.json()
+        return None
     except Exception as e:
         logger.error(f"Webhook request failed to {url}: {e}")
         raise e
@@ -1009,6 +1070,57 @@ def _handle_sigterm(signum, frame):
     """Handle SIGTERM for graceful shutdown on platforms like Render."""
     logger.info("SIGTERM received — shutting down gracefully...")
     sys.exit(0)
+
+
+# --- LiveKit credential live-reload via WebSocket ---
+# Connects to backend WebSocket. When LiveKit keys change in the dashboard,
+# the backend pushes a notification and the agent restarts immediately.
+
+_WS_RECONNECT_DELAY = 5  # seconds between reconnection attempts
+
+
+async def _config_websocket():
+    """Background task: maintain WebSocket to backend for config change notifications."""
+    import websockets
+
+    ws_url = BACKEND_API_URL.replace("http://", "ws://").replace("https://", "wss://")
+    ws_url = f"{ws_url}/settings/ws/agent"
+
+    while True:
+        try:
+            async with websockets.connect(ws_url) as ws:
+                logger.info(f"[CONFIG-WS] Connected to backend ({ws_url})")
+                async for message in ws:
+                    try:
+                        data = json.loads(message)
+                        event_type = data.get("type")
+
+                        if event_type == "livekit_keys_changed":
+                            logger.warning(
+                                "[CONFIG-WS] LiveKit credentials changed in dashboard!"
+                            )
+                            logger.warning("[CONFIG-WS] Re-launching agent with new credentials...")
+
+                            # Re-exec immediately — replaces this process with a fresh one.
+                            # Active calls will be dropped, but this is expected when
+                            # switching LiveKit projects (all rooms are on the old project).
+                            os.execv(sys.executable, [sys.executable] + sys.argv)
+
+                    except json.JSONDecodeError:
+                        if message == "pong":
+                            continue
+                        logger.debug(f"[CONFIG-WS] Non-JSON message: {message}")
+
+        except Exception as e:
+            logger.debug(f"[CONFIG-WS] Connection failed: {e}, reconnecting in {_WS_RECONNECT_DELAY}s...")
+            await asyncio.sleep(_WS_RECONNECT_DELAY)
+
+
+@server.on("worker_registered")
+def _start_config_ws(*args):
+    """Start the config WebSocket after successful registration."""
+    asyncio.get_event_loop().create_task(_config_websocket())
+    logger.info("[CONFIG-WS] Connecting to backend for live config reload")
 
 
 if __name__ == "__main__":

@@ -3,16 +3,19 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowRight } from "lucide-react";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import { getKeyStatus } from "@/lib/api";
 
 export function MissingKeysBanner() {
+    const auth = useAuthHeaders();
     const [show, setShow] = useState(false);
 
     useEffect(() => {
-        getKeyStatus()
+        if (!auth.Authorization) return;
+        getKeyStatus(auth)
             .then(data => setShow(!data.all_required_set))
             .catch(() => {}); // Silently fail — banner is non-critical
-    }, []);
+    }, [auth]);
 
     if (!show) return null;
 

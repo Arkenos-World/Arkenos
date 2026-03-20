@@ -17,6 +17,7 @@ import type {
     CostSummary, ProviderCost, CostTimelineEntry, AgentCost
 } from "@/lib/api"
 import { deltaColor } from "@/lib/design-tokens"
+import { useAuthHeaders } from "@/lib/auth-headers"
 
 // ─── Color palette (consistent with analytics) ──────────────────────────────
 const C = {
@@ -131,7 +132,8 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
         setEndDate(dates.end)
     }, [activePreset])
 
-    const headers = useMemo(() => ({ "x-user-id": userId }), [userId])
+    const auth = useAuthHeaders();
+    const headers = auth
 
     const fetchData = useCallback(async () => {
         if (!startDate || !endDate) return

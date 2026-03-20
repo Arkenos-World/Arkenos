@@ -8,6 +8,7 @@ import { CallsAreaChart } from "@/components/dashboard/calls-area-chart"
 import { SkeletonStatRow, SkeletonChart } from "@/components/ui/skeleton"
 import { deltaColor } from "@/lib/design-tokens"
 import { getApiUrl } from "@/lib/api"
+import { useAuthHeaders } from "@/lib/auth-headers"
 import type { VoiceSession, Agent, SessionsPage } from "@/lib/api"
 
 type Period = "7d" | "30d" | "90d"
@@ -70,7 +71,8 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
     const [isLoading, setIsLoading] = useState(true)
 
     const apiBase = getApiUrl()
-    const headers = { "x-user-id": userId }
+    const auth = useAuthHeaders();
+    const headers = auth
 
     const fetchData = useCallback(async () => {
         setIsLoading(true)
@@ -105,11 +107,12 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
         } finally {
             setIsLoading(false)
         }
-    }, [period, userId]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [period, userId, headers]) // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
+        if (!headers.Authorization) return
         fetchData()
-    }, [fetchData])
+    }, [fetchData, headers])
 
     // ── Stats ──────────────────────────────────────────────────────────────
     const callsDelta = prevTotal > 0

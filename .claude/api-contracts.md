@@ -1,7 +1,7 @@
 # Arkenos API Contracts
 
 ## Auth
-All /api/* endpoints require Clerk JWT in Authorization header
+All /api/* endpoints require Better Auth session (x-user-id header)
 Except: /api/livekit/webhook, /health
 
 ## Endpoints
@@ -58,7 +58,7 @@ GET /api/dashboard/metrics → {
 ### Outbound Calls
 POST /api/calls/outbound   → OutboundCallResponse
 Body: { agent_id, phone_number (E.164), callback_url? }
-Headers: x-user-id (Clerk ID)
+Headers: x-user-id (user ID)
 
 OutboundCallResponse: { call_id, room_name, status }
 
@@ -69,7 +69,7 @@ CallStatusResponse: { call_id, status, call_status, call_direction,
                       ended_at, duration }
 
 POST /api/calls/:id/end   → { success: boolean, call_id: string }
-Headers: x-user-id (Clerk ID)
+Headers: x-user-id (user ID)
 Ends an active outbound call.
 
 ### Phone Numbers

@@ -90,7 +90,7 @@ Non-developer friendliness is explicitly deferred. Current UI scores 2/10 for no
 | LLM Providers | 1 provider (hardcoded) | Google Gemini only (2.5 Flash, 1.5 Flash, 1.5 Pro) |
 | TTS Providers | 1 provider (custom) | Resemble AI only (custom LiveKit plugin) |
 | Backend API | Working | FastAPI with 5 routers, PostgreSQL |
-| Frontend Dashboard | Working | Next.js 16, Clerk auth, agent CRUD, call logs |
+| Frontend Dashboard | Working | Next.js 16, Better Auth, agent CRUD, call logs |
 | Preview/Testing | Working | Browser-based WebRTC with iPhone mockup + 3D orb |
 | Phone Integration | Working | Twilio SIP via LiveKit, number buy/assign/release |
 | Webhooks | Working | Pre-call (GET with variable injection) and post-call (POST) |
@@ -684,16 +684,16 @@ Current authentication is dangerously weak:
 - Backend uses `x-user-id` header (any client can impersonate any user)
 - No API key system for programmatic access
 - No rate limiting
-- No JWT verification from Clerk
+- No JWT verification from auth provider
 
 #### 5.2 Requirements
 
 **Must Have:**
-- Verify Clerk JWT tokens on backend (replace `x-user-id` header)
+- Verify Better Auth session tokens on backend (replace `x-user-id` header)
 - API key generation, listing, and revocation via dashboard
 - API keys stored hashed in database (like passwords)
 - Rate limiting per user/API key (configurable)
-- API key authentication as alternative to Clerk JWT (for programmatic access)
+- API key authentication as alternative to Better Auth session (for programmatic access)
 
 **Must Have (Database):**
 - New `api_keys` table:
@@ -711,14 +711,14 @@ Current authentication is dangerously weak:
 
 **Must Have (Backend):**
 - Middleware that checks for:
-  1. `Authorization: Bearer <clerk-jwt>` → verify with Clerk
+  1. `Authorization: Bearer <session-token>` → verify with Better Auth
   2. `Authorization: Bearer <api-key>` → verify against hashed keys
   3. Reject if neither is valid
 - Rate limiter middleware (e.g., `slowapi`)
 
 #### 5.3 Implementation Notes
 
-- Use Clerk's Python SDK for JWT verification: `clerk-backend-api`
+- Use Better Auth session verification on backend
 - Hash API keys with `bcrypt` or `sha256` (sha256 is fine for API keys)
 - Rate limiting: 100 requests/min for free tier, configurable per key
 - Scopes: `agents:read`, `agents:write`, `sessions:read`, `sessions:write`, `recordings:read`
@@ -920,7 +920,7 @@ Response Text → TTS → Audio → LiveKit → [WebRTC/SIP] → User
 | Backend | FastAPI, SQLAlchemy 2.0, Alembic | 8000 |
 | Database | PostgreSQL 15 | 5432 |
 | Agent Worker | Python 3.11+, LiveKit Agents SDK | N/A |
-| Auth | Clerk (frontend), header-based (backend — needs hardening) | N/A |
+| Auth | Better Auth (frontend + backend, x-user-id header — needs hardening) | N/A |
 | Voice Infra | LiveKit Cloud (WebRTC + SIP) | N/A |
 | Telephony | Twilio (SIP trunk + phone numbers) | N/A |
 | VAD | Silero (always enabled) | N/A |
@@ -947,7 +947,7 @@ volumes:
 | Column | Type | Notes |
 |--------|------|-------|
 | id | String(36), PK | UUID |
-| clerk_id | String(255), unique, indexed | Clerk auth ID |
+| auth_id | String(255), unique, indexed | Better Auth user ID |
 | email | String(255), unique | |
 | name | String(100), nullable | |
 | created_at | DateTime | |
@@ -1130,8 +1130,8 @@ volumes:
 | /dashboard/agents | agents/page.tsx | Agent list with grid cards and create dialog |
 | /dashboard/agents/[id] | Dynamic | Agent detail with settings tabs |
 | /preview | preview/page.tsx (818 lines) | Browser-based voice testing |
-| /sign-in | Clerk | Authentication |
-| /sign-up | Clerk | Registration |
+| /sign-in | Better Auth | Authentication |
+| /sign-up | Better Auth | Registration |
 
 ### 11.2 Current Components
 
@@ -1203,12 +1203,11 @@ twilio>=9.0.0
 **To Add (Phase 2):**
 ```
 slowapi>=0.1.9           # WS-7 (Rate limiting)
-clerk-backend-api>=1.0   # WS-7 (JWT verification)
 ```
 
 ### 12.3 Frontend Dependencies (`frontend/package.json`)
 
-**Current:** Next.js 16, React 19, Clerk, LiveKit components, Radix UI, Recharts, Three.js, GSAP, shadcn/ui, Tailwind CSS 4, Sonner
+**Current:** Next.js 16, React 19, Better Auth, LiveKit components, Radix UI, Recharts, Three.js, GSAP, shadcn/ui, Tailwind CSS 4, Sonner
 
 **To Add (Phase 1-2):** No new frontend dependencies expected — existing UI libraries cover all needs.
 

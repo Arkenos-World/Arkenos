@@ -18,6 +18,7 @@ import { BuildStatusBadge } from "./build-status";
 import { DeployDialog } from "./deploy-dialog";
 import { PreviewPanel } from "./preview-panel";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import type { Agent, AgentFile } from "@/lib/api";
 
 interface CustomAgentEditorProps {
@@ -27,6 +28,7 @@ interface CustomAgentEditorProps {
 
 export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
     const router = useRouter();
+    const auth = useAuthHeaders();
     const apiUrl = getApiUrl();
 
     const [files, setFiles] = useState<AgentFile[]>([]);
@@ -45,7 +47,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
         try {
             const res = await fetch(
                 `${apiUrl}/agents/${agent.id}/files`,
-                { headers: { "x-user-id": userId } }
+                { headers: auth }
             );
             if (!res.ok) return;
             const data = await res.json();
@@ -75,7 +77,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
             try {
                 const res = await fetch(
                     `${apiUrl}/agents/${agent.id}/files/${encodeURIComponent(activeFilePath)}`,
-                    { headers: { "x-user-id": userId } }
+                    { headers: auth }
                 );
                 if (!res.ok) return;
                 const data = await res.json();
@@ -98,7 +100,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",
-                            "x-user-id": userId,
+                            ...auth,
                         },
                         body: JSON.stringify({ content }),
                     }
@@ -120,7 +122,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",
-                            "x-user-id": userId,
+                            ...auth,
                         },
                         body: JSON.stringify({ content: "" }),
                     }
@@ -145,7 +147,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                     `${apiUrl}/agents/${agent.id}/files/${encodeURIComponent(filePath)}`,
                     {
                         method: "DELETE",
-                        headers: { "x-user-id": userId },
+                        headers: auth,
                     }
                 );
                 if (!res.ok) throw new Error("Delete failed");
@@ -180,7 +182,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                 try {
                     const res = await fetch(
                         `${apiUrl}/agents/${agent.id}/files/${encodeURIComponent(filePath)}`,
-                        { headers: { "x-user-id": userId } }
+                        { headers: auth }
                     );
                     if (res.ok) {
                         const data = await res.json();
@@ -209,7 +211,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
             try {
                 const res = await fetch(
                     `${apiUrl}/agents/${agent.id}`,
-                    { headers: { "x-user-id": userId } }
+                    { headers: auth }
                 );
                 if (!res.ok) return;
                 const data = await res.json();

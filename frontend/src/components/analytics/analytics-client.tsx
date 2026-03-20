@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { deltaColor } from "@/lib/design-tokens"
+import { useAuthHeaders } from "@/lib/auth-headers"
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 const C = {
@@ -115,6 +116,7 @@ interface AnalyticsClientProps {
 }
 
 export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps) {
+    const auth = useAuthHeaders();
     const [sessions, setSessions] = useState<Session[]>([])
     const [agents, setAgents] = useState<AgentRecord[]>([])
     const [loading, setLoading] = useState(true)
@@ -124,7 +126,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
 
     // Fetch agents list once (not range-dependent)
     useEffect(() => {
-        fetch(`${apiUrl}/agents`, { headers: { "x-user-id": userId }, cache: "no-store" })
+        fetch(`${apiUrl}/agents`, { headers: auth, cache: "no-store" })
             .then(r => r.ok ? r.json() : [])
             .then((data: AgentRecord[]) => setAgents(Array.isArray(data) ? data : []))
             .catch(() => { })
@@ -147,7 +149,7 @@ export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps
                 while (true) {
                     const res = await fetch(
                         `${apiUrl}/sessions/?limit=${pageSize}&page=${page}&start_date=${encodeURIComponent(startDateISO)}`,
-                        { headers: { "x-user-id": userId }, cache: "no-store" }
+                        { headers: auth, cache: "no-store" }
                     )
                     if (!res.ok) break
                     const data = await res.json()

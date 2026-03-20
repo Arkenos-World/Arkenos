@@ -22,6 +22,7 @@ import {
     History,
 } from "lucide-react";
 import { getApiUrl } from "@/lib/api";
+import { useAuthHeaders } from "@/lib/auth-headers";
 import type { CodingAgentMessage, ConversationListItem } from "@/lib/api";
 
 interface FileChange {
@@ -256,6 +257,7 @@ export function CodingAgentChat({
     onFileChanged,
     onOpenFile,
 }: CodingAgentChatProps) {
+    const auth = useAuthHeaders();
     const [messages, setMessages] = useState<CodingAgentMessage[]>([]);
     const [input, setInput] = useState("");
     const [isStreaming, setIsStreaming] = useState(false);
@@ -298,7 +300,7 @@ export function CodingAgentChat({
         try {
             const res = await fetch(
                 `${apiUrl}/agents/${agentId}/coding-agent/conversations`,
-                { headers: { "x-user-id": userId } }
+                { headers: auth }
             );
             if (res.ok) {
                 const data = await res.json();
@@ -317,7 +319,7 @@ export function CodingAgentChat({
         try {
             const res = await fetch(
                 `${apiUrl}/agents/${agentId}/coding-agent/conversations/${convId}`,
-                { headers: { "x-user-id": userId } }
+                { headers: auth }
             );
             if (!res.ok) return;
             const data = await res.json();
@@ -343,7 +345,7 @@ export function CodingAgentChat({
                 `${apiUrl}/agents/${agentId}/coding-agent/conversations/${convId}`,
                 {
                     method: "DELETE",
-                    headers: { "x-user-id": userId },
+                    headers: { ...auth },
                 }
             );
             if (!res.ok) return;
@@ -431,7 +433,7 @@ export function CodingAgentChat({
                 `${apiUrl}/agents/${agentId}/coding-agent/chat`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "x-user-id": userId },
+                    headers: { "Content-Type": "application/json", ...auth },
                     body: JSON.stringify({
                         agent_id: agentId,
                         prompt: userMessage.content,

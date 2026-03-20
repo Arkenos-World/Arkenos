@@ -1,19 +1,31 @@
-"""Settings router — manage instance-level API keys."""
+"""Settings router — manage per-org API keys with instance-level fallback."""
 
+import asyncio
+import json
 import logging
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_org, get_current_user, require_role
+from app.models import Organization, OrgMember, User
 from app.services.config_resolver import (
     get_all_keys,
+    get_all_org_keys,
+    get_all_user_keys,
     get_key,
-    get_status,
-    set_key,
+    get_org_key,
+    get_org_status,
+    get_user_key,
+    get_user_status,
+    set_org_key,
+    delete_org_key,
+    set_user_key,
+    delete_user_key,
     PROVIDERS,
     ALL_KEY_NAMES,
 )
@@ -44,6 +56,48 @@ class TestResult(BaseModel):
     message: str
 
 
+# --- Agent WebSocket for live config reload ---
+
+_agent_connections: set[WebSocket] = set()
+
+
+async def notify_agents(event_type: str, **kwargs):
+    """Broadcast a message to all connected agent workers."""
+    message = json.dumps({"type": event_type, **kwargs})
+    dead = []
+    for ws in _agent_connections:
+        try:
+            await ws.send_text(message)
+        except Exception:
+            dead.append(ws)
+    for ws in dead:
+        _agent_connections.discard(ws)
+
+
+@router.websocket("/ws/agent")
+async def agent_websocket(ws: WebSocket):
+    """Persistent WebSocket for agent workers.
+
+    Agents connect on startup and stay connected. Backend pushes config
+    change notifications (e.g. livekit_keys_changed) so agents can
+    react instantly without polling.
+    """
+    await ws.accept()
+    _agent_connections.add(ws)
+    logger.info(f"[WS] Agent connected ({len(_agent_connections)} total)")
+    try:
+        while True:
+            # Keep connection alive — agent may send pings
+            data = await ws.receive_text()
+            if data == "ping":
+                await ws.send_text("pong")
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _agent_connections.discard(ws)
+        logger.info(f"[WS] Agent disconnected ({len(_agent_connections)} total)")
+
+
 # --- Endpoints ---
 
 
@@ -58,52 +112,71 @@ async def get_instance_id(db: Session = Depends(get_db)):
 
 
 @router.get("/keys")
-async def get_key_status(db: Session = Depends(get_db)):
-    """Get status of all API keys (set/missing, source). Never returns actual values."""
-    return get_status(db)
+async def get_key_status(
+    db: Session = Depends(get_db),
+    org: Organization = Depends(get_current_org),
+):
+    """Get status of all API keys for the current org. Never returns actual values."""
+    return get_org_status(db, org.id)
 
 
-@router.post("/keys")
-async def save_key(data: KeySave, db: Session = Depends(get_db)):
-    """Save a single API key (encrypted)."""
+@router.post("/keys", dependencies=[Depends(require_role("owner", "admin"))])
+async def save_key(
+    data: KeySave,
+    db: Session = Depends(get_db),
+    org: Organization = Depends(get_current_org),
+):
+    """Save a single API key for the current org (encrypted)."""
     if data.key_name not in ALL_KEY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown key: {data.key_name}")
-    set_key(db, data.key_name, data.value)
-    # Clear SIP URI cache if a LiveKit key changed
+    set_org_key(db, org.id, data.key_name, data.value)
     if data.key_name.startswith("livekit_"):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
+        try:
+            await notify_agents("livekit_keys_changed", key=data.key_name)
+        except Exception as e:
+            logger.warning(f"Failed to notify agents of key change: {e}")
     return {"status": "saved", "key": data.key_name}
 
 
-@router.post("/keys/bulk")
-async def save_keys_bulk(data: BulkKeySave, db: Session = Depends(get_db)):
-    """Save multiple API keys at once."""
+@router.post("/keys/bulk", dependencies=[Depends(require_role("owner", "admin"))])
+async def save_keys_bulk(
+    data: BulkKeySave,
+    db: Session = Depends(get_db),
+    org: Organization = Depends(get_current_org),
+):
+    """Save multiple API keys for the current org at once."""
     saved = []
     for key_name, value in data.keys.items():
         if key_name not in ALL_KEY_NAMES:
             continue
         if value:  # Skip empty strings
-            set_key(db, key_name, value)
+            set_org_key(db, org.id, key_name, value)
             saved.append(key_name)
-    # Clear SIP URI cache if any LiveKit key changed
     if any(k.startswith("livekit_") for k in saved):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
+        try:
+            await notify_agents("livekit_keys_changed", keys=[k for k in saved if k.startswith("livekit_")])
+        except Exception as e:
+            logger.warning(f"Failed to notify agents of key change: {e}")
+            logger.warning(f"Failed to notify agents of key change: {e}")
     return {"status": "saved", "keys": saved}
 
 
-@router.delete("/keys/{key_name}")
-async def delete_key(key_name: str, db: Session = Depends(get_db)):
-    """Delete a key from the DB. Falls back to .env if one exists."""
+@router.delete("/keys/{key_name}", dependencies=[Depends(require_role("owner", "admin"))])
+async def delete_key(
+    key_name: str,
+    db: Session = Depends(get_db),
+    org: Organization = Depends(get_current_org),
+):
+    """Delete an org's key from the DB. Falls back to instance/env if one exists."""
     if key_name not in ALL_KEY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown key: {key_name}")
-    from app.models import InstanceSettings
-    row = db.query(InstanceSettings).filter(InstanceSettings.key == key_name).first()
-    if not row:
+    deleted = delete_org_key(db, org.id, key_name)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Key not found in dashboard")
-    db.delete(row)
-    db.commit()
     if key_name.startswith("livekit_"):
         from app.services.telephony_provisioning import clear_sip_uri_cache
         clear_sip_uri_cache()
@@ -111,9 +184,61 @@ async def delete_key(key_name: str, db: Session = Depends(get_db)):
 
 
 @router.get("/keys/agent")
-async def get_agent_keys(db: Session = Depends(get_db)):
-    """Internal endpoint: returns all decrypted keys for agent boot."""
-    return get_all_keys(db)
+async def get_agent_keys(
+    db: Session = Depends(get_db),
+    org_id: Optional[str] = Query(None),
+    user_id: Optional[str] = Query(None),
+):
+    """Internal endpoint: returns decrypted keys for agent/service use.
+
+    Called by the agent process and frontend token route (server-to-server).
+    Accepts ?org_id= (preferred) or ?user_id= (legacy backward compat).
+    Should not be exposed to the public internet — protect via network/firewall.
+    """
+    # Prefer org_id if provided
+    if org_id:
+        org = db.query(Organization).filter(Organization.id == org_id).first()
+        if org:
+            return get_all_org_keys(db, org.id)
+
+    # Legacy: resolve via user_id, then find user's org
+    if user_id:
+        from app.models import User as UserModel
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not user:
+            user = db.query(UserModel).filter(UserModel.auth_id == user_id).first()
+        if user:
+            # Try to find the user's org and return org keys
+            membership = db.query(OrgMember).filter(OrgMember.user_id == user.id).first()
+            if membership:
+                return get_all_org_keys(db, membership.org_id)
+            # Final fallback: legacy user keys
+            return get_all_user_keys(db, user.id)
+
+    # No org/user context — try to find LiveKit keys from any org so the
+    # agent worker can register on startup without .env configuration.
+    from app.models import OrgApiKey
+    from app.services.encryption import decrypt
+
+    base_keys = get_all_keys(db)
+
+    # Check if base already has LiveKit keys (from instance_settings or .env)
+    if base_keys.get("livekit_url") and base_keys.get("livekit_api_key"):
+        return base_keys
+
+    # Fall back to first org that has LiveKit keys configured
+    lk_org_key = db.query(OrgApiKey).filter(
+        OrgApiKey.key_name == "livekit_url"
+    ).first()
+    if lk_org_key:
+        org_keys = get_all_org_keys(db, lk_org_key.org_id)
+        # Merge: org keys fill gaps in base keys
+        for k, v in org_keys.items():
+            if v and not base_keys.get(k):
+                base_keys[k] = v
+        return base_keys
+
+    return base_keys
 
 
 @router.post("/test/{provider}", response_model=TestResult)
@@ -121,8 +246,9 @@ async def test_provider_connection(
     provider: str,
     body: Optional[TestRequest] = None,
     db: Session = Depends(get_db),
+    org: Organization = Depends(get_current_org),
 ):
-    """Test connection to a provider.
+    """Test connection to a provider using the current org's keys.
 
     If body.keys is provided, those values are used instead of DB/env keys.
     This allows testing new keys before saving them.
@@ -130,13 +256,13 @@ async def test_provider_connection(
     if provider not in PROVIDERS:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
-    # Build a key resolver that checks body overrides first
+    # Build a key resolver that checks body overrides first, then org keys
     override_keys = (body.keys if body else None) or {}
 
     def resolve_key(key_name: str) -> str | None:
         if key_name in override_keys and override_keys[key_name]:
             return override_keys[key_name]
-        return get_key(db, key_name)
+        return get_org_key(db, org.id, key_name)
 
     testers = {
         "livekit": _test_livekit,

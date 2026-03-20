@@ -86,7 +86,7 @@ curl "http://localhost:8000/api/telephony/numbers/search?area_code=415&country=U
 # Buy and assign to an agent (auto-provisions all SIP infrastructure)
 curl -X POST http://localhost:8000/api/telephony/numbers/buy \
   -H "Content-Type: application/json" \
-  -H "x-user-id: your-clerk-id" \
+  -H "x-user-id: your-user-id" \
   -d '{"phone_number": "+14155551234", "agent_id": "your-agent-uuid"}'
 ```
 
@@ -139,7 +139,7 @@ If you already own a Twilio number and want to use it with Arkenos:
 ```bash
 curl -X POST http://localhost:8000/api/telephony/numbers/assign \
   -H "Content-Type: application/json" \
-  -H "x-user-id: your-clerk-id" \
+  -H "x-user-id: your-user-id" \
   -d '{"phone_number": "+14155551234", "agent_id": "your-agent-uuid"}'
 
 # Then provision the SIP pipeline:
@@ -157,7 +157,7 @@ Numbers bought through the dashboard are auto-provisioned. The **Test & Setup Pi
 ```bash
 curl -X POST http://localhost:8000/api/telephony/numbers/release \
   -H "Content-Type: application/json" \
-  -H "x-user-id: your-clerk-id" \
+  -H "x-user-id: your-user-id" \
   -d '{"agent_id": "your-agent-uuid"}'
 ```
 
@@ -170,7 +170,7 @@ If a number was bought but SIP provisioning failed:
 ```bash
 curl -X POST http://localhost:8000/api/telephony/numbers/provision \
   -H "Content-Type: application/json" \
-  -H "x-user-id: your-clerk-id" \
+  -H "x-user-id: your-user-id" \
   -d '{"agent_id": "your-agent-uuid"}'
 ```
 

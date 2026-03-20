@@ -8,7 +8,8 @@ import uuid
 from decimal import Decimal
 
 from app.database import get_db
-from app.models import VoiceSession, UsageEvent, User, Transcript, SessionStatus, TransferType
+from app.dependencies import get_current_user, get_current_org
+from app.models import Agent, Organization, VoiceSession, UsageEvent, User, Transcript, SessionStatus, TransferType
 from app.schemas import (
     VoiceSessionCreate,
     VoiceSessionUpdate,
@@ -46,23 +47,18 @@ def get_or_create_user(db: Session, auth_id: str) -> User:
 
 @router.get("/")
 async def get_sessions(
-    x_user_id: Optional[str] = Header(None),
+    user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=10000),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Get all sessions for the authenticated user with pagination and date filtering."""
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="User ID required")
-    
-    user = db.query(User).filter(User.auth_id == x_user_id).first()
-    if not user:
-        return {"sessions": [], "total": 0, "page": page, "limit": limit}
-    
-    # Build query
-    query = db.query(VoiceSession).filter(VoiceSession.user_id == user.id)
+    """Get all sessions for the authenticated user's organization with pagination and date filtering."""
+
+    # Build query — org-scoped
+    query = db.query(VoiceSession).filter(VoiceSession.org_id == org.id)
     
     # Apply date filters (convert to naive UTC for comparison with DB)
     if start_date:
@@ -204,10 +200,18 @@ async def create_session(
     if existing:
         return existing
 
+    # Resolve org_id from the agent if available (covers agent-worker calls)
+    org_id = None
+    if session_data.agent_id:
+        agent = db.query(Agent).filter(Agent.id == session_data.agent_id).first()
+        if agent and agent.org_id:
+            org_id = agent.org_id
+
     session = VoiceSession(
         id=str(uuid.uuid4()),
         room_name=session_data.room_name,
         user_id=user.id,
+        org_id=org_id,
         agent_id=session_data.agent_id,
         session_data=session_data.metadata,  # Map metadata to session_data field
         status=SessionStatus.ACTIVE,

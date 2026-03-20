@@ -26,25 +26,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch LiveKit keys from backend dashboard (DB → env fallback)
+    // Fetch LiveKit keys from backend (user keys → instance → .env fallback)
     const backendUrl = getApiUrl();
-    let apiKey = process.env.LIVEKIT_API_KEY;
-    let apiSecret = process.env.LIVEKIT_API_SECRET;
-    let wsUrl = process.env.LIVEKIT_URL;
+    let apiKey: string | undefined;
+    let apiSecret: string | undefined;
+    let wsUrl: string | undefined;
 
-    if (!apiKey || !apiSecret || !wsUrl) {
-      try {
-        const keysRes = await fetch(`${backendUrl}/settings/keys/agent`);
-        if (keysRes.ok) {
-          const keys = await keysRes.json();
-          apiKey = apiKey || keys.livekit_api_key;
-          apiSecret = apiSecret || keys.livekit_api_secret;
-          wsUrl = wsUrl || keys.livekit_url;
-        }
-      } catch (err) {
-        console.error("Failed to fetch keys from backend:", err);
+    try {
+      const keysRes = await fetch(`${backendUrl}/settings/keys/agent?user_id=${userId}`);
+      if (keysRes.ok) {
+        const keys = await keysRes.json();
+        apiKey = keys.livekit_api_key;
+        apiSecret = keys.livekit_api_secret;
+        wsUrl = keys.livekit_url;
       }
+    } catch (err) {
+      console.error("Failed to fetch keys from backend:", err);
     }
+
+    // Fall back to env vars if backend didn't return keys
+    apiKey = apiKey || process.env.LIVEKIT_API_KEY;
+    apiSecret = apiSecret || process.env.LIVEKIT_API_SECRET;
+    wsUrl = wsUrl || process.env.LIVEKIT_URL;
 
     if (!apiKey || !apiSecret || !wsUrl) {
       return NextResponse.json(
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest) {
       try {
         await fetch(`${backendUrl}/sessions/`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-user-id": userId },
           body: JSON.stringify({
             room_name: roomName,
             user_id: userId,

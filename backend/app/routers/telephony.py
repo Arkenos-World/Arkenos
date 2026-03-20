@@ -321,9 +321,34 @@ async def assign_existing_number(
         provider_impl = get_provider(request.provider, db)
         provider_number_sid = await provider_impl.validate_ownership(phone)
         if not provider_number_sid:
-            logger.warning(f"Number {phone} not found in {request.provider} account — assigning anyway")
+            # Number not found in selected provider — check the other provider
+            other_provider = "telnyx" if request.provider == "twilio" else "twilio"
+            try:
+                other_impl = get_provider(other_provider, db)
+                other_sid = await other_impl.validate_ownership(phone)
+                if other_sid:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Number {phone} was not found in {request.provider} but exists in {other_provider}. "
+                               f"Please select {other_provider} as the provider.",
+                    )
+            except HTTPException:
+                raise  # Re-raise our own error
+            except Exception:
+                pass  # Other provider not configured, skip
+            raise HTTPException(
+                status_code=400,
+                detail=f"Number {phone} not found in any configured provider account. "
+                       f"Double-check the number and provider credentials.",
+            )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.warning(f"Could not verify number in {request.provider}: {e} — assigning anyway")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not verify number {phone} in {request.provider}: {str(e)}. "
+                   f"Check your provider credentials.",
+        )
 
     agent.phone_number = phone
     agent.provider_number_sid = provider_number_sid  # May be None if lookup failed
@@ -357,12 +382,17 @@ async def _run_provision(agent, provider_name: str, db, force_outbound: bool = F
     """
     from app.services.telephony_provisioning import (
         add_number_to_inbound_trunk,
+        clear_provisioning_cache,
         ensure_dispatch_rule,
         ensure_inbound_trunk,
         ensure_outbound_trunk,
         get_sip_uri,
     )
     from app.services.config_resolver import get_key as _get_key
+
+    # Clear all cached trunk/rule IDs so we always re-check LiveKit fresh.
+    # This self-heals after LiveKit project changes without needing a restart.
+    clear_provisioning_cache()
 
     steps = []
 
@@ -634,11 +664,14 @@ async def reassign_number(
     # Auto-provision pipeline
     from app.services.telephony_provisioning import (
         add_number_to_inbound_trunk,
+        clear_provisioning_cache,
         ensure_dispatch_rule,
         ensure_inbound_trunk,
         ensure_outbound_trunk,
         get_sip_uri,
     )
+
+    clear_provisioning_cache()
 
     steps = []
 

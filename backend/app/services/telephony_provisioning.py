@@ -36,6 +36,16 @@ def clear_sip_uri_cache() -> None:
     logger.info("[clear_sip_uri_cache] All provisioning cache cleared")
 
 
+def clear_provisioning_cache() -> None:
+    """Clear all cached trunk/rule IDs. Call before re-provisioning to self-heal
+    after LiveKit project changes without needing a backend restart."""
+    _state.inbound_trunk_id = None
+    _state.inbound_sip_uri = None
+    _state.outbound_trunk_ids.clear()
+    _state.dispatch_rule_id = None
+    logger.info("[clear_provisioning_cache] All provisioning caches cleared")
+
+
 def _get_lk():
     """Create a LiveKitAPI client from DB/env keys."""
     from livekit import api as lk_api
@@ -54,6 +64,7 @@ def _get_lk():
 async def ensure_inbound_trunk(phone: str | None = None) -> str:
     """Ensure an inbound SIP trunk exists. Reuse if found, create if not. Returns trunk ID.
     If creating a new trunk, `phone` is required as LiveKit needs at least one number for security.
+    Validates cached trunk ID against LiveKit to self-heal after project changes.
     """
     global _state
 
@@ -165,7 +176,9 @@ async def ensure_dispatch_rule() -> str:
 
 
 async def add_number_to_inbound_trunk(phone: str) -> None:
-    """Add a phone number to the inbound SIP trunk."""
+    """Add a phone number to the inbound SIP trunk.
+    Self-heals if the cached trunk ID is stale (e.g. LiveKit project changed).
+    """
     from livekit.api import ListUpdate
 
     logger.info(f"[add_number_to_inbound_trunk] Adding number {phone} to inbound trunk")
@@ -173,10 +186,28 @@ async def add_number_to_inbound_trunk(phone: str) -> None:
     logger.info(f"[add_number_to_inbound_trunk] Resolved inbound trunk_id={trunk_id}")
     lk = _get_lk()
     try:
-        await lk.sip.update_inbound_trunk_fields(
-            trunk_id, numbers=ListUpdate(add=[phone])
-        )
-        logger.info(f"[add_number_to_inbound_trunk] Added {phone} to inbound trunk {trunk_id}")
+        try:
+            await lk.sip.update_inbound_trunk_fields(
+                trunk_id, numbers=ListUpdate(add=[phone])
+            )
+            logger.info(f"[add_number_to_inbound_trunk] Added {phone} to inbound trunk {trunk_id}")
+        except Exception as e:
+            if "not_found" in str(e).lower() or "404" in str(e):
+                logger.warning(
+                    f"[add_number_to_inbound_trunk] Trunk {trunk_id} not found (stale cache) — "
+                    f"clearing cache and re-creating trunk"
+                )
+                _state.inbound_trunk_id = None
+                await lk.aclose()
+                # Re-create trunk and retry
+                trunk_id = await ensure_inbound_trunk(phone)
+                lk = _get_lk()
+                await lk.sip.update_inbound_trunk_fields(
+                    trunk_id, numbers=ListUpdate(add=[phone])
+                )
+                logger.info(f"[add_number_to_inbound_trunk] Added {phone} to new trunk {trunk_id}")
+            else:
+                raise
     finally:
         await lk.aclose()
 
@@ -186,7 +217,6 @@ async def remove_number_from_inbound_trunk(phone: str) -> None:
     from livekit.api import ListUpdate
 
     if not _state.inbound_trunk_id:
-        # Try to find it
         await ensure_inbound_trunk()
 
     if not _state.inbound_trunk_id:
@@ -195,10 +225,18 @@ async def remove_number_from_inbound_trunk(phone: str) -> None:
 
     lk = _get_lk()
     try:
-        await lk.sip.update_inbound_trunk_fields(
-            _state.inbound_trunk_id, numbers=ListUpdate(remove=[phone])
-        )
-        logger.info(f"Removed {phone} from inbound trunk {_state.inbound_trunk_id}")
+        try:
+            await lk.sip.update_inbound_trunk_fields(
+                _state.inbound_trunk_id, numbers=ListUpdate(remove=[phone])
+            )
+            logger.info(f"Removed {phone} from inbound trunk {_state.inbound_trunk_id}")
+        except Exception as e:
+            if "not_found" in str(e).lower() or "404" in str(e):
+                logger.warning(f"[remove_number] Trunk {_state.inbound_trunk_id} stale — clearing cache")
+                _state.inbound_trunk_id = None
+                # Trunk doesn't exist, so the number is effectively removed
+            else:
+                raise
     finally:
         await lk.aclose()
 
@@ -329,12 +367,22 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
             return existing_lk_trunk.sip_trunk_id
 
         if outbound_config.get("reused") and not existing_lk_trunk:
-            # Provider connection exists but LiveKit trunk is missing —
-            # cannot recover without the original password.
-            raise ValueError(
-                f"Provider '{provider_name}' has an existing outbound credential "
-                "connection but no matching LiveKit trunk was found. Delete the "
-                "provider-side credential connection and retry to create fresh credentials."
+            # Provider has a stale credential connection but LiveKit trunk is gone
+            # (e.g. switched LiveKit projects). Auto-delete and recreate.
+            logger.warning(
+                f"[ensure_outbound_trunk] Provider '{provider_name}' has stale credentials "
+                f"with no matching LiveKit trunk — deleting and recreating fresh"
+            )
+            db = SessionLocal()
+            try:
+                provider = get_provider(provider_name, db)
+                await provider.delete_outbound_credentials()
+                outbound_config = await provider.configure_sip_outbound()
+            finally:
+                db.close()
+            logger.info(
+                f"[ensure_outbound_trunk] Recreated fresh credentials: "
+                f"reused={outbound_config.get('reused')}, has_password={outbound_config.get('auth_password') is not None}"
             )
 
         if not outbound_config.get("reused") and existing_lk_trunk:

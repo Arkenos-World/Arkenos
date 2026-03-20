@@ -308,6 +308,35 @@ class TwilioProvider(TelephonyProvider):
             "reused": False,
         }
 
+    async def delete_outbound_credentials(self) -> None:
+        """Delete the 'Arkenos LiveKit' credential list from Twilio.
+        First detaches it from any SIP trunks, then deletes it.
+        Used to reset stale credentials when the LiveKit project changes."""
+        client = self._get_client()
+        target_cl = None
+        for cl in client.sip.credential_lists.list():
+            if cl.friendly_name == "Arkenos LiveKit":
+                target_cl = cl
+                break
+
+        if not target_cl:
+            logger.info("No 'Arkenos LiveKit' credential list found to delete")
+            return
+
+        # Detach from all trunks first (Twilio blocks deletion otherwise)
+        for trunk in client.trunking.v1.trunks.list():
+            try:
+                for assoc in client.trunking.v1.trunks(trunk.sid).credentials_lists.list():
+                    if assoc.sid == target_cl.sid:
+                        client.trunking.v1.trunks(trunk.sid).credentials_lists(target_cl.sid).delete()
+                        logger.info(f"Detached credential list {target_cl.sid} from trunk {trunk.sid}")
+            except Exception as e:
+                logger.warning(f"Could not detach credential list from trunk {trunk.sid}: {e}")
+
+        target_cl.delete()
+        logger.info(f"Deleted stale Twilio credential list: {target_cl.sid}")
+        self.credential_list_sid = None
+
     async def test_connection(self) -> bool:
         """Validate Twilio credentials by fetching account info."""
         try:

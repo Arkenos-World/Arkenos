@@ -650,6 +650,30 @@ class TelnyxProvider(TelephonyProvider):
             "reused": False,
         }
 
+    async def delete_outbound_credentials(self) -> None:
+        """Delete the 'Arkenos Outbound' credential connection from Telnyx.
+        Used to reset stale credentials when the LiveKit project changes."""
+        headers = self._headers()
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{TELNYX_API_BASE}/credential_connections",
+                headers=headers,
+                timeout=15,
+            )
+        if resp.status_code == 200:
+            for conn in resp.json().get("data", []):
+                if conn.get("connection_name") == "Arkenos Outbound":
+                    conn_id = conn["id"]
+                    async with httpx.AsyncClient() as client:
+                        await client.delete(
+                            f"{TELNYX_API_BASE}/credential_connections/{conn_id}",
+                            headers=headers,
+                            timeout=15,
+                        )
+                    logger.info(f"Deleted stale Telnyx credential connection: {conn_id}")
+                    return
+        logger.info("No 'Arkenos Outbound' credential connection found to delete")
+
     async def test_connection(self) -> bool:
         """Validate Telnyx API key by fetching account balance."""
         try:

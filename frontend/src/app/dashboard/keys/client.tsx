@@ -27,8 +27,6 @@ import {
 } from "@/lib/api";
 import { useAuthHeaders } from "@/lib/auth-headers";
 import {
-    Eye,
-    EyeOff,
     CheckCircle2,
     XCircle,
     X,
@@ -161,7 +159,7 @@ function ProviderCard({
     auth: AuthHeaders;
 }) {
     const [values, setValues] = useState<Record<string, string>>({});
-    const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -269,13 +267,12 @@ function ProviderCard({
                             </Label>
                             {keyInfo.status === "set" && (
                                 <div className="flex items-center gap-1">
-                                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${
-                                        keyInfo.source === "org" || keyInfo.source === "user"
+                                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${keyInfo.source === "org" || keyInfo.source === "user"
                                             ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                                             : keyInfo.source === "db"
-                                            ? "bg-green-500/10 text-green-500 border-green-500/20"
-                                            : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                                    }`}>
+                                                ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                                : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                        }`}>
                                         {keyInfo.source === "org" ? "org key" : keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
                                     </Badge>
                                     {(keyInfo.source === "org" || keyInfo.source === "user") && (
@@ -301,7 +298,7 @@ function ProviderCard({
                         </div>
                         <div className="relative">
                             <Input
-                                type={showValues[keyName] ? "text" : "password"}
+                                type="text"
                                 placeholder={
                                     keyInfo.status === "set"
                                         ? `${keyInfo.hint || "••••••"}  (saved — enter new value to update)`
@@ -309,26 +306,18 @@ function ProviderCard({
                                 }
                                 value={values[keyName] || ""}
                                 onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
-                                className="pr-10 font-mono text-sm"
+                                className="font-mono text-sm"
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowValues(prev => ({ ...prev, [keyName]: !prev[keyName] }))}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                                {showValues[keyName] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
                         </div>
                     </div>
                 ))}
 
                 {/* Test result */}
                 {testResult && (
-                    <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md ${
-                        testResult.success
+                    <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md ${testResult.success
                             ? "bg-emerald-500/10 text-emerald-600"
                             : "bg-destructive/10 text-destructive"
-                    }`}>
+                        }`}>
                         {testResult.success ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                         {testResult.message}
                     </div>
@@ -412,11 +401,10 @@ function STTCard({
                                 <SelectItem key={p.id} value={p.id}>
                                     <div className="flex items-center gap-2">
                                         <Circle
-                                            className={`h-2 w-2 ${
-                                                providers[p.id]?.configured
+                                            className={`h-2 w-2 ${providers[p.id]?.configured
                                                     ? "fill-emerald-500 text-emerald-500"
                                                     : "fill-muted-foreground/30 text-muted-foreground/30"
-                                            }`}
+                                                }`}
                                         />
                                         {p.label}
                                     </div>
@@ -492,11 +480,10 @@ function TelephonyCard({
                                 <SelectItem key={p.id} value={p.id}>
                                     <div className="flex items-center gap-2">
                                         <Circle
-                                            className={`h-2 w-2 ${
-                                                providers[p.id]?.configured
+                                            className={`h-2 w-2 ${providers[p.id]?.configured
                                                     ? "fill-emerald-500 text-emerald-500"
                                                     : "fill-muted-foreground/30 text-muted-foreground/30"
-                                            }`}
+                                                }`}
                                         />
                                         {p.label}
                                     </div>
@@ -533,7 +520,7 @@ function SelectedGroupedProvider({
     auth: AuthHeaders;
 }) {
     const [values, setValues] = useState<Record<string, string>>({});
-    const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -541,7 +528,6 @@ function SelectedGroupedProvider({
     // Reset state when provider changes
     useEffect(() => {
         setValues({});
-        setShowValues({});
         setTestResult(null);
     }, [providerId]);
 
@@ -634,13 +620,12 @@ function SelectedGroupedProvider({
                         </Label>
                         {keyInfo.status === "set" && (
                             <div className="flex items-center gap-1">
-                                <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${
-                                    keyInfo.source === "org" || keyInfo.source === "user"
+                                <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${keyInfo.source === "org" || keyInfo.source === "user"
                                         ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                                         : keyInfo.source === "db"
-                                        ? "bg-green-500/10 text-green-500 border-green-500/20"
-                                        : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                                }`}>
+                                            ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                            : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                    }`}>
                                     {keyInfo.source === "org" ? "org key" : keyInfo.source === "user" ? "your key" : keyInfo.source === "db" ? "instance default" : "via .env"}
                                 </Badge>
                                 {(keyInfo.source === "org" || keyInfo.source === "user") && (
@@ -666,34 +651,28 @@ function SelectedGroupedProvider({
                     </div>
                     <div className="relative">
                         <Input
-                            type={showValues[keyName] ? "text" : "password"}
+                            type="text"
                             placeholder={
                                 keyInfo.status === "set"
-                                    ? "••••••••  (saved — enter new value to update)"
+                                    ? (keyInfo as any).masked_value
+                                        ? `${(keyInfo as any).masked_value}  (edit to update)`
+                                        : "••••••••  (saved — edit to update)"
                                     : meta.keyPlaceholders[keyName] || "Enter key..."
                             }
                             value={values[keyName] || ""}
                             onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
-                            className="pr-10 font-mono text-sm"
+                            className="font-mono text-sm"
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowValues(prev => ({ ...prev, [keyName]: !prev[keyName] }))}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                            {showValues[keyName] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
                     </div>
                 </div>
             ))}
 
             {/* Test result */}
             {testResult && (
-                <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md ${
-                    testResult.success
+                <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md ${testResult.success
                         ? "bg-emerald-500/10 text-emerald-600"
                         : "bg-destructive/10 text-destructive"
-                }`}>
+                    }`}>
                     {testResult.success ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                     {testResult.message}
                 </div>

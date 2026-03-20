@@ -109,8 +109,25 @@ def _apply_keys(keys: dict, quiet: bool = False):
         logger.info("No keys returned from backend dashboard")
 
 
-# Fetch keys from backend dashboard at startup (sync is OK here — not in event loop yet)
+# Fetch keys from backend dashboard at startup (sync is OK here — not in event loop yet).
+# Retry in a loop until LIVEKIT_URL is available — in production the backend may return
+# no keys until an org configures them, which would crash the worker immediately.
+_KEY_FETCH_INTERVAL = 30  # seconds between retries
+_KEY_FETCH_MAX_WAIT = 600  # give up after 10 minutes
+
 fetch_and_inject_keys_sync()
+_boot_wait_start = time.time()
+while not os.environ.get("LIVEKIT_URL") and (time.time() - _boot_wait_start) < _KEY_FETCH_MAX_WAIT:
+    logger.warning(
+        f"[BOOT] LIVEKIT_URL not set — no keys from backend and no .env fallback. "
+        f"Retrying in {_KEY_FETCH_INTERVAL}s..."
+    )
+    time.sleep(_KEY_FETCH_INTERVAL)
+    fetch_and_inject_keys_sync(quiet=True)
+
+if not os.environ.get("LIVEKIT_URL"):
+    logger.error("[BOOT] LIVEKIT_URL still empty after max wait — exiting so container restarts")
+    sys.exit(1)
 
 # Store LiveKit keys at boot — used to detect changes later
 _BOOT_LIVEKIT_KEYS = {

@@ -41,7 +41,39 @@ import {
     Shield,
     ExternalLink,
     Circle,
+    Eye,
+    EyeOff,
 } from "lucide-react";
+
+function SecretInput({
+    value,
+    onChange,
+    placeholder,
+}: {
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder: string;
+}) {
+    const [visible, setVisible] = useState(false);
+    return (
+        <div className="relative">
+            <Input
+                type={visible ? "text" : "password"}
+                placeholder={placeholder}
+                value={value}
+                onChange={onChange}
+                className="font-mono text-sm pr-9"
+            />
+            <button
+                type="button"
+                onClick={() => setVisible(v => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+                {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+        </div>
+    );
+}
 
 // Provider metadata for display
 const PROVIDER_META: Record<string, {
@@ -296,19 +328,15 @@ function ProviderCard({
                                 </div>
                             )}
                         </div>
-                        <div className="relative">
-                            <Input
-                                type="text"
-                                placeholder={
-                                    keyInfo.status === "set"
-                                        ? `${keyInfo.hint || "••••••"}  (saved — enter new value to update)`
-                                        : meta.keyPlaceholders[keyName] || "Enter key..."
-                                }
-                                value={values[keyName] || ""}
-                                onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
-                                className="font-mono text-sm"
-                            />
-                        </div>
+                        <SecretInput
+                            placeholder={
+                                keyInfo.status === "set"
+                                    ? `${keyInfo.hint || "••••••"}  (saved — enter new value to update)`
+                                    : meta.keyPlaceholders[keyName] || "Enter key..."
+                            }
+                            value={values[keyName] || ""}
+                            onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
+                        />
                     </div>
                 ))}
 
@@ -649,21 +677,17 @@ function SelectedGroupedProvider({
                             </div>
                         )}
                     </div>
-                    <div className="relative">
-                        <Input
-                            type="text"
-                            placeholder={
-                                keyInfo.status === "set"
-                                    ? (keyInfo as any).masked_value
-                                        ? `${(keyInfo as any).masked_value}  (edit to update)`
-                                        : "••••••••  (saved — edit to update)"
-                                    : meta.keyPlaceholders[keyName] || "Enter key..."
-                            }
-                            value={values[keyName] || ""}
-                            onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
-                            className="font-mono text-sm"
-                        />
-                    </div>
+                    <SecretInput
+                        placeholder={
+                            keyInfo.status === "set"
+                                ? (keyInfo as any).masked_value
+                                    ? `${(keyInfo as any).masked_value}  (edit to update)`
+                                    : "••••••••  (saved — edit to update)"
+                                : meta.keyPlaceholders[keyName] || "Enter key..."
+                        }
+                        value={values[keyName] || ""}
+                        onChange={(e) => setValues(prev => ({ ...prev, [keyName]: e.target.value }))}
+                    />
                 </div>
             ))}
 

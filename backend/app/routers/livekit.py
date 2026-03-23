@@ -102,3 +102,30 @@ async def livekit_webhook(event: dict):
             logger.debug(f"Unhandled webhook event: {event_type}")
 
     return {"status": "ok"}
+
+
+def cleanup_stale_sessions() -> int:
+    """Mark ACTIVE sessions older than 1 hour as COMPLETED.
+    Called on backend startup to catch sessions orphaned by agent crashes.
+    Returns count of cleaned up sessions.
+    """
+    db = SessionLocal()
+    try:
+        stale = db.query(VoiceSession).filter(
+            VoiceSession.status == SessionStatus.ACTIVE,
+            VoiceSession.started_at < datetime.utcnow() - __import__("datetime").timedelta(hours=1),
+        ).all()
+        for s in stale:
+            s.status = SessionStatus.COMPLETED
+            s.ended_at = datetime.utcnow()
+            if s.started_at:
+                s.duration = int((s.ended_at - s.started_at).total_seconds())
+            logger.info(f"Cleaned up stale session {s.id} (room={s.room_name})")
+        db.commit()
+        return len(stale)
+    except Exception:
+        logger.exception("Failed to clean up stale sessions")
+        db.rollback()
+        return 0
+    finally:
+        db.close()

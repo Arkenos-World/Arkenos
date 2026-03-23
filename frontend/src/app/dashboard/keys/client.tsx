@@ -91,11 +91,13 @@ const PROVIDER_META: Record<string, {
             livekit_api_key: "API Key",
             livekit_api_secret: "API Secret",
             livekit_url: "Server URL",
+            livekit_sip_uri: "SIP URI",
         },
         keyPlaceholders: {
             livekit_api_key: "API...",
             livekit_api_secret: "your_api_secret",
             livekit_url: "wss://your-project.livekit.cloud",
+            livekit_sip_uri: "your-project.sip.livekit.cloud",
         },
     },
     google: {

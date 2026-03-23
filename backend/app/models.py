@@ -287,7 +287,9 @@ class UsageEvent(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     provider: Mapped[str] = mapped_column(String(50))
-    event_type: Mapped[UsageEventType] = mapped_column(Enum(UsageEventType))
+    event_type: Mapped[UsageEventType] = mapped_column(
+        Enum(UsageEventType, values_callable=lambda x: [e.value for e in x], create_type=False)
+    )
     quantity: Mapped[Decimal] = mapped_column(Numeric(12, 4))
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(12, 8))
     total_cost: Mapped[Decimal] = mapped_column(Numeric(12, 6))

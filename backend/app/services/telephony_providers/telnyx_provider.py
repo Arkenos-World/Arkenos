@@ -391,6 +391,11 @@ class TelnyxProvider(TelephonyProvider):
                 # Still ensure voice is enabled
                 await self._enable_voice(number_sid, conn_id)
                 return
+        elif resp.status_code == 404:
+            raise ValueError(
+                f"Telnyx phone number resource {number_sid} not found (404). "
+                f"The stored provider_number_sid is stale — re-run 'Test Pipeline' to resolve."
+            )
         else:
             logger.warning(f"[associate_number_with_sip] GET phone_numbers/{number_sid} returned {resp.status_code}: {resp.text}")
 

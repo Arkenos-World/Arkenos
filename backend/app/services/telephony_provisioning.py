@@ -447,6 +447,26 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
         await lk.aclose()
 
 
+async def delete_outbound_trunk(provider_name: str) -> None:
+    """Delete the LiveKit outbound trunk for a given provider and clear its cached ID.
+    Used by force_outbound to reset stale trunks before recreating.
+    """
+    from livekit.api import ListSIPOutboundTrunkRequest
+    from livekit.protocol.sip import DeleteSIPTrunkRequest
+
+    trunk_name = f"Arkenos Outbound ({provider_name})"
+    lk = _get_lk()
+    try:
+        resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
+        for trunk in resp.items:
+            if trunk.name == trunk_name or (provider_name == "twilio" and trunk.name == "Arkenos Outbound"):
+                logger.info(f"[delete_outbound_trunk] Deleting LiveKit outbound trunk {trunk.sip_trunk_id}")
+                await lk.sip.delete_sip_trunk(DeleteSIPTrunkRequest(sip_trunk_id=trunk.sip_trunk_id))
+                _state.outbound_trunk_ids.pop(provider_name, None)
+    finally:
+        await lk.aclose()
+
+
 def get_sip_uri() -> str:
     """Return the SIP URI for routing calls to LiveKit.
 

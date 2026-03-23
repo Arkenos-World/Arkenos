@@ -166,35 +166,11 @@ async def buy_number(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to save number: {str(e)}")
 
-    # Non-critical steps — number is safely saved, so failures here are warnings only
-    warnings = []
-
-    # Provision LiveKit SIP infrastructure
-    from app.services.telephony_provisioning import (
-        add_number_to_inbound_trunk,
-        ensure_dispatch_rule,
-        ensure_inbound_trunk,
-        get_sip_uri,
-    )
-
+    # Auto-provision the full SIP pipeline (same path as assign/provision/reassign)
     try:
-        await ensure_inbound_trunk(result["phone_number"])
-        await ensure_dispatch_rule()
-        await add_number_to_inbound_trunk(result["phone_number"])
+        await _run_provision(agent, request.provider, db)
     except Exception as e:
-        msg = f"LiveKit SIP provisioning failed: {e}"
-        logger.warning(msg)
-        warnings.append(msg)
-
-    # Associate number with provider SIP trunk — routes directly to LiveKit
-    try:
-        sip_uri = get_sip_uri()
-        await provider_impl.configure_sip_inbound(sip_uri)
-        await provider_impl.associate_number_with_sip(result["sid"])
-    except Exception as e:
-        msg = f"Provider SIP trunk association failed: {e}"
-        logger.warning(msg)
-        warnings.append(msg)
+        logger.warning(f"Auto-provision after buy failed (non-fatal): {e}")
 
     logger.info(f"Purchased number {result['phone_number']} for agent {agent.name} via {request.provider}")
 
@@ -390,6 +366,8 @@ async def _run_provision(agent, provider_name: str, db, force_outbound: bool = F
     )
     from app.services.config_resolver import get_key as _get_key
 
+    logger.info(f"[_run_provision] START agent={agent.name} phone={agent.phone_number} provider={provider_name}")
+
     # Clear all cached trunk/rule IDs so we always re-check LiveKit fresh.
     # This self-heals after LiveKit project changes without needing a restart.
     clear_provisioning_cache()
@@ -463,34 +441,12 @@ async def _run_provision(agent, provider_name: str, db, force_outbound: bool = F
 
     # Step 5: LiveKit outbound trunk
     try:
-        if force_outbound and provider_name == "telnyx":
-            from app.services.telephony_provisioning import _get_lk, _state
-            from livekit.api import ListSIPOutboundTrunkRequest
-            from livekit.protocol.sip import DeleteSIPTrunkRequest
-            trunk_name = f"Arkenos Outbound ({provider_name})"
-            lk = _get_lk()
-            try:
-                resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
-                for trunk in resp.items:
-                    if trunk.name == trunk_name:
-                        logger.info(f"[provision] force_outbound: deleting stale LK trunk {trunk.sip_trunk_id}")
-                        await lk.sip.delete_sip_trunk(DeleteSIPTrunkRequest(sip_trunk_id=trunk.sip_trunk_id))
-                        _state.outbound_trunk_ids.pop(provider_name, None)
-            finally:
-                await lk.aclose()
-            if provider_name == "telnyx":
-                provider_impl = get_provider(provider_name, db)
-                import httpx
-                headers = provider_impl._headers()
-                async with httpx.AsyncClient() as client:
-                    resp = await client.get(f"https://api.telnyx.com/v2/credential_connections", headers=headers, timeout=15)
-                if resp.status_code == 200:
-                    for conn in resp.json().get("data", []):
-                        if conn.get("connection_name") == "Arkenos Outbound":
-                            conn_id = conn["id"]
-                            logger.info(f"[provision] force_outbound: deleting Telnyx credential connection {conn_id}")
-                            async with httpx.AsyncClient() as client:
-                                await client.delete(f"https://api.telnyx.com/v2/credential_connections/{conn_id}", headers=headers, timeout=15)
+        if force_outbound:
+            from app.services.telephony_provisioning import delete_outbound_trunk
+            # Clean up both LiveKit trunk and provider credentials, then recreate
+            await delete_outbound_trunk(provider_name)
+            provider_impl = get_provider(provider_name, db)
+            await provider_impl.delete_outbound_credentials()
 
         outbound_id = await ensure_outbound_trunk(provider_name)
         steps.append({"step": "LiveKit Outbound Trunk", "status": "ok", "detail": f"Trunk ID: {outbound_id}"})
@@ -515,6 +471,7 @@ async def provision_pipeline(
     _=Depends(require_providers("livekit")),
 ):
     """Test and set up the full SIP pipeline for an agent's phone number."""
+    logger.info(f"[provision_pipeline] Called with agent_id={request.agent_id}, provider={request.provider}")
     agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -661,68 +618,12 @@ async def reassign_number(
     db.commit()
     db.refresh(target_agent)
 
-    # Auto-provision pipeline
-    from app.services.telephony_provisioning import (
-        add_number_to_inbound_trunk,
-        clear_provisioning_cache,
-        ensure_dispatch_rule,
-        ensure_inbound_trunk,
-        ensure_outbound_trunk,
-        get_sip_uri,
-    )
-
-    clear_provisioning_cache()
-
-    steps = []
-
-    # Step 1: LiveKit inbound trunk
+    # Auto-provision the full SIP pipeline (single source of truth)
+    pipeline_result = None
     try:
-        trunk_id = await ensure_inbound_trunk(normalized_phone)
-        steps.append({"step": "LiveKit Inbound Trunk", "status": "ok", "detail": f"Trunk ID: {trunk_id}"})
+        pipeline_result = await _run_provision(target_agent, target_provider_name, db)
     except Exception as e:
-        steps.append({"step": "LiveKit Inbound Trunk", "status": "error", "detail": str(e)})
-
-    # Step 2: LiveKit dispatch rule
-    try:
-        rule_id = await ensure_dispatch_rule()
-        steps.append({"step": "LiveKit Dispatch Rule", "status": "ok", "detail": f"Rule ID: {rule_id}"})
-    except Exception as e:
-        steps.append({"step": "LiveKit Dispatch Rule", "status": "error", "detail": str(e)})
-
-    # Step 3: Add number to inbound trunk
-    try:
-        await add_number_to_inbound_trunk(normalized_phone)
-        steps.append({"step": "Number on Inbound Trunk", "status": "ok", "detail": normalized_phone})
-    except Exception as e:
-        steps.append({"step": "Number on Inbound Trunk", "status": "error", "detail": str(e)})
-
-    # Step 4: Provider SIP Trunk association
-    if provider_number_sid:
-        try:
-            provider_impl = get_provider(target_provider_name, db)
-            sip_uri = get_sip_uri()
-            await provider_impl.configure_sip_inbound(sip_uri)
-            await provider_impl.associate_number_with_sip(provider_number_sid)
-            steps.append({"step": "Provider SIP Trunk", "status": "ok", "detail": f"Number SID: {provider_number_sid}"})
-        except Exception as e:
-            steps.append({"step": "Provider SIP Trunk", "status": "error", "detail": str(e)})
-    else:
-        steps.append({"step": "Provider SIP Trunk", "status": "warning", "detail": "No provider SID available — skipped"})
-
-    # Step 5: LiveKit outbound trunk
-    try:
-        outbound_id = await ensure_outbound_trunk(target_provider_name)
-        steps.append({"step": "LiveKit Outbound Trunk", "status": "ok", "detail": f"Trunk ID: {outbound_id}"})
-    except Exception as e:
-        steps.append({"step": "LiveKit Outbound Trunk", "status": "error", "detail": str(e)})
-
-    all_ok = all(s["status"] == "ok" for s in steps)
-    has_errors = any(s["status"] == "error" for s in steps)
-
-    pipeline_result = {
-        "status": "ready" if all_ok else ("partial" if not has_errors else "error"),
-        "steps": steps,
-    }
+        logger.warning(f"Auto-provision after reassign failed (non-fatal): {e}")
 
     logger.info(f"Reassigned number {normalized_phone} to agent {target_agent.name} (from {source_agent_name or 'unassigned'})")
 

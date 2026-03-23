@@ -302,6 +302,10 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     });
     const telephonyProviderLabel = TELEPHONY_PROVIDERS.find(p => p.id === telephonyProvider)?.name || telephonyProvider;
 
+    // Delete dialog state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     // Phone number state
     const [phoneNumber, setPhoneNumber] = useState(agent.phone_number || "");
     const [assignPhone, setAssignPhone] = useState("");
@@ -521,10 +525,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     };
 
     const handleDelete = useCallback(async () => {
-        if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
-            return;
-        }
-
+        setIsDeleting(true);
         try {
             const response = await fetch(
                 `${apiUrl}/agents/${agent.id}`,
@@ -546,6 +547,9 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } catch (error) {
             console.error("Failed to delete agent:", error);
             toast.error("Failed to delete agent");
+        } finally {
+            setIsDeleting(false);
+            setDeleteDialogOpen(false);
         }
     }, [agent.id, userId, name, router]);
 
@@ -602,9 +606,32 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                     <Button size="sm" onClick={handleSave} disabled={isSaving} className="transition-transform active:scale-95">
                         {isSaving ? "Saving..." : "Save Changes"}
                     </Button>
-                    <Button variant="destructive" size="icon-sm" onClick={handleDelete} title="Delete Agent">
+                    <Button variant="destructive" size="icon-sm" onClick={() => setDeleteDialogOpen(true)} title="Delete Agent">
                         <TrashIcon className="h-4 w-4" />
                     </Button>
+
+                    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                        <DialogContent showCloseButton={false} className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Delete Agent</DialogTitle>
+                                <DialogDescription>
+                                    Are you sure you want to delete <span className="font-medium text-foreground">{name}</span>?
+                                    {phoneNumber && (
+                                        <> The assigned phone number <span className="font-mono text-foreground">{phoneNumber}</span> will be released.</>
+                                    )}
+                                    {" "}This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+                                    Cancel
+                                </Button>
+                                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                                    {isDeleting ? "Deleting..." : "Delete Agent"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 

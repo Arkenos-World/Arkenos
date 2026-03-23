@@ -66,16 +66,28 @@ def upgrade() -> None:
     op.add_column('usage_events', sa.Column('org_id', sa.String(36), sa.ForeignKey('organizations.id', ondelete='CASCADE'), nullable=True))
     op.create_index('ix_usage_events_org_id', 'usage_events', ['org_id'])
 
-    # Add activeOrganizationId to Better Auth session table
+    # Add activeOrganizationId to Better Auth session table (may not exist on fresh DB)
+    conn = op.get_bind()
     try:
-        op.add_column('session', sa.Column('activeOrganizationId', sa.Text(), nullable=True))
+        result = conn.execute(sa.text(
+            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'session')"
+        ))
+        session_table_exists = result.scalar()
+        if session_table_exists:
+            try:
+                op.add_column('session', sa.Column('activeOrganizationId', sa.Text(), nullable=True))
+            except Exception:
+                pass  # Column may already exist from Better Auth auto-migration
     except Exception:
-        pass  # Column may already exist from Better Auth auto-migration
+        pass  # Fresh DB, no session table yet
 
     # --- Phase 3: Backfill — create personal org for each existing user ---
 
-    conn = op.get_bind()
-    users = conn.execute(sa.text('SELECT id, name, email FROM users')).fetchall()
+    # Check if users table has any rows (fresh DB will have none)
+    try:
+        users = conn.execute(sa.text('SELECT id, name, email FROM users')).fetchall()
+    except Exception:
+        users = []  # Fresh DB — no users to backfill
 
     for user in users:
         org_id = str(uuid.uuid4())

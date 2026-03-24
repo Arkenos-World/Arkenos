@@ -31,7 +31,6 @@ import {
     checkNumberAssignment,
     detectNumberProvider,
     assignPhoneNumber,
-    reassignPhoneNumber,
     releasePhoneNumber,
     provisionPhoneNumber,
 } from "@/lib/api";
@@ -319,15 +318,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [pipelineResult, setPipelineResult] = useState<{ status: string; steps: { step: string; status: string; detail: string }[] } | null>(null);
     const [pipelineExpanded, setPipelineExpanded] = useState(false);
     const [isCheckingNumber, setIsCheckingNumber] = useState(false);
-    const [reassignInfo, setReassignInfo] = useState<{
-        assigned: boolean;
-        agent_id?: string;
-        agent_name?: string;
-        user_id?: string;
-    } | null>(null);
-    const [showReassignDialog, setShowReassignDialog] = useState(false);
-    const [isReassigning, setIsReassigning] = useState(false);
-    const [reassignPipelineResult, setReassignPipelineResult] = useState<{ status: string; steps: { step: string; status: string; detail: string }[] } | null>(null);
+    const [blockDialog, setBlockDialog] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: "", message: "" });
 
     const handleSearchNumbers = useCallback(async () => {
         setIsSearching(true);
@@ -384,11 +375,23 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 // Detection failed (provider not configured) — continue anyway
             }
 
-            // Step 2: Check if number is assigned to another agent
-            const checkData = await checkNumberAssignment(auth, e164);
+            // Step 2: Check if number is assigned to another agent or has external config
+            const checkData = await checkNumberAssignment(auth, e164, telephonyProvider);
             if (checkData.assigned) {
-                setReassignInfo(checkData);
-                setShowReassignDialog(true);
+                setBlockDialog({
+                    open: true,
+                    title: "Number Already Assigned",
+                    message: `This number is already assigned to <strong>${checkData.agent_name || "another agent"}</strong>. Please release it from that agent first before assigning it here.`,
+                });
+                setIsCheckingNumber(false);
+                return;
+            }
+            if (checkData.has_external_config) {
+                setBlockDialog({
+                    open: true,
+                    title: "Number Has Active Configurations",
+                    message: `This number has active configurations on ${checkData.external_provider || telephonyProvider}. Please remove them from your provider console before assigning it here.`,
+                });
                 setIsCheckingNumber(false);
                 return;
             }
@@ -414,32 +417,6 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             setIsCheckingNumber(false);
         } finally {
             setIsAssigning(false);
-        }
-    }, [userId, agent.id, assignPhone, telephonyProvider]);
-
-    const handleReassignConfirm = useCallback(async () => {
-        const digits = assignPhone.replace(/\D/g, "");
-        const e164 = "+" + digits;
-        setIsReassigning(true);
-        setReassignPipelineResult(null);
-        try {
-            const data = await reassignPhoneNumber(auth, e164, agent.id, telephonyProvider);
-            setPhoneNumber(data.phone_number);
-            setAssignPhone("");
-            setShowReassignDialog(false);
-            setReassignInfo(null);
-            if (data.pipeline_result) {
-                setPipelineResult(data.pipeline_result);
-            }
-            toast.success(
-                data.source_agent_name
-                    ? `Number reassigned from "${data.source_agent_name}" to this agent!`
-                    : `Number ${data.phone_number} assigned!`
-            );
-        } catch (error: any) {
-            toast.error(error.message || "Failed to reassign number");
-        } finally {
-            setIsReassigning(false);
         }
     }, [userId, agent.id, assignPhone, telephonyProvider]);
 
@@ -1223,56 +1200,23 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                 </div>
             </Tabs>
 
-            {/* Reassign Warning Dialog */}
-            <Dialog open={showReassignDialog} onOpenChange={(open) => {
-                if (!open) {
-                    setShowReassignDialog(false);
-                    setReassignInfo(null);
-                }
+            {/* Number Blocked Dialog */}
+            <Dialog open={blockDialog.open} onOpenChange={(open) => {
+                if (!open) setBlockDialog({ open: false, title: "", message: "" });
             }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-amber-500" />
-                            Number Already Assigned
+                            {blockDialog.title}
                         </DialogTitle>
-                        <DialogDescription>
-                            This phone number is currently assigned to another agent. Reassigning will remove it from that agent.
-                        </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 space-y-3">
-                        <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
-                            <p className="text-sm">
-                                <span className="font-mono font-medium">
-                                    {assignPhone}
-                                </span>{" "}
-                                is currently assigned to{" "}
-                                <span className="font-semibold">
-                                    {reassignInfo?.agent_name || "another agent"}
-                                </span>.
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Reassigning will remove this number from that agent and its SIP pipeline will stop working.
-                            </p>
-                        </div>
+                    <div className="py-2">
+                        <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: blockDialog.message }} />
                     </div>
                     <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setShowReassignDialog(false);
-                                setReassignInfo(null);
-                            }}
-                            disabled={isReassigning}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleReassignConfirm}
-                            disabled={isReassigning}
-                        >
-                            {isReassigning ? "Reassigning..." : "Reassign Number"}
+                        <Button onClick={() => setBlockDialog({ open: false, title: "", message: "" })}>
+                            OK
                         </Button>
                     </DialogFooter>
                 </DialogContent>

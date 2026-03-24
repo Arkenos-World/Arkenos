@@ -202,6 +202,49 @@ class TelnyxProvider(TelephonyProvider):
 
         return None
 
+    async def check_external_config(self, phone_number: str) -> dict:
+        """Check if a Telnyx number has active configurations (connection/messaging profile)."""
+        logger.info(f"[check_external_config] Checking {phone_number}")
+        params = {"filter[phone_number]": phone_number}
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{TELNYX_API_BASE}/phone_numbers",
+                headers=self._headers(),
+                params=params,
+                timeout=15,
+            )
+
+        if resp.status_code != 200:
+            return {"has_config": False, "provider": "Telnyx"}
+
+        data = resp.json().get("data", [])
+        if not data:
+            # Try without + prefix
+            if phone_number.startswith("+"):
+                params2 = {"filter[phone_number]": phone_number[1:]}
+                async with httpx.AsyncClient() as client:
+                    resp2 = await client.get(
+                        f"{TELNYX_API_BASE}/phone_numbers",
+                        headers=self._headers(),
+                        params=params2,
+                        timeout=15,
+                    )
+                if resp2.status_code == 200:
+                    data = resp2.json().get("data", [])
+
+        if not data:
+            return {"has_config": False, "provider": "Telnyx"}
+
+        num = data[0]
+        has_connection = bool(num.get("connection_id"))
+        has_messaging = bool(num.get("messaging_profile_id"))
+
+        return {
+            "has_config": has_connection or has_messaging,
+            "provider": "Telnyx",
+        }
+
     async def _find_connection(self) -> str | None:
         """Find existing 'Arkenos Inbound' FQDN connection. Returns connection ID or None.
         Ensures transport_protocol is TCP (required by LiveKit SIP).

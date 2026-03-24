@@ -97,19 +97,12 @@ Session (updated): { ..., call_direction?: "INBOUND"|"OUTBOUND",
                      outbound_phone_number?: string,
                      call_status?: "RINGING"|"ANSWERED"|"COMPLETED"|"FAILED"|"NO_ANSWER" }
 
-### Phone Number Reassignment
-GET  /api/telephony/numbers/check?phone_number=+1234567890 → NumberCheckResponse
-  Checks globally (all users) if any agent has this number assigned.
+### Phone Number Pre-Assignment Check
+GET  /api/telephony/numbers/check?phone_number=+1234567890&provider=twilio → NumberCheckResponse
+  Checks if number is assigned to any Arkenos agent OR has active external configurations on the provider.
+  Blocks assignment in both cases — user must release/remove config first.
 
-NumberCheckResponse: { assigned: boolean, agent_id?: string, agent_name?: string, user_id?: string }
-
-POST /api/telephony/numbers/reassign → ReassignNumberResponse
-Body: { phone_number: string (E.164), target_agent_id: string }
-  Atomically releases number from source agent (if any) and assigns to target.
-  Auto-provisions full SIP pipeline after assignment. Carries over source agent's provider.
-
-ReassignNumberResponse: { phone_number, provider_number_sid?, target_agent_id, source_agent_id?, source_agent_name?, pipeline_result? }
-  pipeline_result: { status: "ready"|"partial"|"error", steps: [{ step, status, detail }] }
+NumberCheckResponse: { assigned: boolean, agent_id?: string, agent_name?: string, user_id?: string, has_external_config?: boolean, external_provider?: string }
 
 ### Usage Events (agent worker → backend)
 POST /api/usage/events    → UsageEvent

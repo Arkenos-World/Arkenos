@@ -292,6 +292,8 @@ export interface NumberCheckResponse {
   agent_id?: string;
   agent_name?: string;
   user_id?: string;
+  has_external_config?: boolean;
+  external_provider?: string | null;
 }
 
 export interface AssignNumberResponse {
@@ -302,17 +304,6 @@ export interface AssignNumberResponse {
   pipeline_result?: ProvisionResult;
 }
 
-export interface ReassignNumberResponse {
-  phone_number: string;
-  provider_number_sid?: string;
-  target_agent_id: string;
-  source_agent_id?: string;
-  source_agent_name?: string;
-  pipeline_result?: {
-    status: string;
-    steps: { step: string; status: string; detail: string }[];
-  };
-}
 
 export interface ReleaseNumberResponse {
   status: string;
@@ -362,10 +353,11 @@ export async function buyPhoneNumber(
 export async function checkNumberAssignment(
   auth: AuthHeaders,
   phoneNumber: string,
+  provider: string = "twilio",
 ): Promise<NumberCheckResponse> {
   const apiUrl = getApiUrl();
   const res = await fetch(
-    `${apiUrl}/telephony/numbers/check?phone_number=${encodeURIComponent(phoneNumber)}`,
+    `${apiUrl}/telephony/numbers/check?phone_number=${encodeURIComponent(phoneNumber)}&provider=${encodeURIComponent(provider)}`,
     { headers: { ...auth } },
   );
   if (!res.ok) throw new Error("Number check failed");
@@ -410,24 +402,6 @@ export async function assignPhoneNumber(
   return res.json();
 }
 
-export async function reassignPhoneNumber(
-  auth: AuthHeaders,
-  phoneNumber: string,
-  targetAgentId: string,
-  provider: string,
-): Promise<ReassignNumberResponse> {
-  const apiUrl = getApiUrl();
-  const res = await fetch(`${apiUrl}/telephony/numbers/reassign`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...auth },
-    body: JSON.stringify({ phone_number: phoneNumber, target_agent_id: targetAgentId, provider }),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || "Reassign failed");
-  }
-  return res.json();
-}
 
 export async function releasePhoneNumber(
   auth: AuthHeaders,

@@ -104,6 +104,25 @@ class TwilioProvider(TelephonyProvider):
             return numbers[0].sid
         return None
 
+    async def check_external_config(self, phone_number: str) -> dict:
+        """Check if a Twilio number has active voice/SIP configurations."""
+        client = self._get_client()
+        numbers = client.incoming_phone_numbers.list(phone_number=phone_number)
+        if not numbers:
+            return {"has_config": False, "provider": "Twilio"}
+
+        num = numbers[0]
+        # Default Twilio voice_url when no config is set
+        default_voice_url = "https://demo.twilio.com/welcome/voice/"
+        has_voice_url = bool(num.voice_url and num.voice_url != default_voice_url)
+        has_app = bool(num.voice_application_sid)
+        has_trunk = bool(num.trunk_sid)
+
+        return {
+            "has_config": has_voice_url or has_app or has_trunk,
+            "provider": "Twilio",
+        }
+
     async def configure_sip_inbound(self, sip_uri: str) -> dict:
         """Create or reuse a Twilio Elastic SIP Trunk with LiveKit origination URI.
         Returns {"trunk_id": str, "stale_uri_fixed": bool, "stale_uri": str|None}.

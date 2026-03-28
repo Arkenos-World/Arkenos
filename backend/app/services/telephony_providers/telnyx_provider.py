@@ -237,11 +237,16 @@ class TelnyxProvider(TelephonyProvider):
             return {"has_config": False, "provider": "Telnyx"}
 
         num = data[0]
-        has_connection = bool(num.get("connection_id"))
         has_messaging = bool(num.get("messaging_profile_id"))
 
+        # If the connection belongs to Arkenos, it's safe — we'll reconfigure during assignment
+        has_external_connection = False
+        if num.get("connection_id"):
+            arkenos_conn_id = await self._find_connection()
+            has_external_connection = num["connection_id"] != arkenos_conn_id
+
         return {
-            "has_config": has_connection or has_messaging,
+            "has_config": has_external_connection or has_messaging,
             "provider": "Telnyx",
         }
 

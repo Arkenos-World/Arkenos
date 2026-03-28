@@ -104,14 +104,26 @@ async def delete_agent(
 
     # Release phone number if assigned
     if agent.phone_number:
+        # 1. Remove from LiveKit inbound trunk
         try:
             from app.services.telephony_provisioning import remove_number_from_inbound_trunk
-            import asyncio
             await remove_number_from_inbound_trunk(agent.phone_number)
         except Exception as e:
             logger.warning(f"Failed to remove number from LiveKit trunk on delete: {e}")
+
+        # 2. Clean up provider-side config (Twilio trunk_sid / Telnyx connection_id)
+        if agent.provider_number_sid:
+            try:
+                from app.services.telephony_providers import get_provider
+                provider_name = agent.telephony_provider or "twilio"
+                provider_impl = get_provider(provider_name, db)
+                await provider_impl.disassociate_number_from_sip(agent.provider_number_sid)
+            except Exception as e:
+                logger.warning(f"Failed to clean up {agent.telephony_provider} config on delete: {e}")
+
         agent.phone_number = None
         agent.provider_number_sid = None
+        agent.telephony_provider = None
 
     agent.is_active = False
     db.commit()

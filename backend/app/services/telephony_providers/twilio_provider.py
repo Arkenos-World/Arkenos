@@ -105,7 +105,9 @@ class TwilioProvider(TelephonyProvider):
         return None
 
     async def check_external_config(self, phone_number: str) -> dict:
-        """Check if a Twilio number has active voice/SIP configurations."""
+        """Check if a Twilio number has active voice/SIP configurations.
+        Ignores the Arkenos-owned trunk — it will be reconfigured during assignment.
+        """
         client = self._get_client()
         numbers = client.incoming_phone_numbers.list(phone_number=phone_number)
         if not numbers:
@@ -116,10 +118,15 @@ class TwilioProvider(TelephonyProvider):
         default_voice_url = "https://demo.twilio.com/welcome/voice/"
         has_voice_url = bool(num.voice_url and num.voice_url != default_voice_url)
         has_app = bool(num.voice_application_sid)
-        has_trunk = bool(num.trunk_sid)
+
+        # If the trunk belongs to Arkenos, it's safe — we'll reconfigure during assignment
+        has_external_trunk = False
+        if num.trunk_sid:
+            arkenos_trunk_sid = self._find_trunk_sid()
+            has_external_trunk = num.trunk_sid != arkenos_trunk_sid
 
         return {
-            "has_config": has_voice_url or has_app or has_trunk,
+            "has_config": has_voice_url or has_app or has_external_trunk,
             "provider": "Twilio",
         }
 

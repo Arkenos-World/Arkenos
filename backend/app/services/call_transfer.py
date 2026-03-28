@@ -13,7 +13,8 @@ from livekit import api
 from livekit.protocol.sip import CreateSIPParticipantRequest, TransferSIPParticipantRequest
 from livekit.protocol.room import RoomParticipantIdentity, ListParticipantsRequest
 
-from app.config import get_settings
+from app.database import SessionLocal
+from app.services.config_resolver import get_key
 
 logger = logging.getLogger("call_transfer")
 
@@ -33,14 +34,20 @@ class TransferResult:
 
 
 async def _get_livekit_api() -> api.LiveKitAPI:
-    """Create a LiveKit API client from settings."""
-    settings = get_settings()
-    if not settings.livekit_api_key or not settings.livekit_api_secret:
+    """Create a LiveKit API client from org-scoped DB keys (same source as all other telephony code)."""
+    db = SessionLocal()
+    try:
+        lk_url = get_key(db, "livekit_url")
+        lk_api_key = get_key(db, "livekit_api_key")
+        lk_api_secret = get_key(db, "livekit_api_secret")
+    finally:
+        db.close()
+    if not lk_api_key or not lk_api_secret:
         raise RuntimeError("LiveKit credentials not configured")
     return api.LiveKitAPI(
-        url=settings.livekit_url,
-        api_key=settings.livekit_api_key,
-        api_secret=settings.livekit_api_secret,
+        url=lk_url,
+        api_key=lk_api_key,
+        api_secret=lk_api_secret,
     )
 
 

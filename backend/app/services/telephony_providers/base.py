@@ -18,6 +18,11 @@ class TelephonyProvider(ABC):
         """Check if number is owned by this account. Returns provider SID or None."""
 
     @abstractmethod
+    async def check_external_config(self, phone_number: str) -> dict:
+        """Check if a number has active external configurations (webhooks, SIP trunks, apps).
+        Returns {"has_config": bool, "provider": str}."""
+
+    @abstractmethod
     async def configure_sip_inbound(self, sip_uri: str) -> dict:
         """Set up provider-side SIP routing to LiveKit.
         Returns {"trunk_id": str, "stale_uri_fixed": bool, "stale_uri": str|None}.

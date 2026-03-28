@@ -20,7 +20,6 @@ import httpx
 from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import Agent, AgentServer, AgentSession, RunContext, function_tool
-from livekit.agents.metrics import LLMMetrics, STTMetrics, TTSMetrics
 
 from livekit.plugins import assemblyai, deepgram, elevenlabs, google, resemble, silero
 from usage_logger import log_stt_usage, log_llm_usage, log_tts_usage
@@ -208,6 +207,20 @@ MAX_RESOLVE_RETRIES = 3
 RESOLVE_RETRY_DELAY = 1.5  # seconds
 
 
+async def _retry_async(fn, *args, description="", retries=MAX_RESOLVE_RETRIES, delay=RESOLVE_RETRY_DELAY):
+    """Generic retry wrapper for async functions that return None on failure."""
+    for attempt in range(retries):
+        result = await fn(*args)
+        if result is not None:
+            return result
+        if attempt < retries - 1:
+            logger.warning(f"{description} failed (attempt {attempt + 1}/{retries}), retrying in {delay}s...")
+            await asyncio.sleep(delay)
+        else:
+            logger.error(f"{description} failed after {retries} attempts")
+    return None
+
+
 async def resolve_agent_id_from_metadata(ctx) -> tuple[str | None, dict]:
     """Try to extract agentId from room metadata, with retries for cloud latency."""
     for attempt in range(MAX_RESOLVE_RETRIES):
@@ -233,7 +246,7 @@ async def resolve_agent_id_from_sip(ctx) -> str | None:
         sip_number = get_sip_phone_number(ctx.room)
         if sip_number:
             logger.info(f"SIP call detected to number: {sip_number} (attempt {attempt + 1})")
-            lookup = await lookup_agent_by_phone(sip_number)
+            lookup = await _retry_async(lookup_agent_by_phone, sip_number, description="Phone agent lookup")
             if lookup:
                 agent_id = lookup.get("agent_id")
                 logger.info(f"Resolved SIP call to agent: {agent_id} ({lookup.get('name')})")
@@ -555,11 +568,11 @@ else:
     # Pre-warmed idle processes for instant call pickup.
     server = AgentServer(
         job_executor_type=agents.JobExecutorType.PROCESS,
-        num_idle_processes=3,
+        num_idle_processes=5,
         initialize_process_timeout=30.0,
         shutdown_process_timeout=5.0,
     )
-    logger.info("[INIT] Production mode — using PROCESS executor (3 idle processes)")
+    logger.info("[INIT] Production mode — using PROCESS executor (5 idle processes)")
 
 
 @server.rtc_session(agent_name="arkenos-agent")
@@ -651,7 +664,7 @@ async def entrypoint(ctx: agents.JobContext):
         return
 
     # Fetch agent config — required, not optional
-    agent_config = await fetch_agent_config(agent_id)
+    agent_config = await _retry_async(fetch_agent_config, agent_id, description="Agent config fetch")
     if not agent_config:
         logger.error(
             "[CALL] FATAL: agent_id=%s resolved but config fetch failed. "
@@ -789,10 +802,10 @@ async def entrypoint(ctx: agents.JobContext):
     else:
         session_user_id = "sip-caller"  # Last-resort fallback
     session_id_holder = {"id": None}
-    session_id = await create_backend_session(
-        room_name=ctx.room.name,
-        user_id=session_user_id,
-        agent_id=agent_id,
+    session_id = await _retry_async(
+        create_backend_session,
+        ctx.room.name, session_user_id, agent_id,
+        description="Backend session creation",
     )
     session_id_holder["id"] = session_id
     
@@ -821,6 +834,20 @@ async def entrypoint(ctx: agents.JobContext):
         llm=llm,
         tts=tts,
         vad=vad,
+        turn_handling={
+            "endpointing": {
+                "mode": "dynamic",
+                "min_delay": 0.5,
+                "max_delay": 1.0,
+            },
+            "interruption": {
+                "mode": "adaptive",
+                "min_words": 1,
+                "min_duration": 0.5,
+                "resume_false_interruption": True,
+            },
+        },
+        ivr_detection=True,
     )
     logger.info("[PIPELINE] AgentSession created successfully")
     logger.info(f"[PIPELINE] ===== Pipeline Summary =====")
@@ -828,6 +855,8 @@ async def entrypoint(ctx: agents.JobContext):
     logger.info(f"[PIPELINE]   LLM: google-gemini")
     logger.info(f"[PIPELINE]   TTS: resemble-ai (voice={voice_id or 'default'})")
     logger.info(f"[PIPELINE]   VAD: silero")
+    logger.info(f"[PIPELINE]   Turn: dynamic endpointing (0.5-1.0s), adaptive interruption (ML)")
+    logger.info(f"[PIPELINE]   IVR detection: enabled")
     logger.info(f"[PIPELINE]   Agent ID: {agent_id}")
     logger.info(f"[PIPELINE]   Room: {ctx.room.name}")
     logger.info(f"[PIPELINE] =============================")
@@ -884,48 +913,9 @@ async def entrypoint(ctx: agents.JobContext):
             logger.info(f"[LLM] Agent said: {text[:100]}")
             asyncio.create_task(save_transcript_to_backend(ctx.room.name, text, "AGENT"))
     
-    # --- USAGE METRICS HOOK ---
-    # Log STT / LLM / TTS usage events for cost tracking
-    @session.on("metrics_collected")
-    def on_metrics(metrics):
-        if isinstance(metrics, STTMetrics):
-            logger.info(f"[METRICS] STT ({stt_provider}): audio_duration={getattr(metrics, 'audio_duration', 'N/A')}s")
-        elif isinstance(metrics, LLMMetrics):
-            logger.info(f"[METRICS] LLM (google): prompt_tokens={metrics.prompt_tokens}, completion_tokens={metrics.completion_tokens}")
-        elif isinstance(metrics, TTSMetrics):
-            logger.info(f"[METRICS] TTS (resemble): characters={metrics.characters_count}")
-
-        if not session_id:
-            logger.warning("[METRICS] No session_id, skipping usage log")
-            return
-        if isinstance(metrics, STTMetrics):
-            log_stt_usage(
-                backend_url=BACKEND_API_URL,
-                session_id=session_id,
-                user_id=session_user_id,
-                agent_id=agent_id,
-                provider=stt_provider,
-                audio_duration=metrics.audio_duration,
-            )
-        elif isinstance(metrics, LLMMetrics):
-            log_llm_usage(
-                backend_url=BACKEND_API_URL,
-                session_id=session_id,
-                user_id=session_user_id,
-                agent_id=agent_id,
-                provider="google",
-                input_tokens=metrics.prompt_tokens,
-                output_tokens=metrics.completion_tokens,
-            )
-        elif isinstance(metrics, TTSMetrics):
-            log_tts_usage(
-                backend_url=BACKEND_API_URL,
-                session_id=session_id,
-                user_id=session_user_id,
-                agent_id=agent_id,
-                provider="resemble",
-                character_count=metrics.characters_count,
-            )
+    # --- USAGE METRICS ---
+    # Usage is collected via session.usage at end of call (v1.5.0 API).
+    # Per-provider/model breakdown logged after session.aclose().
 
     # --- FUNCTION TOOLS ---
     # Build dynamic tools from agent config.functions array
@@ -999,6 +989,51 @@ async def entrypoint(ctx: agents.JobContext):
     except Exception as e:
         logger.warning(f"[CALL] session.aclose() error: {e}")
 
+    # --- LOG USAGE (end-of-call summary, v1.5.0 API) ---
+    try:
+        usage = session.usage
+        if usage and usage.model_usage:
+            for model_usage in usage.model_usage:
+                provider = getattr(model_usage, "provider", "unknown")
+                model = getattr(model_usage, "model", "unknown")
+                usage_type = getattr(model_usage, "type", "unknown")
+                logger.info(f"[METRICS] {usage_type}: provider={provider}, model={model}")
+
+                if not session_id:
+                    continue
+
+                if usage_type == "stt_usage":
+                    log_stt_usage(
+                        backend_url=BACKEND_API_URL,
+                        session_id=session_id,
+                        user_id=session_user_id,
+                        agent_id=agent_id,
+                        provider=provider,
+                        audio_duration=getattr(model_usage, "audio_duration", 0.0),
+                    )
+                elif usage_type == "llm_usage":
+                    log_llm_usage(
+                        backend_url=BACKEND_API_URL,
+                        session_id=session_id,
+                        user_id=session_user_id,
+                        agent_id=agent_id,
+                        provider=provider,
+                        input_tokens=getattr(model_usage, "input_tokens", 0),
+                        output_tokens=getattr(model_usage, "output_tokens", 0),
+                    )
+                elif usage_type == "tts_usage":
+                    log_tts_usage(
+                        backend_url=BACKEND_API_URL,
+                        session_id=session_id,
+                        user_id=session_user_id,
+                        agent_id=agent_id,
+                        provider=provider,
+                        character_count=getattr(model_usage, "characters_count", 0),
+                    )
+            logger.info("[METRICS] End-of-call usage logged successfully")
+    except Exception as e:
+        logger.warning(f"[METRICS] Failed to log usage: {e}")
+
     # --- END BACKEND SESSION ---
     await end_backend_session(ctx.room.name)
     call_duration = time.time() - call_start_time
@@ -1057,11 +1092,15 @@ async def entrypoint(ctx: agents.JobContext):
     # close automatically when the entrypoint returns (LiveKit SDK handles this).
     logger.info("[CALL] Entrypoint complete, room will close automatically")
 
+_MAX_WEBHOOK_TIMEOUT = 30  # seconds — cap user-configured timeout
+
 async def execute_webhook(url: str, method: str, headers: list, body: dict | None, timeout: int) -> dict | None:
     """Execute a webhook request."""
     if not url:
         return None
-        
+
+    timeout = min(timeout, _MAX_WEBHOOK_TIMEOUT)
+
     try:
         # Convert list of headers to dict
         header_dict = {h["key"]: h["value"] for h in headers if h["key"]}
@@ -1093,7 +1132,8 @@ def _handle_sigterm(signum, frame):
 # Connects to backend WebSocket. When LiveKit keys change in the dashboard,
 # the backend pushes a notification and the agent restarts immediately.
 
-_WS_RECONNECT_DELAY = 5  # seconds between reconnection attempts
+_WS_RECONNECT_BASE = 5    # initial delay between reconnection attempts
+_WS_RECONNECT_MAX = 60    # maximum delay cap
 
 
 async def _config_websocket():
@@ -1102,11 +1142,13 @@ async def _config_websocket():
 
     ws_url = BACKEND_API_URL.replace("http://", "ws://").replace("https://", "wss://")
     ws_url = f"{ws_url}/settings/ws/agent"
+    delay = _WS_RECONNECT_BASE
 
     while True:
         try:
             async with websockets.connect(ws_url) as ws:
                 logger.info(f"[CONFIG-WS] Connected to backend ({ws_url})")
+                delay = _WS_RECONNECT_BASE  # reset on successful connection
                 async for message in ws:
                     try:
                         data = json.loads(message)
@@ -1129,8 +1171,9 @@ async def _config_websocket():
                         logger.debug(f"[CONFIG-WS] Non-JSON message: {message}")
 
         except Exception as e:
-            logger.debug(f"[CONFIG-WS] Connection failed: {e}, reconnecting in {_WS_RECONNECT_DELAY}s...")
-            await asyncio.sleep(_WS_RECONNECT_DELAY)
+            logger.debug(f"[CONFIG-WS] Connection failed: {e}, reconnecting in {delay}s...")
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, _WS_RECONNECT_MAX)
 
 
 @server.on("worker_registered")

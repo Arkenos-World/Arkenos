@@ -6,13 +6,13 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     # LiveKit Agents SDK and plugins
-    "livekit-agents>=0.12.3",
-    "livekit-plugins-deepgram>=0.6.0",
-    "livekit-plugins-assemblyai>=0.2.0",
-    "livekit-plugins-elevenlabs>=0.8.0",
-    "livekit-plugins-resemble>=1.4.5",
-    "livekit-plugins-silero>=0.7.0",
-    "livekit-plugins-google>=0.9.0",
+    "livekit-agents>=1.5.0",
+    "livekit-plugins-deepgram>=1.5.0",
+    "livekit-plugins-assemblyai>=1.5.0",
+    "livekit-plugins-elevenlabs>=1.5.0",
+    "livekit-plugins-resemble>=1.5.0",
+    "livekit-plugins-silero>=1.5.0",
+    "livekit-plugins-google>=1.5.0",
 
     # HTTP and async
     "httpx>=0.28.0",

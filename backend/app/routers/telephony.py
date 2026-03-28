@@ -56,19 +56,6 @@ class AssignNumberRequest(BaseModel):
     provider: str = "twilio"
 
 
-class ReassignNumberRequest(BaseModel):
-    phone_number: str  # The number to reassign (E.164)
-    target_agent_id: str  # Agent to assign the number TO
-
-
-class ReassignNumberResponse(BaseModel):
-    phone_number: str
-    provider_number_sid: Optional[str] = None
-    target_agent_id: str
-    source_agent_id: Optional[str] = None
-    source_agent_name: Optional[str] = None
-    pipeline_result: Optional[dict] = None
-
 
 # --- Helper ---
 
@@ -166,35 +153,11 @@ async def buy_number(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to save number: {str(e)}")
 
-    # Non-critical steps — number is safely saved, so failures here are warnings only
-    warnings = []
-
-    # Provision LiveKit SIP infrastructure
-    from app.services.telephony_provisioning import (
-        add_number_to_inbound_trunk,
-        ensure_dispatch_rule,
-        ensure_inbound_trunk,
-        get_sip_uri,
-    )
-
+    # Auto-provision the full SIP pipeline (same path as assign/provision/reassign)
     try:
-        await ensure_inbound_trunk(result["phone_number"])
-        await ensure_dispatch_rule()
-        await add_number_to_inbound_trunk(result["phone_number"])
+        await _run_provision(agent, request.provider, db)
     except Exception as e:
-        msg = f"LiveKit SIP provisioning failed: {e}"
-        logger.warning(msg)
-        warnings.append(msg)
-
-    # Associate number with provider SIP trunk — routes directly to LiveKit
-    try:
-        sip_uri = get_sip_uri()
-        await provider_impl.configure_sip_inbound(sip_uri)
-        await provider_impl.associate_number_with_sip(result["sid"])
-    except Exception as e:
-        msg = f"Provider SIP trunk association failed: {e}"
-        logger.warning(msg)
-        warnings.append(msg)
+        logger.warning(f"Auto-provision after buy failed (non-fatal): {e}")
 
     logger.info(f"Purchased number {result['phone_number']} for agent {agent.name} via {request.provider}")
 
@@ -315,11 +278,36 @@ async def assign_existing_number(
     if not phone.startswith("+"):
         phone = f"+{phone}"
 
+    # Block if number is assigned to another Arkenos agent
+    normalized_phone = normalize_phone(phone)
+    all_agents = (
+        db.query(models.Agent)
+        .filter(models.Agent.phone_number.isnot(None), models.Agent.is_active == True)
+        .all()
+    )
+    for a in all_agents:
+        if a.id != request.agent_id and normalize_phone(a.phone_number) == normalized_phone:
+            raise HTTPException(
+                status_code=409,
+                detail=f"This number is already assigned to \"{a.name}\". Please release it from that agent first.",
+            )
+
     # Validate ownership in the selected provider only
     provider_number_sid = None
     try:
         provider_impl = get_provider(request.provider, db)
         provider_number_sid = await provider_impl.validate_ownership(phone)
+
+        # Block if number has active external configurations
+        if provider_number_sid:
+            config_result = await provider_impl.check_external_config(phone)
+            if config_result.get("has_config"):
+                provider_name = config_result.get("provider", request.provider.capitalize())
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"This number has active configurations on {provider_name}. Remove them there first.",
+                )
+
         if not provider_number_sid:
             # Number not found in selected provider — check the other provider
             other_provider = "telnyx" if request.provider == "twilio" else "twilio"
@@ -389,6 +377,8 @@ async def _run_provision(agent, provider_name: str, db, force_outbound: bool = F
         get_sip_uri,
     )
     from app.services.config_resolver import get_key as _get_key
+
+    logger.info(f"[_run_provision] START agent={agent.name} phone={agent.phone_number} provider={provider_name}")
 
     # Clear all cached trunk/rule IDs so we always re-check LiveKit fresh.
     # This self-heals after LiveKit project changes without needing a restart.
@@ -463,34 +453,12 @@ async def _run_provision(agent, provider_name: str, db, force_outbound: bool = F
 
     # Step 5: LiveKit outbound trunk
     try:
-        if force_outbound and provider_name == "telnyx":
-            from app.services.telephony_provisioning import _get_lk, _state
-            from livekit.api import ListSIPOutboundTrunkRequest
-            from livekit.protocol.sip import DeleteSIPTrunkRequest
-            trunk_name = f"Arkenos Outbound ({provider_name})"
-            lk = _get_lk()
-            try:
-                resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
-                for trunk in resp.items:
-                    if trunk.name == trunk_name:
-                        logger.info(f"[provision] force_outbound: deleting stale LK trunk {trunk.sip_trunk_id}")
-                        await lk.sip.delete_sip_trunk(DeleteSIPTrunkRequest(sip_trunk_id=trunk.sip_trunk_id))
-                        _state.outbound_trunk_ids.pop(provider_name, None)
-            finally:
-                await lk.aclose()
-            if provider_name == "telnyx":
-                provider_impl = get_provider(provider_name, db)
-                import httpx
-                headers = provider_impl._headers()
-                async with httpx.AsyncClient() as client:
-                    resp = await client.get(f"https://api.telnyx.com/v2/credential_connections", headers=headers, timeout=15)
-                if resp.status_code == 200:
-                    for conn in resp.json().get("data", []):
-                        if conn.get("connection_name") == "Arkenos Outbound":
-                            conn_id = conn["id"]
-                            logger.info(f"[provision] force_outbound: deleting Telnyx credential connection {conn_id}")
-                            async with httpx.AsyncClient() as client:
-                                await client.delete(f"https://api.telnyx.com/v2/credential_connections/{conn_id}", headers=headers, timeout=15)
+        if force_outbound:
+            from app.services.telephony_provisioning import delete_outbound_trunk
+            # Clean up both LiveKit trunk and provider credentials, then recreate
+            await delete_outbound_trunk(provider_name)
+            provider_impl = get_provider(provider_name, db)
+            await provider_impl.delete_outbound_credentials()
 
         outbound_id = await ensure_outbound_trunk(provider_name)
         steps.append({"step": "LiveKit Outbound Trunk", "status": "ok", "detail": f"Trunk ID: {outbound_id}"})
@@ -515,6 +483,7 @@ async def provision_pipeline(
     _=Depends(require_providers("livekit")),
 ):
     """Test and set up the full SIP pipeline for an agent's phone number."""
+    logger.info(f"[provision_pipeline] Called with agent_id={request.agent_id}, provider={request.provider}")
     agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -533,13 +502,15 @@ async def provision_pipeline(
 @router.get("/numbers/check")
 async def check_number_assignment(
     phone_number: str = Query(..., description="Phone number to check (E.164)"),
+    provider: str = Query("twilio", description="Telephony provider to check external config"),
     db: Session = Depends(get_db),
 ):
-    """Check if a phone number is currently assigned to any agent globally."""
+    """Check if a phone number is assigned to any agent or has external provider configurations."""
     normalized_input = normalize_phone(phone_number)
     if not normalized_input:
         raise HTTPException(status_code=400, detail="Invalid phone number")
 
+    # Check 1: Is it assigned to another Arkenos agent?
     agents = (
         db.query(models.Agent)
         .filter(models.Agent.phone_number.isnot(None), models.Agent.is_active == True)
@@ -553,187 +524,27 @@ async def check_number_assignment(
                 "agent_id": a.id,
                 "agent_name": a.name,
                 "user_id": a.user_id,
+                "has_external_config": False,
+                "external_provider": None,
             }
 
-    return {"assigned": False}
-
-
-@router.post("/numbers/reassign", response_model=ReassignNumberResponse)
-async def reassign_number(
-    request: ReassignNumberRequest,
-    db: Session = Depends(get_db),
-    _=Depends(require_providers("livekit")),
-):
-    """Reassign a phone number to a different agent, releasing it from the current owner if any."""
-    normalized_phone = normalize_phone(request.phone_number)
-    if not normalized_phone:
-        raise HTTPException(status_code=400, detail="Invalid phone number")
-
-    # Verify target agent exists
-    target_agent = db.query(models.Agent).filter(models.Agent.id == request.target_agent_id).first()
-    if not target_agent:
-        raise HTTPException(status_code=404, detail="Target agent not found")
-
-    # Check target agent doesn't already have a different number
-    if target_agent.phone_number and target_agent.provider_number_sid:
-        target_normalized = normalize_phone(target_agent.phone_number)
-        if target_normalized != normalized_phone:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Agent already has number {target_agent.phone_number}. Release it first.",
-            )
-
-    # Global check: find if ANY agent currently has this number
-    source_agent = None
-    all_agents_with_phone = (
-        db.query(models.Agent)
-        .filter(models.Agent.phone_number.isnot(None))
-        .all()
-    )
-    for a in all_agents_with_phone:
-        if normalize_phone(a.phone_number) == normalized_phone:
-            source_agent = a
-            break
-
-    # Prevent self-reassign
-    if source_agent and source_agent.id == target_agent.id:
-        raise HTTPException(
-            status_code=400,
-            detail="Number is already assigned to this agent",
-        )
-
-    source_agent_id = None
-    source_agent_name = None
-    provider_number_sid = None
-    source_provider = None
-
-    if source_agent:
-        # Release from source agent
-        source_agent_id = source_agent.id
-        source_agent_name = source_agent.name
-        provider_number_sid = source_agent.provider_number_sid  # carry over to avoid redundant lookup
-        source_provider = source_agent.telephony_provider or "twilio"
-
-        from app.services.telephony_provisioning import (
-            remove_number_from_inbound_trunk,
-        )
-
-        try:
-            await remove_number_from_inbound_trunk(source_agent.phone_number)
-        except Exception as e:
-            logger.warning(f"Could not remove number from LiveKit trunk during reassign: {e}")
-
-        if source_agent.provider_number_sid:
-            try:
-                provider_impl = get_provider(source_provider, db)
-                await provider_impl.disassociate_number_from_sip(source_agent.provider_number_sid)
-            except Exception as e:
-                logger.warning(f"Could not disassociate from provider trunk during reassign: {e}")
-
-        source_agent.phone_number = None
-        source_agent.provider_number_sid = None
-        source_agent.telephony_provider = None
-        db.commit()
-        logger.info(f"Released number {normalized_phone} from agent {source_agent_name} for reassignment")
-    else:
-        # Number not assigned to anyone — do provider lookup for provider_number_sid
-        # Try each configured provider until one claims ownership
-        for try_provider in ("twilio", "telnyx"):
-            try:
-                provider_impl = get_provider(try_provider, db)
-                provider_number_sid = await provider_impl.validate_ownership(normalized_phone)
-                if provider_number_sid:
-                    source_provider = try_provider  # use this provider for subsequent steps
-                    logger.info(f"Number {normalized_phone} found in {try_provider} account during reassign")
-                    break
-            except Exception as e:
-                logger.warning(f"Could not verify number in {try_provider} during reassign: {e}")
-        else:
-            logger.warning(f"Number {normalized_phone} not found in any provider account during reassign")
-
-    # Determine provider for target: carry over source provider or default to twilio
-    target_provider_name = source_provider or "twilio"
-
-    # Assign to target agent
-    target_agent.phone_number = normalized_phone
-    target_agent.provider_number_sid = provider_number_sid
-    target_agent.telephony_provider = target_provider_name
-    db.commit()
-    db.refresh(target_agent)
-
-    # Auto-provision pipeline
-    from app.services.telephony_provisioning import (
-        add_number_to_inbound_trunk,
-        clear_provisioning_cache,
-        ensure_dispatch_rule,
-        ensure_inbound_trunk,
-        ensure_outbound_trunk,
-        get_sip_uri,
-    )
-
-    clear_provisioning_cache()
-
-    steps = []
-
-    # Step 1: LiveKit inbound trunk
+    # Check 2: Does it have active external configurations on the provider?
+    has_external_config = False
+    external_provider = None
     try:
-        trunk_id = await ensure_inbound_trunk(normalized_phone)
-        steps.append({"step": "LiveKit Inbound Trunk", "status": "ok", "detail": f"Trunk ID: {trunk_id}"})
+        provider_impl = get_provider(provider, db)
+        config_result = await provider_impl.check_external_config(normalized_input)
+        has_external_config = config_result.get("has_config", False)
+        external_provider = config_result.get("provider")
     except Exception as e:
-        steps.append({"step": "LiveKit Inbound Trunk", "status": "error", "detail": str(e)})
+        logger.warning(f"[check] External config check failed for {provider}: {e}")
 
-    # Step 2: LiveKit dispatch rule
-    try:
-        rule_id = await ensure_dispatch_rule()
-        steps.append({"step": "LiveKit Dispatch Rule", "status": "ok", "detail": f"Rule ID: {rule_id}"})
-    except Exception as e:
-        steps.append({"step": "LiveKit Dispatch Rule", "status": "error", "detail": str(e)})
-
-    # Step 3: Add number to inbound trunk
-    try:
-        await add_number_to_inbound_trunk(normalized_phone)
-        steps.append({"step": "Number on Inbound Trunk", "status": "ok", "detail": normalized_phone})
-    except Exception as e:
-        steps.append({"step": "Number on Inbound Trunk", "status": "error", "detail": str(e)})
-
-    # Step 4: Provider SIP Trunk association
-    if provider_number_sid:
-        try:
-            provider_impl = get_provider(target_provider_name, db)
-            sip_uri = get_sip_uri()
-            await provider_impl.configure_sip_inbound(sip_uri)
-            await provider_impl.associate_number_with_sip(provider_number_sid)
-            steps.append({"step": "Provider SIP Trunk", "status": "ok", "detail": f"Number SID: {provider_number_sid}"})
-        except Exception as e:
-            steps.append({"step": "Provider SIP Trunk", "status": "error", "detail": str(e)})
-    else:
-        steps.append({"step": "Provider SIP Trunk", "status": "warning", "detail": "No provider SID available — skipped"})
-
-    # Step 5: LiveKit outbound trunk
-    try:
-        outbound_id = await ensure_outbound_trunk(target_provider_name)
-        steps.append({"step": "LiveKit Outbound Trunk", "status": "ok", "detail": f"Trunk ID: {outbound_id}"})
-    except Exception as e:
-        steps.append({"step": "LiveKit Outbound Trunk", "status": "error", "detail": str(e)})
-
-    all_ok = all(s["status"] == "ok" for s in steps)
-    has_errors = any(s["status"] == "error" for s in steps)
-
-    pipeline_result = {
-        "status": "ready" if all_ok else ("partial" if not has_errors else "error"),
-        "steps": steps,
+    return {
+        "assigned": False,
+        "has_external_config": has_external_config,
+        "external_provider": external_provider,
     }
 
-    logger.info(f"Reassigned number {normalized_phone} to agent {target_agent.name} (from {source_agent_name or 'unassigned'})")
-
-    return ReassignNumberResponse(
-        phone_number=normalized_phone,
-        provider_number_sid=provider_number_sid,
-        target_agent_id=target_agent.id,
-        source_agent_id=source_agent_id,
-        source_agent_name=source_agent_name,
-        pipeline_result=pipeline_result,
-    )
 
 
 # --- Debug ---

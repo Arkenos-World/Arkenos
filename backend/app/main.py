@@ -90,7 +90,13 @@ class UserContextMiddleware(BaseHTTPMiddleware):
         finally:
             db.close()
 
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            import logging
+            logging.getLogger("middleware").error(f"Unhandled error in {request.url.path}: {e}", exc_info=True)
+            from starlette.responses import PlainTextResponse
+            response = PlainTextResponse(f"Internal Server Error: {e}", status_code=500)
         _current_user_id.set(None)
         _current_org_id.set(None)
         return response
@@ -169,6 +175,15 @@ def _ensure_instance_id():
 
 
 _ensure_instance_id()
+
+# Clean up stale sessions from previous crashes
+try:
+    from app.routers.livekit import cleanup_stale_sessions
+    cleaned = cleanup_stale_sessions()
+    if cleaned:
+        logger.info(f"Cleaned up {cleaned} stale session(s) from previous run")
+except Exception as e:
+    logger.warning(f"Session cleanup failed: {e}")
 
 
 def _ensure_minio_bucket():

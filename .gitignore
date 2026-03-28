@@ -7,6 +7,7 @@
 .env.local
 .env.*.local
 *.env
+.mcp.json
 
 # ===================
 # Python
@@ -113,6 +114,7 @@ htmlcov/
 # ===================
 VISION.md
 ARCHITECTURE.md
+LIVEKIT_MULTIORG.md
 
 # ===================
 # Misc

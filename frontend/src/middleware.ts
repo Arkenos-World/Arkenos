@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 export default async function middleware(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session && request.nextUrl.pathname.startsWith("/dashboard")) {

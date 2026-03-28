@@ -137,6 +137,7 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
 
     const fetchData = useCallback(async () => {
         if (!startDate || !endDate) return
+        if (!headers["Authorization"]) return
         setLoading(true)
         const params = `start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`
         try {
@@ -258,15 +259,33 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
         })
     }, [timeline, granularity])
 
-    // Pie chart data
-    const pieData = useMemo(() =>
-        providers.map((p, i) => ({
-            name: p.provider,
-            value: p.cost,
-            fill: PROVIDER_COLORS[i % PROVIDER_COLORS.length],
-        })),
-        [providers]
-    )
+    // Provider categories for grouped display
+    const PROVIDER_CATEGORIES: Record<string, { label: string; icon: string }> = {
+        assemblyai: { label: "STT", icon: "🎤" },
+        deepgram: { label: "STT", icon: "🎤" },
+        elevenlabs: { label: "STT", icon: "🎤" },
+        gemini: { label: "LLM", icon: "🧠" },
+        google: { label: "LLM", icon: "🧠" },
+        resemble: { label: "TTS", icon: "🔊" },
+        twilio: { label: "Telephony", icon: "📞" },
+        telnyx: { label: "Telephony", icon: "📞" },
+    }
+
+    const groupedProviders = useMemo(() => {
+        const maxCost = Math.max(...providers.map(p => p.cost), 0.001)
+        const groups: Record<string, { label: string; items: { provider: string; cost: number; pct: number; color: string }[] }> = {}
+        providers.forEach((p, i) => {
+            const cat = PROVIDER_CATEGORIES[p.provider.toLowerCase()] || { label: "Other", icon: "⚡" }
+            if (!groups[cat.label]) groups[cat.label] = { label: cat.label, items: [] }
+            groups[cat.label].items.push({
+                provider: p.provider,
+                cost: p.cost,
+                pct: (p.cost / maxCost) * 100,
+                color: PROVIDER_COLORS[i % PROVIDER_COLORS.length],
+            })
+        })
+        return groups
+    }, [providers])
 
     if (loading && !summary) {
         return (
@@ -365,52 +384,74 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
                 <Card className="animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.15s" }}>
                     <CardHeader>
                         <CardTitle>Cost by Provider</CardTitle>
-                        <CardDescription>Breakdown of spending</CardDescription>
+                        <CardDescription>Breakdown by category</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {pieData.length === 0 ? (
+                        {providers.length === 0 ? (
                             <EmptyChart />
-                        ) : (
-                            <>
-                                <ChartContainer config={providerBarConfig} className="h-[200px] w-full">
-                                    <PieChart>
-                                        <ChartTooltip
-                                            content={<ChartTooltipContent
-                                                formatter={(value) => fmtCost(value as number)}
-                                            />}
-                                        />
-                                        <Pie
-                                            data={pieData}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={50}
-                                            outerRadius={80}
-                                            paddingAngle={3}
-                                        >
-                                            {pieData.map((entry, i) => (
-                                                <Cell key={i} fill={entry.fill} />
-                                            ))}
-                                        </Pie>
-                                    </PieChart>
-                                </ChartContainer>
-                                <div className="flex flex-col gap-1 mt-2">
-                                    {providers.map((p, i) => (
-                                        <div key={p.provider} className="flex items-center justify-between text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <div
-                                                    className="h-2.5 w-2.5 rounded-full"
-                                                    style={{ background: PROVIDER_COLORS[i % PROVIDER_COLORS.length] }}
-                                                />
-                                                <span className="text-muted-foreground">{p.provider}</span>
-                                            </div>
-                                            <span className="font-medium">{fmtCostShort(p.cost)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                        ) : (() => {
+                            const total = providers.reduce((s, p) => s + p.cost, 0)
+                            const sorted = [...providers].sort((a, b) => b.cost - a.cost)
+                            const pieData = sorted.map((p, i) => ({
+                                name: p.provider,
+                                value: p.cost,
+                                fill: PROVIDER_COLORS[i % PROVIDER_COLORS.length],
+                            }))
+                            return (
+                                <>
+                                    <ChartContainer config={providerBarConfig} className="h-[180px] w-full">
+                                        <PieChart>
+                                            <ChartTooltip
+                                                content={<ChartTooltipContent
+                                                    formatter={(value) => fmtCost(value as number)}
+                                                />}
+                                            />
+                                            <Pie
+                                                data={pieData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={45}
+                                                outerRadius={75}
+                                                paddingAngle={3}
+                                                strokeWidth={0}
+                                            >
+                                                {pieData.map((entry, i) => (
+                                                    <Cell key={i} fill={entry.fill} />
+                                                ))}
+                                            </Pie>
+                                        </PieChart>
+                                    </ChartContainer>
+                                    <div className="flex flex-col gap-1.5 mt-3">
+                                        {sorted.map((p, i) => {
+                                            const pct = total > 0 ? (p.cost / total) * 100 : 0
+                                            const cat = PROVIDER_CATEGORIES[p.provider.toLowerCase()]?.label || "Other"
+                                            return (
+                                                <div key={p.provider} className="flex items-center justify-between text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <div
+                                                            className="h-2.5 w-2.5 rounded-sm shrink-0"
+                                                            style={{ background: PROVIDER_COLORS[i % PROVIDER_COLORS.length] }}
+                                                        />
+                                                        <span className="text-foreground">{p.provider}</span>
+                                                        <span className="text-xs text-muted-foreground">{cat}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-muted-foreground">{pct.toFixed(0)}%</span>
+                                                        <span className="font-mono font-medium">{fmtCostShort(p.cost)}</span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                    <div className="flex items-center justify-between pt-2 mt-2 border-t border-border/40">
+                                        <span className="text-sm text-muted-foreground">Total</span>
+                                        <span className="text-sm font-mono font-bold">{fmtCostShort(total)}</span>
+                                    </div>
+                                </>
+                            )
+                        })()}
                     </CardContent>
                 </Card>
 

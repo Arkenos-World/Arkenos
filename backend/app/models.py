@@ -418,6 +418,25 @@ class CodingAgentConversation(Base):
     )
 
 
+class AgentEnvVar(Base):
+    """Per-agent environment variables (encrypted). Injected into custom agent containers."""
+    __tablename__ = "agent_env_vars"
+    __table_args__ = (
+        UniqueConstraint("agent_id", "key_name", name="uq_agent_env_vars_agent_key"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    key_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    encrypted_value: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Foreign keys
+    agent_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False
+    )
+
+
 class CodingAgentMessage(Base):
     __tablename__ = "coding_agent_messages"
     __table_args__ = (

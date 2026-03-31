@@ -68,14 +68,18 @@ async def chat(request: CodingAgentRequest, db: Session) -> CodingAgentResponse:
         user_message = f"Here are the current agent files:\n\n{context}\n\nUser request: {request.prompt}"
 
     try:
-        import google.generativeai as genai
+        from google import genai as genai_client
+        from google.genai import types as genai_types
 
-        genai.configure(api_key=settings.google_api_key)
-        model = genai.GenerativeModel(
-            "gemini-2.5-flash",
-            system_instruction=SYSTEM_PROMPT,
+        client = genai_client.Client(api_key=settings.google_api_key)
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=user_message,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                tools=[genai_types.Tool(google_search=genai_types.GoogleSearch())],
+            ),
         )
-        response = await model.generate_content_async(user_message)
         reply_text = response.text
     except Exception as exc:
         logger.exception("Coding agent LLM call failed")

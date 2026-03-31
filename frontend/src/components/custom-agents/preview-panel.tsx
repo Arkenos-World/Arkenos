@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Square, Phone } from "lucide-react";
+import { Play, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { getApiUrl } from "@/lib/api";
 import { useAuthHeaders } from "@/lib/auth-headers";
-import type { ContainerInfo } from "@/lib/api";
 
 interface PreviewPanelProps {
     agentId: string;
@@ -21,111 +20,77 @@ export function PreviewPanel({
     onContainerStatusChange,
 }: PreviewPanelProps) {
     const auth = useAuthHeaders();
-    const [container, setContainer] = useState<ContainerInfo | null>(null);
-    const [isStarting, setIsStarting] = useState(false);
-    const [isStopping, setIsStopping] = useState(false);
     const apiUrl = getApiUrl();
+    const [deployed, setDeployed] = useState(false);
+    const [checking, setChecking] = useState(true);
 
-    const handleStart = async () => {
-        setIsStarting(true);
+    // Check if the agent has a deployed worker running
+    const checkDeployStatus = useCallback(async () => {
+        if (!auth.Authorization && !auth["x-user-id"]) return;
         try {
-            const res = await fetch(
-                `${apiUrl}/agents/${agentId}/containers/preview`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", ...auth },
-                }
-            );
-            if (!res.ok) throw new Error("Failed to start container");
-            const data: ContainerInfo = await res.json();
-            setContainer(data);
-            onContainerStatusChange(true);
-            toast.success("Preview container started");
-        } catch (error) {
-            console.error("Preview start error:", error);
-            toast.error("Failed to start preview container");
+            const res = await fetch(`${apiUrl}/agents/${agentId}`, {
+                headers: auth,
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const isDeployed = data.deployed_version != null && data.build_status === "READY";
+                setDeployed(isDeployed);
+                onContainerStatusChange(isDeployed);
+            }
+        } catch {
+            // ignore
         } finally {
-            setIsStarting(false);
+            setChecking(false);
         }
-    };
+    }, [apiUrl, agentId, auth, onContainerStatusChange]);
 
-    const handleStop = async () => {
-        setIsStopping(true);
-        try {
-            const res = await fetch(
-                `${apiUrl}/agents/${agentId}/containers/stop`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", ...auth },
-                }
-            );
-            if (!res.ok) throw new Error("Failed to stop container");
-            setContainer(null);
-            onContainerStatusChange(false);
-            toast.success("Preview container stopped");
-        } catch (error) {
-            console.error("Preview stop error:", error);
-            toast.error("Failed to stop container");
-        } finally {
-            setIsStopping(false);
-        }
-    };
+    useEffect(() => {
+        checkDeployStatus();
+    }, [checkDeployStatus]);
 
     const handleTestCall = () => {
+        if (!deployed) {
+            toast.error("Deploy the agent first before testing");
+            return;
+        }
         window.open(`/preview?agentId=${agentId}`, "_blank");
     };
 
-    const isRunning = container?.status === "RUNNING" || container?.status === "PENDING";
+    if (checking) {
+        return null;
+    }
 
     return (
         <div className="flex items-center gap-2">
-            {container && (
+            {deployed && (
                 <Badge
                     variant="outline"
-                    className={
-                        isRunning
-                            ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
-                            : "text-yellow-400 border-yellow-400/30 bg-yellow-400/10"
-                    }
+                    className="text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
                 >
-                    {container.status}
+                    Live
                 </Badge>
             )}
 
-            {!isRunning ? (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={handleStart}
-                    disabled={isStarting}
-                >
-                    <Play className="h-3.5 w-3.5" />
-                    {isStarting ? "Starting..." : "Preview"}
-                </Button>
-            ) : (
-                <>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={handleTestCall}
-                    >
+            <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleTestCall}
+                disabled={!deployed}
+                title={!deployed ? "Deploy the agent first" : undefined}
+            >
+                {deployed ? (
+                    <>
                         <Phone className="h-3.5 w-3.5" />
                         Test Call
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 text-muted-foreground"
-                        onClick={handleStop}
-                        disabled={isStopping}
-                    >
-                        <Square className="h-3.5 w-3.5" />
-                        Stop
-                    </Button>
-                </>
-            )}
+                    </>
+                ) : (
+                    <>
+                        <Play className="h-3.5 w-3.5" />
+                        Preview
+                    </>
+                )}
+            </Button>
         </div>
     );
 }

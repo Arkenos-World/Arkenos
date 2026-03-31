@@ -201,6 +201,7 @@ const DEFAULT_WEBHOOK_CONFIG: WebhookConfigState = {
 export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const router = useRouter();
     const auth = useAuthHeaders();
+    const isCustom = agent.agent_mode === "CUSTOM";
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingCall, setIsTestingCall] = useState(false);
     const [isOutboundCallOpen, setIsOutboundCallOpen] = useState(false);
@@ -212,6 +213,22 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [firstMessageMode, setFirstMessageMode] = useState(agent.config?.first_message_mode || "assistant_speaks_first");
     const [firstMessage, setFirstMessage] = useState(agent.config?.first_message || "");
     const [systemPrompt, setSystemPrompt] = useState(agent.config?.system_prompt || "");
+
+    // For custom agents, load prompt from prompts/system.txt file
+    const apiUrl_early = getApiUrl();
+    useEffect(() => {
+        if (!isCustom) return;
+        const authReady = auth.Authorization || auth["x-user-id"];
+        if (!authReady) return;
+        fetch(`${apiUrl_early}/agents/${agent.id}/files/${encodeURIComponent("prompts/system.txt")}`, {
+            headers: auth,
+        })
+            .then((r) => r.ok ? r.json() : null)
+            .then((data) => {
+                if (data?.content) setSystemPrompt(data.content);
+            })
+            .catch(() => {});
+    }, [isCustom, agent.id, auth.Authorization]); // eslint-disable-line react-hooks/exhaustive-deps
     const [sttProvider, setSttProvider] = useState(agent.config?.stt_provider || "assemblyai");
 
     const apiUrl = getApiUrl();
@@ -565,10 +582,12 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                         <PhoneOutgoingIcon className="h-4 w-4" />
                         Make a Call
                     </Button>
-                    <Button variant="outline" size="sm" className="gap-2" onClick={() => { }}>
+                    {isCustom && (
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => router.push(`/dashboard/agents/${agent.id}/code`)}>
                         <CodeIcon className="h-4 w-4" />
                         Code
                     </Button>
+                    )}
                     <Button
                         variant="outline"
                         size="sm"
@@ -694,6 +713,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             </div>
 
                             {/* First Message Mode */}
+                            {!isCustom && (
                             <div className="space-y-2">
                                 <Label>First Message Mode</Label>
                                 <Select value={firstMessageMode} onValueChange={setFirstMessageMode}>
@@ -709,32 +729,45 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            )}
 
                             {/* First Message */}
                             <div className="space-y-2">
                                 <Label>First Message</Label>
-                                <Input
-                                    value={firstMessage}
-                                    onChange={(e) => setFirstMessage(e.target.value)}
-                                    placeholder="Hello! How can I help you today?"
-                                />
+                                {isCustom ? (
+                                    <p className="text-sm text-muted-foreground italic">Managed in code — <button className="text-primary hover:underline" onClick={() => router.push(`/dashboard/agents/${agent.id}/code`)}>Open Code Editor</button></p>
+                                ) : (
+                                    <Input
+                                        value={firstMessage}
+                                        onChange={(e) => setFirstMessage(e.target.value)}
+                                        placeholder="Hello! How can I help you today?"
+                                    />
+                                )}
                             </div>
 
                             {/* System Prompt */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <Label>System Prompt</Label>
-                                    <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
-                                        <SparklesIcon className="h-3 w-3" />
-                                        Generate
-                                    </Button>
+                                    {isCustom ? (
+                                        <Badge variant="outline" className="text-xs">Read-only</Badge>
+                                    ) : (
+                                        <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
+                                            <SparklesIcon className="h-3 w-3" />
+                                            Generate
+                                        </Button>
+                                    )}
                                 </div>
                                 <Textarea
                                     value={systemPrompt}
-                                    onChange={(e) => setSystemPrompt(e.target.value)}
-                                    placeholder="Enter the system prompt that defines how the assistant should behave..."
-                                    className="min-h-[300px] font-mono text-sm leading-relaxed resize-y"
+                                    onChange={(e) => !isCustom && setSystemPrompt(e.target.value)}
+                                    readOnly={isCustom}
+                                    placeholder={isCustom ? "Loaded from prompts/system.txt" : "Enter the system prompt that defines how the assistant should behave..."}
+                                    className={`min-h-[300px] font-mono text-sm leading-relaxed resize-y ${isCustom ? "opacity-70 cursor-default" : ""}`}
                                 />
+                                {isCustom && (
+                                    <p className="text-xs text-muted-foreground">Edit via <button className="text-primary hover:underline" onClick={() => router.push(`/dashboard/agents/${agent.id}/code`)}>Code Editor</button> or AI Chat</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -912,12 +945,50 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
                 {/* Functions Tab */}
                 <TabsContent value="tools">
-                    <FunctionConfig functions={functions} onChange={setFunctions} />
+                    {isCustom ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Functions</CardTitle>
+                                <CardDescription>Custom agent tools are defined in code.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-center py-8 space-y-3">
+                                    <Wrench className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                                    <p className="text-sm text-muted-foreground">Function tools are managed in the <code className="text-xs bg-muted px-1 py-0.5 rounded">tools/</code> directory</p>
+                                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/agents/${agent.id}/code`)}>
+                                        <CodeIcon className="h-4 w-4 mr-2" />
+                                        Open Code Editor
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <FunctionConfig functions={functions} onChange={setFunctions} />
+                    )}
                 </TabsContent>
 
                 {/* Webhooks Tab */}
                 <TabsContent value="webhooks">
-                    <WebhookConfig config={webhookConfig} onChange={setWebhookConfig} />
+                    {isCustom ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Webhooks</CardTitle>
+                                <CardDescription>Custom agent webhooks are defined in code.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-center py-8 space-y-3">
+                                    <Webhook className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                                    <p className="text-sm text-muted-foreground">Webhooks are managed in the <code className="text-xs bg-muted px-1 py-0.5 rounded">webhooks/</code> directory</p>
+                                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/agents/${agent.id}/code`)}>
+                                        <CodeIcon className="h-4 w-4 mr-2" />
+                                        Open Code Editor
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <WebhookConfig config={webhookConfig} onChange={setWebhookConfig} />
+                    )}
                 </TabsContent>
 
                 {/* Phone Number Tab */}

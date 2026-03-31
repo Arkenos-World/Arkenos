@@ -2,7 +2,9 @@
 
 import hashlib
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
 
 import docker
 from sqlalchemy.orm import Session
@@ -17,6 +19,56 @@ logger = logging.getLogger(__name__)
 def _docker_client() -> docker.DockerClient:
     settings = get_settings()
     return docker.DockerClient(base_url=settings.docker_socket)
+
+
+def _ensure_base_image() -> None:
+    """Build the base agent image if it doesn't exist locally.
+
+    Looks for the agent/ directory (sibling of backend/) containing
+    Dockerfile.base and its dependencies. Builds arkenos-agent-base:latest.
+    """
+    settings = get_settings()
+    base_tag = settings.base_agent_image
+
+    client = _docker_client()
+    try:
+        client.images.get(base_tag)
+        logger.debug(f"Base image {base_tag} already exists")
+        return
+    except docker.errors.ImageNotFound:
+        pass
+
+    # Find the agent/ directory — sibling of backend/
+    # backend/ is at <project>/backend, agent/ is at <project>/agent
+    backend_dir = Path(__file__).resolve().parent.parent.parent  # backend/
+    agent_dir = backend_dir.parent / "agent"
+
+    if not (agent_dir / "Dockerfile.base").exists():
+        raise RuntimeError(
+            f"Base image '{base_tag}' not found and cannot auto-build: "
+            f"Dockerfile.base not found at {agent_dir / 'Dockerfile.base'}. "
+            f"Build it manually: cd agent && docker build -f Dockerfile.base -t {base_tag} ."
+        )
+
+    logger.info(f"Base image '{base_tag}' not found — auto-building from {agent_dir}")
+    try:
+        image, build_logs = client.images.build(
+            path=str(agent_dir),
+            dockerfile="Dockerfile.base",
+            tag=base_tag,
+            rm=True,
+        )
+        for log_entry in build_logs:
+            if "stream" in log_entry:
+                line = log_entry["stream"].strip()
+                if line:
+                    logger.info(f"[base-build] {line}")
+        logger.info(f"Base image '{base_tag}' built successfully")
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to auto-build base image '{base_tag}': {exc}. "
+            f"Build it manually: cd agent && docker build -f Dockerfile.base -t {base_tag} ."
+        ) from exc
 
 
 def should_rebuild(agent_id: str, db: Session) -> bool:
@@ -49,6 +101,9 @@ def build_custom_image(agent_id: str, db: Session) -> str:
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise ValueError(f"Agent {agent_id} not found")
+
+    # Ensure the base image exists — auto-build if missing
+    _ensure_base_image()
 
     agent.build_status = AgentBuildStatus.BUILDING
     agent.build_error = None

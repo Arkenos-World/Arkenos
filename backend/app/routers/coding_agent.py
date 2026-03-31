@@ -25,12 +25,188 @@ from app.schemas import (
 from app.services import minio_client
 from app.services.coding_agent_prompt import SYSTEM_PROMPT
 from app.dependencies import verify_agent_ownership, get_current_user
-from app.models import User
+from app.models import User, AgentEnvVar
+from app.services.encryption import encrypt, decrypt
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-CODING_MODEL = "gemini-2.5-flash"
+CODING_MODEL = "gemini-3-flash-preview"
+
+
+# ---- Function calling tool definitions for the AI assistant ----
+
+ASSISTANT_FUNCTIONS = [
+    {
+        "name": "request_env_var",
+        "description": "Request the user to securely enter an API key or secret for this agent. This shows a secure input form in the chat — the value never passes through the AI. Use this when code needs an API key (e.g., TAVILY_API_KEY, LINEAR_API_KEY). The user will enter the value directly.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "key_name": {
+                    "type": "string",
+                    "description": "Environment variable name in UPPER_SNAKE_CASE (e.g., TAVILY_API_KEY)",
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Short description shown to user (e.g., 'Tavily Search API key')",
+                },
+                "help_url": {
+                    "type": "string",
+                    "description": "URL where user can get the key (e.g., 'https://tavily.com')",
+                },
+            },
+            "required": ["key_name", "description"],
+        },
+    },
+    {
+        "name": "list_env_vars",
+        "description": "List all environment variables currently set for this agent. Returns key names only (values are hidden for security). Use this to check if a required API key is already configured.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "name": "update_agent_config",
+        "description": "Update platform-level agent configuration like voice or STT provider. Only call this AFTER the user has explicitly chosen a voice from the list. Never auto-pick.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "voice_id": {
+                    "type": "string",
+                    "description": "Resemble AI voice ID from the list_voices result. Must be the exact ID string from the list.",
+                },
+                "stt_provider": {
+                    "type": "string",
+                    "description": "Speech-to-text provider: 'assemblyai', 'deepgram', or 'elevenlabs'",
+                    "enum": ["assemblyai", "deepgram", "elevenlabs"],
+                },
+            },
+        },
+    },
+    {
+        "name": "list_voices",
+        "description": "List available Resemble AI voices compatible with chatterbox-turbo model. Use this to find the best voice for the agent based on its persona and language. Auto-pick the best match, set it, and tell the user. Offer to show the full list if they want to change.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "language": {
+                    "type": "string",
+                    "description": "Filter by language name (e.g., 'English (US)', 'Spanish'). Defaults to 'English (US)' if not specified.",
+                },
+            },
+        },
+    },
+]
+
+
+def _execute_tool(func_name: str, args: dict, agent_id: str, db: Session, sse_events: list | None = None) -> str:
+    """Execute an AI assistant tool call and return the result as a string.
+
+    sse_events: if provided, tool can append SSE events to emit to the frontend.
+    """
+    if func_name == "request_env_var":
+        key_name = args.get("key_name", "").strip().upper()
+        description = args.get("description", key_name)
+        help_url = args.get("help_url", "")
+        if not key_name:
+            return "Error: key_name is required."
+
+        # Check if already set
+        existing = db.query(AgentEnvVar).filter(
+            AgentEnvVar.agent_id == agent_id, AgentEnvVar.key_name == key_name
+        ).first()
+        if existing:
+            return f"{key_name} is already configured. No action needed."
+
+        # Emit SSE event so frontend shows secure input form
+        if sse_events is not None:
+            sse_events.append({
+                "type": "env_input_request",
+                "key_name": key_name,
+                "description": description,
+                "help_url": help_url,
+            })
+
+        return f"A secure input form has been shown to the user for {key_name}. The user will enter the key directly — it won't pass through this conversation. Wait for the user to confirm they've saved it before continuing."
+
+    elif func_name == "list_env_vars":
+        env_vars = db.query(AgentEnvVar).filter(AgentEnvVar.agent_id == agent_id).all()
+        if not env_vars:
+            return "No environment variables are set for this agent."
+        keys = [ev.key_name for ev in env_vars]
+        return f"Environment variables set: {', '.join(keys)}"
+
+    elif func_name == "update_agent_config":
+        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+        if not agent:
+            return "Error: Agent not found."
+        config = agent.config or {}
+        updated = []
+        if "voice_id" in args and args["voice_id"]:
+            config["voice_id"] = args["voice_id"]
+            updated.append(f"voice_id={args['voice_id']}")
+        if "stt_provider" in args and args["stt_provider"]:
+            config["stt_provider"] = args["stt_provider"]
+            updated.append(f"stt_provider={args['stt_provider']}")
+        agent.config = config
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(agent, "config")
+        db.commit()
+        return f"Updated agent config: {', '.join(updated)}" if updated else "No changes made."
+
+    elif func_name == "list_voices":
+        try:
+            from app.routers.resemble import _ensure_full_cache
+            import asyncio
+
+            language = args.get("language", "English (US)")
+
+            # Get cached voices (uses our internal Resemble cache)
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in a sync context called from async — use the cache directly
+                    from app.routers.resemble import _all_voices
+                    all_voices = _all_voices if _all_voices else []
+                else:
+                    all_voices = asyncio.run(_ensure_full_cache())
+            except Exception:
+                all_voices = []
+
+            if not all_voices:
+                return "No voices available. Make sure Resemble AI API key is configured in Settings > API Keys."
+
+            # Filter by language, and exclude sample/base voices that don't work with chatterbox-turbo
+            filtered = [
+                v for v in all_voices
+                if (not language or v.get("language", "") == language)
+                and v.get("source") == "Resemble Voice"
+            ]
+            if not filtered:
+                # Fallback: try language filter only without source filter
+                filtered = [v for v in all_voices if not language or v.get("language", "") == language]
+            if not filtered:
+                filtered = [v for v in all_voices if v.get("source") == "Resemble Voice"]
+            if not filtered:
+                filtered = all_voices
+
+            # Show up to 10 voices as a numbered list
+            lines = []
+            for i, v in enumerate(filtered[:10], 1):
+                name = v.get("name", "Unknown")
+                vid = v.get("id", "")
+                lang = v.get("language", "")
+                lines.append(f"{i}. **{name}** — {lang} (ID: `{vid}`)")
+
+            result = "Available voices:\n\n" + "\n".join(lines)
+            result += "\n\nPick the best voice for this agent's persona and language. Call `update_agent_config` with the chosen voice ID. Then tell the user which voice you picked and offer to show the full list if they want to change."
+            return result
+        except Exception as e:
+            return f"Error fetching voices: {e}"
+
+    return f"Unknown function: {func_name}"
 
 
 def _sse(event_type: str, **kwargs) -> str:
@@ -328,13 +504,10 @@ async def chat_stream(
             # Phase 2: Call LLM with multi-turn history
             yield _sse("status", message="Thinking...")
 
-            import google.generativeai as genai
+            from google import genai as genai_client
+            from google.genai import types as genai_types
 
-            genai.configure(api_key=google_api_key)
-            model = genai.GenerativeModel(
-                CODING_MODEL,
-                system_instruction=SYSTEM_PROMPT,
-            )
+            client = genai_client.Client(api_key=google_api_key)
 
             # Build chat history from previous messages
             previous_messages = (
@@ -350,15 +523,87 @@ async def chat_stream(
             history = []
             for msg in previous_messages:
                 role = "user" if msg.role == "user" else "model"
-                history.append({"role": role, "parts": [msg.content]})
+                history.append(genai_types.Content(
+                    role=role,
+                    parts=[genai_types.Part(text=msg.content)],
+                ))
 
-            chat = model.start_chat(history=history)
-            response = await chat.send_message_async(user_message, stream=True)
+            # Configure with function calling + search grounding
+            config = genai_types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                tools=[
+                    genai_types.Tool(
+                        google_search=genai_types.GoogleSearch(),
+                        function_declarations=ASSISTANT_FUNCTIONS,
+                    ),
+                ],
+                tool_config=genai_types.ToolConfig(
+                    include_server_side_tool_invocations=True,
+                ),
+            )
 
-            async for chunk in response:
-                if chunk.text:
-                    full_text += chunk.text
-                    yield _sse("chunk", content=chunk.text)
+            # Build the full contents: history + current user message
+            contents = history + [
+                genai_types.Content(
+                    role="user",
+                    parts=[genai_types.Part(text=user_message)],
+                )
+            ]
+
+            # Function calling loop — keep going until no more function calls
+            max_tool_rounds = 5
+            for _round in range(max_tool_rounds):
+                response = client.models.generate_content(
+                    model=CODING_MODEL,
+                    contents=contents,
+                    config=config,
+                )
+
+                # Process all parts in the response
+                has_function_calls = False
+                function_response_parts = []
+
+                for part in response.candidates[0].content.parts:
+                    if part.text:
+                        full_text += part.text
+                        yield _sse("chunk", content=part.text)
+
+                    if part.function_call:
+                        has_function_calls = True
+                        fc = part.function_call
+                        func_name = fc.name
+                        func_args = dict(fc.args) if fc.args else {}
+
+                        yield _sse("status", message=f"Running {func_name}...")
+                        logger.info(f"[coding-agent] Tool call: {func_name}({func_args})")
+
+                        # Execute the tool
+                        pending_sse_events = []
+                        result = _execute_tool(func_name, func_args, agent_id, db, sse_events=pending_sse_events)
+
+                        # Emit any SSE events from the tool (e.g., env_input_request)
+                        for evt in pending_sse_events:
+                            yield _sse(**evt)
+
+                        yield _sse("status", message=f"{func_name} completed")
+
+                        # Build function response part
+                        function_response_parts.append(
+                            genai_types.Part.from_function_response(
+                                name=func_name,
+                                response={"result": result},
+                            )
+                        )
+
+                if not has_function_calls:
+                    break
+
+                # Append model response + function results to contents for next round
+                contents.append(response.candidates[0].content)
+                contents.append(genai_types.Content(
+                    role="user",
+                    parts=function_response_parts,
+                ))
 
             # Phase 3: Parse and auto-apply file changes
             file_changes = _parse_file_changes(full_text)

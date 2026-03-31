@@ -57,12 +57,59 @@ async def deploy(
     db: Session = Depends(get_db),
     agent: Agent = Depends(verify_agent_ownership),
 ):
-    """Mark the current version as deployed."""
+    """Build the Docker image (if needed), start a persistent worker, and mark deployed.
+
+    The worker container registers with LiveKit as 'arkenos-custom-{agent_id}'
+    and accepts dispatched calls — both inbound SIP and outbound.
+    """
+    # Block if already building
+    if agent.build_status == AgentBuildStatus.BUILDING:
+        raise HTTPException(status_code=409, detail="A build is already in progress")
+
+    # Step 0: Pre-deploy validation — syntax check all .py files
+    import ast
+    from app.services import minio_client as _minio
+    file_paths = _minio.list_files(agent_id)
+    py_files = [f for f in file_paths if f.endswith(".py") and "/.versions/" not in f]
+    for fp in py_files:
+        try:
+            content = _minio.download_file(agent_id, fp)
+            ast.parse(content.decode("utf-8"), filename=fp)
+        except SyntaxError as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Syntax error in {fp} (line {e.lineno}): {e.msg}",
+            )
+        except Exception:
+            pass  # Non-Python content or encoding issue, skip
+
+    # Step 1: Build image if requirements changed or no image exists
+    agent.build_status = AgentBuildStatus.PENDING
+    db.commit()
+
+    try:
+        image_tag = image_builder.build_custom_image(agent_id, db)
+    except Exception as exc:
+        db.refresh(agent)
+        raise HTTPException(status_code=500, detail=f"Build failed: {exc}")
+
+    db.refresh(agent)
+
+    # Step 2: Start persistent worker container (stops existing worker first)
+    try:
+        record_id = container_orchestrator.deploy_worker(agent_id, db)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to start worker: {exc}")
+
+    # Step 3: Mark deployed version
     agent.deployed_version = agent.current_version
     db.commit()
+
     return {
         "message": "Deployed successfully",
         "deployed_version": agent.deployed_version,
+        "image_tag": image_tag,
+        "worker_container_id": record_id,
     }
 
 

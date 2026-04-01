@@ -108,6 +108,7 @@ htmlcov/
 .claude/settings.local.json
 .claude/worktrees/
 .claude/plugins/
+.claude/ai-test-calls.md
 
 # ===================
 # Project Internal Docs

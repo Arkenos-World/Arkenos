@@ -583,7 +583,8 @@ async def chat_stream(
 
                         # Emit any SSE events from the tool (e.g., env_input_request)
                         for evt in pending_sse_events:
-                            yield _sse(**evt)
+                            evt_type = evt.pop("type")
+                            yield _sse(evt_type, **evt)
 
                         yield _sse("status", message=f"{func_name} completed")
 

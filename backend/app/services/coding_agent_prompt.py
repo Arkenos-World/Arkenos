@@ -26,11 +26,21 @@ LiveKit agents use **forkserver** multiprocessing. `server` and the \
 `@server.rtc_session()` entrypoint MUST be at module level — forkserver \
 pickles them. Nested or dynamically-created objects will crash.
 
+## Environment Variables (injected at runtime)
+
+All API keys and platform config are injected as env vars — never hardcode them:
+- `AGENT_ID` — UUID of this agent
+- `AGENT_NAME` — LiveKit worker name (arkenos-custom-{agent_id})
+- `BACKEND_API_URL` — Backend API base (http://host.docker.internal:8000/api)
+- `GOOGLE_API_KEY`, `RESEMBLE_API_KEY`, `RESEMBLE_VOICE_UUID`
+- `ASSEMBLYAI_API_KEY`, `DEEPGRAM_API_KEY`
+- `SESSION_ID` — (optional) pre-created session ID
+- `ROOM_NAME` — (only in preview mode)
+
 ## Project Structure
 
 ```
 agent.py              — MAIN ENTRY POINT (sacred — never delete)
-arkenos.yaml          — Agent metadata and pipeline config
 requirements.txt      — Extra pip dependencies (base packages pre-installed)
 prompts/
   system.txt          — System prompt for the LLM
@@ -52,96 +62,16 @@ Never delete or rename it.
 
 ### Complete Working Example
 
-```python
-import asyncio
-import json
-import logging
-import os
-
-import httpx
-from livekit import agents
-from livekit.agents import Agent, AgentServer, AgentSession, RunContext, function_tool
-from livekit.plugins import assemblyai, google, silero
-from resemble_tts import ResembleTTS
-
-logger = logging.getLogger("voice-agent")
-BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://localhost:8000/api")
-
-
-def load_system_prompt() -> str:
-    path = os.path.join(os.path.dirname(__file__), "prompts", "system.txt")
-    try:
-        with open(path, "r") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "You are a helpful voice assistant."
-
-
-class VoiceAssistant(Agent):
-    def __init__(self, instructions: str | None = None, tools=None):
-        super().__init__(
-            instructions=instructions or load_system_prompt(),
-            tools=tools or [],
-        )
-
-
-# ── Module-level server + entrypoint (REQUIRED for forkserver) ──────
-server = AgentServer()
-
-
-@server.rtc_session()
-async def entrypoint(ctx: agents.JobContext):
-    await ctx.connect()
-    participant = await ctx.wait_for_participant()  # MUST come before session.start()
-
-    # Parse room metadata for agent config
-    metadata = {}
-    if ctx.room.metadata:
-        try:
-            metadata = json.loads(ctx.room.metadata)
-        except json.JSONDecodeError:
-            pass
-
-    agent_id = metadata.get("agentId")
-    room_name = ctx.room.name
-
-    # Import tools from the tools/ folder
-    from tools import my_tool
-
-    session = AgentSession(
-        stt=assemblyai.STT(),
-        llm=google.LLM(),
-        tts=ResembleTTS(),
-        vad=silero.VAD.load(),
-    )
-
-    # Register event hooks BEFORE session.start()
-    @session.on("user_input_transcribed")
-    def on_transcript(ev):
-        if not ev.is_final:
-            return
-        if ev.transcript and ev.transcript.strip():
-            asyncio.create_task(
-                save_transcript(room_name, ev.transcript.strip(), "USER")
-            )
-
-    await session.start(
-        room=ctx.room,
-        agent=VoiceAssistant(tools=[my_tool]),
-    )
-
-    # Optional: agent speaks first
-    await session.generate_reply(
-        instructions="Greet the user warmly and ask how you can help."
-    )
-```
-
-Key points shown in this example:
+The scaffold agent.py already includes all of this. Key patterns:
 - `server` and `entrypoint` are at module level (forkserver requirement)
 - `wait_for_participant()` is called before `session.start()`
-- Event hooks are registered before `session.start()`
-- Transcript saving uses `asyncio.create_task()` (fire-and-forget)
+- Event hooks (`user_input_transcribed`, `conversation_item_added`, `metrics_collected`) \
+are registered before `session.start()`
+- Transcript saving uses `asyncio.create_task()` (fire-and-forget, never blocks pipeline)
+- Session lifecycle: `create_session()` at start, `end_session()` at end
+- Usage logging via `metrics_collected` event hook
 - Tools are imported from `tools/` and passed to the Agent
+- All API keys read from `os.environ` (injected by container)
 
 ## Writing Tools
 
@@ -280,14 +210,48 @@ Available without adding to `requirements.txt`:
 - **LiveKit**: `livekit-agents`, `livekit.agents.Agent/AgentServer/AgentSession/RunContext/function_tool`
 - **STT**: `livekit.plugins.assemblyai`, `livekit.plugins.deepgram`, `livekit.plugins.elevenlabs`
 - **LLM**: `livekit.plugins.google` (Gemini)
-- **TTS**: `resemble_tts.ResembleTTS` (primary), `livekit.plugins.elevenlabs` (alternative)
+- **TTS**: `livekit.plugins.resemble` (primary), `livekit.plugins.elevenlabs` (alternative)
 - **VAD**: `livekit.plugins.silero` (local, no API key)
 - **HTTP**: `httpx`, `aiohttp`
 - **Data**: `pydantic`, `numpy`, `pandas`
 - **Logging**: `usage_logger` (in `/app/lib/`)
 
-All API keys are injected as env vars at runtime. Access with `os.environ.get("VAR_NAME")`. \
+All platform API keys are injected as env vars at runtime. Access with `os.environ.get("VAR_NAME")`. \
 Never hardcode secrets.
+
+## Custom Environment Variables
+
+When your agent needs a third-party API key (e.g., OpenWeatherMap, Linear, Stripe), \
+use `os.environ.get("VARIABLE_NAME")` in the code, then use the `set_env_var` \
+tool to save the value. Always ask the user for the actual API key value first — \
+never use placeholders like `"demo"` or `"your-api-key-here"`.
+
+Workflow when code needs a third-party API key:
+1. Write the code using `os.environ.get("VARIABLE_NAME")`
+2. Ask the user: "I need your [Service] API key. You can get one at [url]. Paste it here."
+3. When the user provides the key, call `set_env_var` to save it securely
+4. Confirm it's saved and remind them to Deploy
+
+## Platform Tools
+
+You have access to these tools for configuring the agent:
+
+- **request_env_var(key_name, description, help_url)** — Show a secure input form for an API key. \
+The value is entered by the user directly and never passes through this chat. Use for any secret the code needs.
+- **list_env_vars()** — Check which env vars are already set.
+- **update_agent_config(voice_id, stt_provider)** — Change the agent's voice or STT provider.
+- **list_voices(language)** — Show available Resemble AI voices to help the user pick one.
+
+Use these tools proactively:
+- If you write code that needs an API key, call `request_env_var` to show a secure input \
+form. The user enters the key directly — it never passes through this conversation. \
+NEVER ask the user to paste an API key in the chat text.
+- After generating all code files, call `list_voices` to find a suitable voice.
+- Auto-pick a sensible default voice matching the agent's language/persona, call \
+`update_agent_config` to set it, then tell the user: "I've set the voice to [Name] \
+([Language]). Want a different voice? I can show you the full list."
+- If the user says yes or asks to change, show the numbered list and let them pick.
+- The voice must be compatible with the chatterbox-turbo TTS model.
 
 ## FILE_CHANGE Output Format
 

@@ -175,6 +175,91 @@ async def ensure_dispatch_rule() -> str:
         await lk.aclose()
 
 
+async def ensure_custom_agent_dispatch_rule(agent_id: str, phone_number: str) -> str:
+    """Create or reuse a SIP dispatch rule for a custom agent.
+
+    Custom agents register with LiveKit as 'arkenos-custom-{agent_id}', so they
+    need their own dispatch rule that routes calls to that specific worker.
+    The rule is pin-locked to the agent's phone number(s).
+
+    Returns the dispatch rule ID.
+    """
+    from livekit.api import (
+        CreateSIPDispatchRuleRequest,
+        ListSIPDispatchRuleRequest,
+        SIPDispatchRule,
+        SIPDispatchRuleIndividual,
+    )
+    from livekit.protocol.agent_dispatch import RoomAgentDispatch
+    from livekit.protocol.room import RoomConfiguration
+
+    agent_name = f"arkenos-custom-{agent_id}"
+    rule_name = f"Arkenos Custom ({agent_id[:8]})"
+
+    lk = _get_lk()
+    try:
+        # Check for existing rule
+        resp = await lk.sip.list_sip_dispatch_rule(ListSIPDispatchRuleRequest())
+        for rule in resp.items:
+            if rule.name == rule_name:
+                logger.info(f"[ensure_custom_dispatch] Reusing dispatch rule {rule.sip_dispatch_rule_id} for {agent_name}")
+                return rule.sip_dispatch_rule_id
+
+        # Resolve inbound trunk ID so the rule is linked to it
+        inbound_trunk_id = _state.inbound_trunk_id
+        if not inbound_trunk_id:
+            try:
+                inbound_trunk_id = await ensure_inbound_trunk()
+            except Exception:
+                pass
+        trunk_ids = [inbound_trunk_id] if inbound_trunk_id else []
+
+        # Create new dispatch rule for this custom agent
+        logger.info(f"[ensure_custom_dispatch] Creating dispatch rule for {agent_name}, phone={phone_number}, trunk_ids={trunk_ids}")
+        new_rule = await lk.sip.create_sip_dispatch_rule(
+            CreateSIPDispatchRuleRequest(
+                name=rule_name,
+                trunk_ids=trunk_ids,
+                rule=SIPDispatchRule(
+                    dispatch_rule_individual=SIPDispatchRuleIndividual(
+                        room_prefix=f"sip-custom-{agent_id[:8]}-",
+                    )
+                ),
+                room_config=RoomConfiguration(
+                    agents=[RoomAgentDispatch(agent_name=agent_name)]
+                ),
+                inbound_numbers=[phone_number],
+            )
+        )
+        logger.info(f"[ensure_custom_dispatch] Created dispatch rule {new_rule.sip_dispatch_rule_id} for {agent_name}")
+        return new_rule.sip_dispatch_rule_id
+    finally:
+        await lk.aclose()
+
+
+async def delete_custom_agent_dispatch_rule(agent_id: str) -> None:
+    """Delete the SIP dispatch rule for a custom agent (e.g. when phone released)."""
+    from livekit.api import ListSIPDispatchRuleRequest
+
+    rule_name = f"Arkenos Custom ({agent_id[:8]})"
+
+    lk = _get_lk()
+    try:
+        resp = await lk.sip.list_sip_dispatch_rule(ListSIPDispatchRuleRequest())
+        for rule in resp.items:
+            if rule.name == rule_name:
+                from livekit.protocol.sip import DeleteSIPDispatchRuleRequest as _DelReq
+                await lk.sip.delete_sip_dispatch_rule(
+                    _DelReq(sip_dispatch_rule_id=rule.sip_dispatch_rule_id)
+                )
+                logger.info(f"[delete_custom_dispatch] Deleted dispatch rule {rule.sip_dispatch_rule_id} for agent {agent_id[:8]}")
+                return
+    except Exception as e:
+        logger.warning(f"[delete_custom_dispatch] Could not delete rule for agent {agent_id[:8]}: {e}")
+    finally:
+        await lk.aclose()
+
+
 async def add_number_to_inbound_trunk(phone: str) -> None:
     """Add a phone number to the inbound SIP trunk.
     Self-heals if the cached trunk ID is stale (e.g. LiveKit project changed).

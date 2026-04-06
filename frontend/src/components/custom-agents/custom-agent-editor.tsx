@@ -9,7 +9,16 @@ import {
     Rocket,
     MessageSquare,
     Terminal,
+    Trash2,
 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { FileTree } from "./file-tree";
 import { CodeEditor } from "./code-editor";
 import { CodingAgentChat } from "./coding-agent-chat";
@@ -41,9 +50,15 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
     const [showLogs, setShowLogs] = useState(false);
     const [containerRunning, setContainerRunning] = useState(false);
     const [deployOpen, setDeployOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Wait for auth headers to be ready (session loads async on refresh)
+    const authReady = Boolean(auth.Authorization || auth["x-user-id"]);
 
     // Fetch file list
     const fetchFiles = useCallback(async () => {
+        if (!authReady) return;
         try {
             const res = await fetch(
                 `${apiUrl}/agents/${agent.id}/files/`,
@@ -63,7 +78,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
         } catch (error) {
             console.error("Failed to fetch files:", error);
         }
-    }, [apiUrl, agent.id, userId, activeFilePath]);
+    }, [apiUrl, agent.id, authReady, activeFilePath]);
 
     useEffect(() => {
         fetchFiles();
@@ -227,6 +242,27 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
         }, 3000);
     };
 
+    const handleDeleteAgent = useCallback(async () => {
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`${apiUrl}/agents/${agent.id}`, {
+                method: "DELETE",
+                headers: auth,
+            });
+            if (!res.ok && res.status !== 204) {
+                throw new Error("Failed to delete agent");
+            }
+            toast.success("Agent deleted successfully");
+            router.push("/dashboard/agents");
+        } catch (error) {
+            console.error("Failed to delete agent:", error);
+            toast.error("Failed to delete agent");
+        } finally {
+            setIsDeleting(false);
+            setDeleteDialogOpen(false);
+        }
+    }, [agent.id, apiUrl, auth, router]);
+
     return (
         <div className="flex flex-col h-full bg-background">
             {/* Top bar */}
@@ -244,6 +280,15 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                     <div className="h-4 w-px bg-border" />
                     <span className="font-semibold text-sm truncate">{agent.name}</span>
                     <BuildStatusBadge status={buildStatus} />
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeleteDialogOpen(true)}
+                        title="Delete agent"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                 </div>
 
                 {/* Right: panel toggles + actions */}
@@ -353,6 +398,28 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                 deployedVersion={deployedVersion}
                 onDeployed={handleDeployed}
             />
+
+            {/* Delete confirmation dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent showCloseButton={false} className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Delete Agent</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete <span className="font-medium text-foreground">{agent.name}</span>?
+                            This will stop any running containers, release the phone number,
+                            and deactivate this agent. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDeleteAgent} disabled={isDeleting}>
+                            {isDeleting ? "Deleting..." : "Delete Agent"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

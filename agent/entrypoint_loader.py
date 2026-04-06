@@ -156,11 +156,27 @@ def load_custom_agent():
     sys.exit(1)
 
 
+def _patch_agent_name(server, agent_name: str) -> None:
+    """Patch the AgentServer so it registers with the given agent_name.
+    This ensures custom agents register as 'arkenos-custom-{agent_id}'
+    instead of the default name, so LiveKit dispatches calls correctly.
+    """
+    # AgentServer stores the name in _agent_name (set by @server.rtc_session(agent_name=...))
+    server._agent_name = agent_name
+
+    # Also set the module-level AGENT_NAME so the user's code can read it
+    os.environ["AGENT_NAME"] = agent_name
+    logger.info(f"Patched agent_name to: {agent_name}")
+
+
 def main() -> None:
     logger.info("=== Arkenos Custom Agent Entrypoint ===")
 
     agent_id = get_required_env("AGENT_ID")
     bucket = os.environ.get("MINIO_BUCKET", "agent-code")
+
+    # Unique agent name for LiveKit dispatch routing
+    agent_name = os.environ.get("AGENT_NAME", f"arkenos-custom-{agent_id}")
 
     # Step 1: Download agent files from MinIO
     try:
@@ -181,15 +197,18 @@ def main() -> None:
     # Step 4: Load the custom agent module and get the AgentServer
     server = load_custom_agent()
 
-    # Step 5: Run the agent via LiveKit CLI
+    # Step 5: Patch agent_name so this worker registers uniquely with LiveKit
+    _patch_agent_name(server, agent_name)
+
+    # Step 6: Run the agent via LiveKit CLI
     room_name = os.environ.get("ROOM_NAME")
     if room_name:
         # Connect to a specific room (preview / call mode)
-        logger.info(f"Starting custom agent {agent_id} — connecting to room: {room_name}")
+        logger.info(f"Starting custom agent {agent_id} ({agent_name}) — connecting to room: {room_name}")
         sys.argv = ["agent", "connect", "--room", room_name]
     else:
-        # No room specified — start as a generic worker (dispatch mode)
-        logger.info(f"Starting custom agent {agent_id} in worker mode")
+        # No room specified — start as a persistent worker (dispatch mode)
+        logger.info(f"Starting custom agent {agent_id} ({agent_name}) in worker mode")
         sys.argv = ["agent", "start"]
 
     from livekit import agents

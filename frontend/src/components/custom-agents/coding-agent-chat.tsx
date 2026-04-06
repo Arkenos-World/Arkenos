@@ -20,6 +20,7 @@ import {
     Eye,
     AlertCircle,
     History,
+    KeyRound,
 } from "lucide-react";
 import { getApiUrl } from "@/lib/api";
 import { useAuthHeaders } from "@/lib/auth-headers";
@@ -46,6 +47,7 @@ type StreamEvent =
     | { type: "file_error"; file_path: string; error: string }
     | { type: "file_changes"; file_changes: FileChange[]; auto_applied: boolean }
     | { type: "conversation"; id: string; title: string }
+    | { type: "env_input_request"; key_name: string; description: string; help_url: string }
     | { type: "done" }
     | { type: "error"; content: string };
 
@@ -267,6 +269,12 @@ export function CodingAgentChat({
     const [writingFile, setWritingFile] = useState<string | null>(null);
     const [activitySteps, setActivitySteps] = useState<ActivityStep[]>([]);
     const [streamingFileChanges, setStreamingFileChanges] = useState<FileChange[]>([]);
+    const [pendingEnvVars, setPendingEnvVars] = useState<{
+        key_name: string;
+        description: string;
+        help_url: string;
+        saved: boolean;
+    }[]>([]);
 
     // Conversation history state
     const [conversations, setConversations] = useState<ConversationListItem[]>([]);
@@ -296,7 +304,10 @@ export function CodingAgentChat({
 
     // ─── Conversation history ─────────────────────────────────────
 
+    const authReady = Boolean(auth.Authorization || auth["x-user-id"]);
+
     const fetchConversations = useCallback(async () => {
+        if (!authReady) return;
         try {
             const res = await fetch(
                 `${apiUrl}/agents/${agentId}/coding-agent/conversations`,
@@ -309,7 +320,7 @@ export function CodingAgentChat({
         } catch {
             // non-fatal
         }
-    }, [apiUrl, agentId, userId]);
+    }, [apiUrl, agentId, authReady]);
 
     useEffect(() => {
         fetchConversations();
@@ -542,6 +553,19 @@ export function CodingAgentChat({
                             case "conversation":
                                 setActiveConversationId(event.id);
                                 fetchConversations();
+                                break;
+
+                            case "env_input_request":
+                                // Show secure input form in chat
+                                setPendingEnvVars((prev) => [
+                                    ...prev,
+                                    {
+                                        key_name: event.key_name,
+                                        description: event.description || event.key_name,
+                                        help_url: event.help_url || "",
+                                        saved: false,
+                                    },
+                                ]);
                                 break;
 
                             case "error":
@@ -797,6 +821,79 @@ export function CodingAgentChat({
                         )}
                     </div>
                 )}
+
+                {/* Secure env var input forms */}
+                {pendingEnvVars.filter((ev) => !ev.saved).map((ev) => (
+                    <div key={ev.key_name} className="mx-2 my-2">
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <div className="h-5 w-5 rounded bg-amber-500/15 flex items-center justify-center">
+                                    <KeyRound className="h-3 w-3 text-amber-400" />
+                                </div>
+                                <span className="text-[12px] font-medium text-foreground/80">{ev.description}</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                                <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{ev.key_name}</code>
+                                {ev.help_url && (
+                                    <> · <a href={ev.help_url} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">Get a key</a></>
+                                )}
+                            </p>
+                            <form
+                                onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    const form = e.currentTarget;
+                                    const input = form.querySelector("input") as HTMLInputElement;
+                                    const value = input?.value?.trim();
+                                    if (!value) return;
+                                    try {
+                                        const res = await fetch(
+                                            `${apiUrl}/agents/${agentId}/env-vars`,
+                                            {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json", ...auth },
+                                                body: JSON.stringify({ key_name: ev.key_name, value }),
+                                            }
+                                        );
+                                        if (!res.ok) throw new Error("Failed to save");
+                                        setPendingEnvVars((prev) =>
+                                            prev.map((p) =>
+                                                p.key_name === ev.key_name ? { ...p, saved: true } : p
+                                            )
+                                        );
+                                    } catch {
+                                        // Show error
+                                    }
+                                }}
+                                className="flex items-center gap-2"
+                            >
+                                <input
+                                    type="password"
+                                    placeholder="Paste your API key"
+                                    className="flex-1 h-8 px-2.5 rounded-md border border-border bg-background text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-violet-500/50"
+                                    autoComplete="off"
+                                />
+                                <button
+                                    type="submit"
+                                    className="h-8 px-3 rounded-md bg-violet-600 text-white text-[12px] font-medium hover:bg-violet-700 transition-colors shrink-0"
+                                >
+                                    Save
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                ))}
+
+                {/* Saved env var confirmations */}
+                {pendingEnvVars.filter((ev) => ev.saved).map((ev) => (
+                    <div key={`${ev.key_name}-saved`} className="mx-2 my-1">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                            <span className="text-[12px] text-emerald-400">
+                                <code className="font-mono">{ev.key_name}</code> saved securely
+                            </span>
+                        </div>
+                    </div>
+                ))}
 
                 <div ref={messagesEndRef} />
             </div>

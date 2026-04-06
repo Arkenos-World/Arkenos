@@ -62,6 +62,17 @@ async def create_agent(
     if mode == AgentMode.CUSTOM:
         agent.storage_path = f"agents/{agent_id}"
 
+        # Copy voice_id from an existing agent in the org so TTS works on first deploy
+        existing_agent = (
+            db.query(Agent)
+            .filter(Agent.org_id == org.id, Agent.is_active == True)
+            .first()
+        )
+        if existing_agent and existing_agent.config and existing_agent.config.get("voice_id"):
+            config = agent.config or {}
+            config["voice_id"] = existing_agent.config["voice_id"]
+            agent.config = config
+
     db.add(agent)
     db.commit()
     db.refresh(agent)
@@ -100,7 +111,8 @@ async def delete_agent(
     db: Session = Depends(get_db),
     agent: Agent = Depends(verify_agent_ownership),
 ):
-    """Soft delete an agent (sets is_active to False). Releases phone number if assigned."""
+    """Soft delete an agent (sets is_active to False). Releases phone number if assigned.
+    For custom agents, also stops worker containers and cleans up dispatch rules."""
 
     # Release phone number if assigned
     if agent.phone_number:
@@ -121,9 +133,38 @@ async def delete_agent(
             except Exception as e:
                 logger.warning(f"Failed to clean up {agent.telephony_provider} config on delete: {e}")
 
+        # 3. Clean up custom agent dispatch rule (if custom)
+        if agent.agent_mode == AgentMode.CUSTOM:
+            try:
+                from app.services.telephony_provisioning import delete_custom_agent_dispatch_rule
+                await delete_custom_agent_dispatch_rule(agent.id)
+            except Exception as e:
+                logger.warning(f"Failed to delete custom dispatch rule on delete: {e}")
+
         agent.phone_number = None
         agent.provider_number_sid = None
         agent.telephony_provider = None
+
+    # Stop worker containers for custom agents
+    if agent.agent_mode == AgentMode.CUSTOM:
+        try:
+            from app.services import container_orchestrator
+            from app.models import AgentContainer, ContainerStatus
+            running_containers = (
+                db.query(AgentContainer)
+                .filter(
+                    AgentContainer.agent_id == agent.id,
+                    AgentContainer.status.in_([ContainerStatus.RUNNING, ContainerStatus.PENDING]),
+                )
+                .all()
+            )
+            for container in running_containers:
+                try:
+                    container_orchestrator.stop_container(container.id, db)
+                except Exception:
+                    logger.warning(f"Failed to stop container {container.id} on agent delete")
+        except Exception as e:
+            logger.warning(f"Failed to clean up containers on delete: {e}")
 
     agent.is_active = False
     db.commit()

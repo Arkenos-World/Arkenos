@@ -17,6 +17,7 @@ from app.dependencies import get_current_user, get_current_org
 from app.services.config_resolver import get_key, require_providers
 from app.models import (
     Agent,
+    AgentMode,
     CallDirection,
     CallStatus,
     Organization,
@@ -138,13 +139,26 @@ async def create_outbound_call(
 
             import json as _json
             room_metadata = _json.dumps({"agentId": agent.id})
-            logger.info(f"[outbound] Creating LiveKit room: name={room_name}, metadata={room_metadata}, empty_timeout=120")
+
+            # Route to the correct LiveKit worker based on agent mode
+            if agent.agent_mode == AgentMode.CUSTOM:
+                dispatch_agent_name = f"arkenos-custom-{agent.id}"
+                # Verify the custom agent has a deployed worker running
+                from app.services.container_orchestrator import is_worker_running
+                if not is_worker_running(agent.id, db):
+                    raise RuntimeError(
+                        "Custom agent is not deployed. Deploy it first from the code editor."
+                    )
+            else:
+                dispatch_agent_name = "arkenos-agent"
+
+            logger.info(f"[outbound] Creating LiveKit room: name={room_name}, metadata={room_metadata}, dispatch_to={dispatch_agent_name}")
             await livekit.room.create_room(
                 CreateRoomRequest(
                     name=room_name,
                     empty_timeout=120,
                     metadata=room_metadata,
-                    agents=[RoomAgentDispatch(agent_name="arkenos-agent")],
+                    agents=[RoomAgentDispatch(agent_name=dispatch_agent_name)],
                 )
             )
             logger.info(f"[outbound] LiveKit room created successfully: {room_name}")

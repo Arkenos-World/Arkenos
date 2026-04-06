@@ -87,13 +87,12 @@ export async function POST(request: NextRequest) {
       });
 
       if (agentMode === "CUSTOM") {
-        // Custom agents: spawn the container with the SAME room name
-        await fetch(`${backendApiUrl}/agents/${agentId}/containers/preview`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-user-id": userId },
-          body: JSON.stringify({ room_name: roomName }),
-        });
-        console.log(`Started custom container for agent: ${agentId} in room: ${roomName}`);
+        // Custom agents: dispatch to their persistent worker container
+        // Worker registers as 'arkenos-custom-{agentId}' with LiveKit
+        const customAgentName = `arkenos-custom-${agentId}`;
+        const dispatchMetadata = JSON.stringify({ agentId });
+        await agentDispatch.createDispatch(roomName, customAgentName, { metadata: dispatchMetadata });
+        console.log(`Dispatched to custom agent worker: ${customAgentName} in room: ${roomName}`);
       } else {
         // Standard agents: dispatch via AgentDispatchClient
         const dispatchMetadata = agentId ? JSON.stringify({ agentId }) : undefined;

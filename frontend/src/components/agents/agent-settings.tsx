@@ -118,6 +118,7 @@ interface Agent {
     description: string | null;
     type: string;
     is_active: boolean;
+    agent_mode: "STANDARD" | "CUSTOM";
     phone_number?: string | null;
     provider_number_sid?: string | null;
     telephony_provider?: string | null;

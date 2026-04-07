@@ -175,7 +175,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
         setIsLoading(true);
         try {
             const response = await fetch(
-                `${apiUrl}/agents/`,
+                `${apiUrl}/agents`,
                 {
                     method: 'POST',
                     headers: {
@@ -235,7 +235,7 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
         setIsLoading(true);
         try {
             const response = await fetch(
-                `${apiUrl}/agents/`,
+                `${apiUrl}/agents`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...auth },

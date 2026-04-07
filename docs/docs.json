@@ -24,7 +24,7 @@
           {
             "group": "Getting Started",
             "icon": "play",
-            "pages": ["introduction", "quickstart", "local-development"]
+            "pages": ["introduction", "quickstart", "self-hosting", "local-development"]
           },
           {
             "group": "Architecture",
@@ -41,6 +41,7 @@
             "icon": "sparkles",
             "pages": [
               "features/agents",
+              "features/custom-agents",
               "features/voice-sessions",
               "features/function-calling",
               "features/call-intelligence",

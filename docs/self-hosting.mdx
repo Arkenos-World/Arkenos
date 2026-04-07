@@ -1,0 +1,179 @@
+---
+title: Self-Hosting
+description: Deploy Arkenos on any VPS with a single command. Full features including custom agents.
+---
+
+# Self-Hosting
+
+Self-hosting is the **recommended deployment method** for Arkenos. It gives you full features including custom agents, Docker sandboxes, and the AI coding assistant.
+
+## One-Command Install
+
+SSH into any Linux VPS and run:
+
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Arkenos-World/Arkenos/master/install.sh)"
+```
+
+The script handles everything:
+
+1. Installs Docker and Docker Compose
+2. Clones the Arkenos repository
+3. Generates secure random credentials (Postgres, MinIO, auth secret)
+4. Sets up HTTPS (Let's Encrypt with a domain, or self-signed for IP-only access)
+5. Builds and starts all services
+6. Builds the custom agent base image
+
+When finished, you'll see:
+
+```
+Arkenos is running!
+
+  URL:        https://your-ip-or-domain
+
+  Credentials (saved to /opt/arkenos/.env):
+    Postgres:  postgres:x8fK2mN9... @ localhost:5432
+    MinIO:     arkenos-minio:hD5sA8cF...
+
+  Next steps:
+    1. Open the URL in your browser
+    2. Create your account
+    3. Go to Settings → API Keys and add your provider keys
+```
+
+## Requirements
+
+- **OS:** Ubuntu 22.04+, Debian 11+, CentOS 8+, Fedora 36+, or Amazon Linux 2
+- **RAM:** 4GB minimum (2GB works for light usage)
+- **Disk:** 30GB SSD
+- **Ports:** 80 and 443 open (HTTP/HTTPS)
+
+## Recommended VPS Providers
+
+| Provider | Plan | Price | Notes |
+|----------|------|-------|-------|
+| **Hetzner** | CX22 (4GB / 2vCPU) | ~$7/mo | Best value |
+| **DigitalOcean** | Droplet (4GB / 2vCPU) | ~$24/mo | Easiest UI, great docs |
+| **Vultr** | Cloud Compute (4GB / 2vCPU) | ~$18/mo | Good API, many locations |
+| **Google Cloud** | e2-medium (4GB / 2vCPU) | ~$25/mo | Free trial available |
+| **AWS Lightsail** | 4GB / 2vCPU | ~$18/mo | For AWS users |
+
+## Step-by-Step: Google Cloud
+
+<Steps>
+  <Step title="Create a VM">
+    Go to [Google Cloud Console](https://console.cloud.google.com) → **Compute Engine** → **VM Instances** → **Create Instance**.
+
+    Configure:
+    - **Name:** `arkenos`
+    - **Region:** Pick closest to your users (e.g. `us-central1`)
+    - **Machine type:** `e2-medium` (2 vCPU, 4GB RAM)
+    - **Boot disk:** Ubuntu 24.04 LTS, x86, 30GB SSD
+    - **Firewall:** Check **Allow HTTP traffic** and **Allow HTTPS traffic**
+
+    Click **Create**.
+  </Step>
+  <Step title="SSH into the VM">
+    In the VM Instances list, click the **SSH** button next to your VM. This opens a browser-based terminal.
+  </Step>
+  <Step title="Run the install script">
+    ```bash
+    sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Arkenos-World/Arkenos/master/install.sh)"
+    ```
+
+    When prompted for a domain:
+    - Enter your domain (e.g. `app.example.com`) if you have one pointed at the VM's IP — Caddy will auto-provision a Let's Encrypt certificate
+    - Press **Enter** to skip — Caddy will use a self-signed certificate (browser shows a one-time warning)
+
+    Wait 3-5 minutes for the build to complete.
+  </Step>
+  <Step title="Open Arkenos">
+    Find your VM's **External IP** in the Google Cloud Console.
+
+    Open `https://<your-ip>` in your browser. If using a self-signed cert, click **Advanced → Proceed**.
+  </Step>
+  <Step title="Configure">
+    1. **Create your account** on the sign-up page
+    2. Go to **Settings → API Keys** and add your provider credentials:
+       - **LiveKit** — URL, API Key, API Secret ([LiveKit Cloud](https://cloud.livekit.io))
+       - **Google AI** — API Key ([Google AI Studio](https://aistudio.google.com))
+       - **Resemble AI** — API Key ([Resemble AI](https://resemble.ai))
+       - **STT Provider** — AssemblyAI or Deepgram API key
+    3. Create your first agent and test with **Preview**
+  </Step>
+</Steps>
+
+## HTTPS
+
+Arkenos uses [Caddy](https://caddyserver.com) as a reverse proxy.
+
+| Setup | How HTTPS works |
+|-------|----------------|
+| **With a domain** | Caddy auto-provisions a free Let's Encrypt certificate. No warnings. |
+| **IP-only (no domain)** | Caddy uses a self-signed certificate. Browser shows a one-time "not secure" warning — click through it. HTTPS is required for browser APIs. |
+
+To add a domain later, re-run the install script — it will ask for the domain and update the Caddyfile.
+
+## Architecture
+
+The install script creates these containers on your VPS:
+
+```
+Internet → Caddy (:80/:443)
+              ├── /api/auth/* → Frontend (Better Auth)
+              ├── /api/*      → Backend (FastAPI)
+              └── /*          → Frontend (Next.js)
+
+Internal:
+  ├── PostgreSQL (database)
+  ├── MinIO (file storage for custom agents)
+  ├── Standard Agent (LiveKit worker)
+  └── Custom Agent containers (spawned on demand)
+```
+
+When a user creates and deploys a custom agent, the backend talks to Docker via the mounted socket and spawns a new container on the same machine.
+
+## Managing Your Deployment
+
+```bash
+cd /opt/arkenos
+
+# View logs
+docker compose -f docker-compose.prod.yml logs -f
+
+# View logs for a specific service
+docker compose -f docker-compose.prod.yml logs -f backend
+
+# Restart all services
+docker compose -f docker-compose.prod.yml restart
+
+# Stop all services
+docker compose -f docker-compose.prod.yml down
+
+# Update to latest version
+git pull origin master
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+## Credentials
+
+All credentials are stored in `/opt/arkenos/.env` (readable only by root). These are auto-generated and used internally between services — you never need to change them.
+
+| Credential | Used by | User needs to know? |
+|------------|---------|-------------------|
+| `POSTGRES_PASSWORD` | Backend ↔ PostgreSQL | Only for direct DB access |
+| `MINIO_ROOT_PASSWORD` | Backend ↔ MinIO | Only for MinIO console access |
+| `BETTER_AUTH_SECRET` | Frontend session signing | Never |
+
+API keys for providers (LiveKit, Google, Resemble, STT, Twilio) are managed through the **dashboard Settings page**, encrypted with AES-256 in the database.
+
+## Custom Agents on Self-Hosted
+
+Custom agents are fully supported on self-hosted deployments. When you deploy a custom agent:
+
+1. The backend builds a Docker image from your code
+2. Spawns a new container on the same machine
+3. The container connects to LiveKit and handles voice calls
+4. All environment variables (API keys, custom vars) are injected securely
+
+This requires Docker socket access, which is why custom agents only work on self-hosted deployments — not on Railway or Render.

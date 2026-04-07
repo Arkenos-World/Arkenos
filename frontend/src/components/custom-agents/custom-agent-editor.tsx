@@ -61,7 +61,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
         if (!authReady) return;
         try {
             const res = await fetch(
-                `${apiUrl}/agents/${agent.id}/files/`,
+                `${apiUrl}/agents/${agent.id}/files`,
                 { headers: auth }
             );
             if (!res.ok) return;

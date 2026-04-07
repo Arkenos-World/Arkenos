@@ -15,6 +15,7 @@ app = FastAPI(
     title="Arkenos API",
     description="Backend API for Arkenos — Composable orchestration for conversational AI",
     version="0.1.0",
+    redirect_slashes=False,
 )
 
 

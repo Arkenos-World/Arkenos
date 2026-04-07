@@ -179,6 +179,32 @@ clone_repo() {
     cd "$ARKENOS_DIR"
 }
 
+# ── Generate self-signed certs ──────────────────────────────────────────────
+generate_certs() {
+    if [ -n "$USER_DOMAIN" ]; then
+        # Real domain — Caddy handles certs via Let's Encrypt, no self-signed needed
+        mkdir -p "$ARKENOS_DIR/certs"
+        # Create dummy files so the volume mount doesn't fail
+        touch "$ARKENOS_DIR/certs/cert.pem" "$ARKENOS_DIR/certs/key.pem"
+        return
+    fi
+
+    if [ -f "$ARKENOS_DIR/certs/cert.pem" ] && [ -s "$ARKENOS_DIR/certs/cert.pem" ]; then
+        ok "Self-signed certs already exist"
+        return
+    fi
+
+    info "Generating self-signed HTTPS certificate..."
+    mkdir -p "$ARKENOS_DIR/certs"
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$ARKENOS_DIR/certs/key.pem" \
+        -out "$ARKENOS_DIR/certs/cert.pem" \
+        -subj "/CN=$PUBLIC_IP" \
+        -addext "subjectAltName=IP:$PUBLIC_IP" \
+        2>/dev/null
+    ok "Self-signed HTTPS certificate generated"
+}
+
 # ── Write Caddyfile ─────────────────────────────────────────────────────────
 write_caddyfile() {
     local CADDY_ROUTES='
@@ -212,7 +238,7 @@ EOF
     else
         cat > "$ARKENOS_DIR/Caddyfile" <<EOF
 :443 {
-	tls internal
+	tls /certs/cert.pem /certs/key.pem
 $CADDY_ROUTES
 }
 EOF
@@ -325,6 +351,7 @@ main() {
     ask_domain
     configure_firewall
     clone_repo
+    generate_certs
     write_caddyfile
     generate_env
     start_services

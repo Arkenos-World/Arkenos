@@ -137,13 +137,9 @@ ask_domain() {
 
     if [ -n "$USER_DOMAIN" ]; then
         ARKENOS_URL="https://$USER_DOMAIN"
-        ARKENOS_DOMAIN="$USER_DOMAIN"
-        ARKENOS_TLS=""
         ok "Will configure HTTPS for: $USER_DOMAIN"
     else
         ARKENOS_URL="https://$PUBLIC_IP"
-        ARKENOS_DOMAIN=":443"
-        ARKENOS_TLS="internal"
         ok "Will configure HTTPS (self-signed) at: https://$PUBLIC_IP"
     fi
 }
@@ -183,13 +179,53 @@ clone_repo() {
     cd "$ARKENOS_DIR"
 }
 
+# ── Write Caddyfile ─────────────────────────────────────────────────────────
+write_caddyfile() {
+    local CADDY_ROUTES='
+	handle /api/auth/* {
+		reverse_proxy frontend:3000
+	}
+
+	handle /api/livekit/* {
+		reverse_proxy frontend:3000
+	}
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /ws/* {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}'
+
+    if [ -n "$USER_DOMAIN" ]; then
+        cat > "$ARKENOS_DIR/Caddyfile" <<EOF
+$USER_DOMAIN {
+$CADDY_ROUTES
+}
+EOF
+        ok "Caddyfile: HTTPS with Let's Encrypt for $USER_DOMAIN"
+    else
+        cat > "$ARKENOS_DIR/Caddyfile" <<EOF
+:443 {
+	tls internal
+$CADDY_ROUTES
+}
+EOF
+        ok "Caddyfile: self-signed HTTPS on :443"
+    fi
+}
+
 # ── Generate .env ───────────────────────────────────────────────────────────
 generate_env() {
     if [ -f "$ARKENOS_DIR/.env" ]; then
         warn ".env already exists — preserving existing credentials"
         # Update only the URL config (in case domain changed)
         sed -i "s|^ARKENOS_URL=.*|ARKENOS_URL=$ARKENOS_URL|" "$ARKENOS_DIR/.env"
-        sed -i "s|^ARKENOS_DOMAIN=.*|ARKENOS_DOMAIN=$ARKENOS_DOMAIN|" "$ARKENOS_DIR/.env"
         # Source existing values for the summary printout
         . "$ARKENOS_DIR/.env"
         ok "Updated URL config in existing .env"
@@ -214,8 +250,6 @@ BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 
 # URL Configuration
 ARKENOS_URL=$ARKENOS_URL
-ARKENOS_DOMAIN=$ARKENOS_DOMAIN
-ARKENOS_TLS=$ARKENOS_TLS
 EOF
 
     chmod 600 "$ARKENOS_DIR/.env"
@@ -291,6 +325,7 @@ main() {
     ask_domain
     configure_firewall
     clone_repo
+    write_caddyfile
     generate_env
     start_services
     build_base_image

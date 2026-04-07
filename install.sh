@@ -138,11 +138,13 @@ ask_domain() {
     if [ -n "$USER_DOMAIN" ]; then
         ARKENOS_URL="https://$USER_DOMAIN"
         ARKENOS_DOMAIN="$USER_DOMAIN"
+        ARKENOS_TLS=""
         ok "Will configure HTTPS for: $USER_DOMAIN"
     else
-        ARKENOS_URL="http://$PUBLIC_IP"
-        ARKENOS_DOMAIN=":80"
-        ok "Will configure HTTP access at: http://$PUBLIC_IP"
+        ARKENOS_URL="https://$PUBLIC_IP"
+        ARKENOS_DOMAIN=":443"
+        ARKENOS_TLS="internal"
+        ok "Will configure HTTPS (self-signed) at: https://$PUBLIC_IP"
     fi
 }
 
@@ -213,6 +215,7 @@ BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 # URL Configuration
 ARKENOS_URL=$ARKENOS_URL
 ARKENOS_DOMAIN=$ARKENOS_DOMAIN
+ARKENOS_TLS=$ARKENOS_TLS
 EOF
 
     chmod 600 "$ARKENOS_DIR/.env"

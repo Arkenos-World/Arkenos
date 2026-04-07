@@ -190,9 +190,9 @@ Render deployment is also supported via the included [`render.yaml`](render.yaml
 | Feature | Self-Hosted (VPS) | Railway / Render |
 |---------|-------------------|------------------|
 | Standard agents | ✅ | ✅ |
-| Custom agents (code editor) | ✅ | ❌ |
-| Docker sandbox containers | ✅ | ❌ |
-| AI coding assistant | ✅ | ❌ |
+| Custom agents (code editor) · *preview* | ✅ | ❌ |
+| Docker sandbox containers · *preview* | ✅ | ❌ |
+| AI coding assistant · *preview* | ✅ | ❌ |
 | Dashboard & API | ✅ | ✅ |
 | Telephony (Twilio) | ✅ | ✅ |
 | Call intelligence | ✅ | ✅ |

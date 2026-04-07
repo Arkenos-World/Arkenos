@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArkenosLogo } from "@/components/ui/arkenos-logo";
+import { NenyaxLogo } from "@/components/ui/nenyax-logo";
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -19,46 +19,52 @@ const FOOTER_LINKS = {
     { label: "API Keys", href: "/dashboard/keys" },
   ],
   Developers: [
-    { label: "Documentation", href: "https://arkenos.mintlify.app", external: true },
-    { label: "API Reference", href: "https://arkenos.mintlify.app", external: true },
-    { label: "GitHub", href: "https://github.com/Arkenos-World/Arkenos", external: true },
-    { label: "Self-Hosting Guide", href: "https://arkenos.mintlify.app", external: true },
+    { label: "Documentation", href: "https://nenyax.mintlify.app", external: true },
+    { label: "API Reference", href: "https://nenyax.mintlify.app", external: true },
+    { label: "GitHub", href: "https://github.com/Nenyax-World/Nenyax", external: true },
+    { label: "Self-Hosting Guide", href: "https://nenyax.mintlify.app", external: true },
   ],
   Company: [
     { label: "Blog", href: "/blog" },
     { label: "Product", href: "/product" },
-    { label: "Open Source", href: "https://github.com/Arkenos-World/Arkenos", external: true },
+    { label: "Open Source", href: "https://github.com/Nenyax-World/Nenyax", external: true },
   ],
 };
 
 export function PublicFooter() {
   return (
-    <footer className="border-t">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+    <footer className="bg-white border-t border-black/5 pt-24 pb-12">
+      <div className="container mx-auto px-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-12 mb-24">
           {/* Brand column */}
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/">
-              <ArkenosLogo className="h-5 mb-4" />
+          <div className="col-span-2">
+            <Link href="/" className="inline-block mb-6 hover:opacity-80 transition-opacity">
+              <NenyaxLogo className="h-6" />
             </Link>
-            <p className="text-sm text-muted-foreground mb-4">
-              The open-source voice AI platform.
+            <p className="text-[15px] text-zinc-500 mb-8 max-w-sm leading-relaxed">
+              The open-source voice AI platform for developers who value performance and control.
             </p>
-            <a
-              href="https://github.com/Arkenos-World/Arkenos"
-              className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 inline-block"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <GithubIcon className="h-5 w-5" />
-            </a>
+            <div className="flex items-center gap-4">
+              <a
+                href="https://github.com/Nenyax-World/Nenyax"
+                className="w-10 h-10 rounded-full bg-stone-50 border border-black/5 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-stone-100 transition-all hover:-translate-y-0.5 shadow-sm"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <GithubIcon className="h-5 w-5" />
+              </a>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-black/5 shadow-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />
+                <span className="text-[11px] font-medium text-zinc-600">System Online</span>
+              </div>
+            </div>
           </div>
 
           {/* Link columns */}
           {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-            <div key={title}>
-              <p className="text-sm font-semibold mb-4">{title}</p>
-              <ul className="space-y-2.5">
+            <div key={title} className="col-span-1">
+              <p className="text-[15px] font-medium text-zinc-900 mb-6">{title}</p>
+              <ul className="space-y-4">
                 {links.map((link) => (
                   <li key={link.label}>
                     {"external" in link && link.external ? (
@@ -66,14 +72,14 @@ export function PublicFooter() {
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-[14px] text-zinc-500 hover:text-zinc-900 transition-colors inline-block"
                       >
                         {link.label}
                       </a>
                     ) : (
                       <Link
                         href={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-[14px] text-zinc-500 hover:text-zinc-900 transition-colors inline-block"
                       >
                         {link.label}
                       </Link>
@@ -86,13 +92,24 @@ export function PublicFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Arkenos. Open source under AGPL-3.0.
-          </p>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>Privacy</span>
-            <span>Terms</span>
+        <div className="border-t border-black/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+            <p className="text-[13px] text-zinc-500">
+              &copy; {new Date().getFullYear()} Nenyax. AGPL-3.0 Licensed.
+            </p>
+            <div className="flex items-center gap-6 text-[13px] text-zinc-500">
+              <Link href="#" className="hover:text-zinc-900 transition-colors">Privacy</Link>
+              <Link href="#" className="hover:text-zinc-900 transition-colors">Terms</Link>
+              <Link href="#" className="hover:text-zinc-900 transition-colors">Security</Link>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-black/5 shadow-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[11px] font-medium text-zinc-600">All systems operational</span>
           </div>
         </div>
       </div>

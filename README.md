@@ -97,48 +97,108 @@ Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Arkenos Agent
 
 ## Quick Start
 
+### Local Development
+
 ```bash
 git clone https://github.com/Arkenos-World/Arkenos.git
 cd Arkenos
 
-# Configure environment
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
-# Edit each .env with your values
+# Only one env var needed
+echo "POSTGRES_PASSWORD=arkenos" > .env
 
-# Launch
-docker-compose up -d --build
+# Launch all services
+docker compose up -d --build
 ```
 
-Open [http://localhost:4200](http://localhost:4200) to access the dashboard.
+Open [http://localhost:4200](http://localhost:4200) → create account → add API keys in Settings.
 
-For local development setup, see the [Development Guide](https://arkenos.mintlify.app/local-development).
+To use custom agents locally, also build the base image:
 
-> **Note:** The agent service requires no `.env` file — it fetches all API keys from the backend dashboard on startup.
+```bash
+docker build -t arkenos-agent-base:latest -f agent/Dockerfile.base agent/
+```
+
+For running services outside Docker, see the [Development Guide](https://arkenos.mintlify.app/local-development).
 
 ---
 
-## Cloud Deploy
+## Deploy
 
-### Railway (One-Click)
+### Self-Hosted (Recommended — Full Features)
+
+Deploy Arkenos on any Linux VPS with a single command. This is the recommended deployment method — it supports **all features** including custom agents with Docker sandboxes.
+
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Arkenos-World/Arkenos/master/install.sh)"
+```
+
+The install script automatically:
+- Installs Docker if not present
+- Generates secure random credentials (Postgres, MinIO, auth)
+- Sets up HTTPS (auto Let's Encrypt with a domain, or self-signed for IP-only access)
+- Builds all services and the custom agent base image
+- Prints your URL and credentials when done
+
+**Requirements:**
+- Any Linux VPS with 4GB+ RAM (Ubuntu 22.04+ recommended)
+- Works on any cloud: DigitalOcean, Google Cloud, Hetzner, AWS, Vultr, Linode, etc.
+
+**Recommended VPS providers:**
+
+| Provider | Plan | Price |
+|----------|------|-------|
+| Hetzner CX22 | 4GB / 2vCPU | ~€7/mo |
+| DigitalOcean | 4GB / 2vCPU | ~$24/mo |
+| Vultr | 4GB / 2vCPU | ~$18/mo |
+| Google Cloud e2-medium | 4GB / 2vCPU | ~$25/mo |
+
+<details>
+<summary><b>Google Cloud step-by-step example</b></summary>
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com) → Compute Engine → VM Instances → Create Instance
+2. Configure:
+   - Machine type: `e2-medium` (2 vCPU, 4GB RAM)
+   - Boot disk: **Ubuntu 24.04 LTS**, **x86**, **30GB SSD**
+   - Firewall: check **Allow HTTP** and **Allow HTTPS**
+3. Click **Create**, then click **SSH** to connect
+4. Run the install command above
+5. When prompted for domain, enter your domain or press Enter to use the IP
+6. Open `https://<your-ip>` in your browser (click through the self-signed cert warning if no domain)
+7. Create your account → Settings → API Keys → add your provider keys
+
+</details>
+
+### Railway (One-Click — Standard Agents Only)
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/arkenos)
 
-The Railway template provides a true **zero-configuration** deployment. It automatically:
-- Provisions the PostgreSQL database (`arkenos-db`)
-- Deploys the Backend (`arkenos-backend`), Frontend (`arkenos-frontend`), and Agent (`arkenos-agent`) services
-- Wires all internal routing, ports, and database credentials securely
+The Railway template provides a **zero-configuration** deployment. It automatically provisions PostgreSQL, deploys all services, and wires internal routing.
 
 1. Click the button above and click **Deploy**
-2. Wait for all 4 services to show as "Online" (the backend will automatically run database migrations)
-3. Open your deployed Frontend URL (`https://arkenos-frontend-....up.railway.app`)
-4. Sign up for a new account on the dashboard
-5. Navigate to the **Settings** page in your dashboard to plug in your provider API keys (LiveKit, Resemble, Twilio, Google, STT, etc.)
+2. Wait for all 4 services to show as "Online"
+3. Open your deployed Frontend URL
+4. Sign up → Settings → API Keys → add your provider keys
+
+> **Note:** Custom agents (code editor + Docker containers) are **not supported** on Railway or Render. These platforms don't provide Docker socket access. Use the self-hosted deployment above for full features.
 
 ### Render
 
-Render deployment is also supported via the included [`render.yaml`](render.yaml) blueprint. See [Render docs](https://docs.render.com/infrastructure-as-code) for details.
+Render deployment is also supported via the included [`render.yaml`](render.yaml) blueprint. Same limitation as Railway — standard agents only, no custom agents. See [Render docs](https://docs.render.com/infrastructure-as-code) for details.
+
+### Feature Comparison
+
+| Feature | Self-Hosted (VPS) | Railway / Render |
+|---------|-------------------|------------------|
+| Standard agents | ✅ | ✅ |
+| Custom agents (code editor) | ✅ | ❌ |
+| Docker sandbox containers | ✅ | ❌ |
+| AI coding assistant | ✅ | ❌ |
+| Dashboard & API | ✅ | ✅ |
+| Telephony (Twilio) | ✅ | ✅ |
+| Call intelligence | ✅ | ✅ |
+| Cost tracking | ✅ | ✅ |
+| Auto HTTPS | ✅ | ✅ |
+| Full data ownership | ✅ | Partial |
 
 ---
 

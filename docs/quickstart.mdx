@@ -1,113 +1,139 @@
 ---
-title: Quick Start (Docker)
-description: Get Arkenos running with Docker Compose in under 5 minutes.
+title: Quick Start
+description: Get Arkenos running in under 5 minutes.
 ---
 
 # Quick Start
 
-## Cloud Deploy (Railway)
+Choose your deployment method:
 
-The fastest way to get started — one click, zero configuration:
-
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/arkenos)
-
-Railway auto-provisions PostgreSQL, wires all environment variables, and deploys all 3 services. After deployment, sign up on the dashboard and add your provider API keys (LiveKit, Google, etc.).
+| Method | Best for | Custom Agents |
+|--------|----------|---------------|
+| [Self-Hosted (VPS)](#self-hosted) | Production, full features | ✅ |
+| [Railway (One-Click)](#railway) | Quick demo, standard agents | ❌ |
+| [Local Development](#local-development) | Development, contributing | ✅ |
 
 ---
 
-## Local Development (Docker Compose)
+## Self-Hosted
 
-All 4 services start with one command.
+<Note>
+**Recommended for production.** This is the only deployment method that supports all features including custom agents, Docker sandboxes, and the AI coding assistant.
+</Note>
 
-## Prerequisites
+SSH into any Linux VPS (4GB+ RAM) and run:
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- Provider keys (LiveKit, Google Gemini, Resemble AI, STT) are configured via the dashboard after first boot
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Arkenos-World/Arkenos/master/install.sh)"
+```
 
-## 1. Clone the Repository
+That's it. The script installs Docker, generates credentials, sets up HTTPS, and starts everything.
+
+Open `https://<your-ip>` → create account → add API keys in Settings.
+
+See the full [Self-Hosting Guide](/self-hosting) for step-by-step instructions with Google Cloud, VPS provider recommendations, and management commands.
+
+---
+
+## Railway
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/arkenos)
+
+One-click deploy. Railway auto-provisions PostgreSQL and wires all services.
+
+1. Click the button → Deploy
+2. Wait for all services to go green (~3-5 min)
+3. Open the frontend URL → sign up → add API keys in Settings
+
+<Warning>
+Custom agents (code editor, Docker containers, AI coding assistant) are **not supported** on Railway. Use [Self-Hosted](/self-hosting) for full features.
+</Warning>
+
+---
+
+## Local Development
+
+For development and contributing. Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+### 1. Clone and configure
 
 ```bash
 git clone https://github.com/Arkenos-World/Arkenos.git
 cd Arkenos
 ```
 
-## 2. Configure Environment Variables
+The only required environment variable is `POSTGRES_PASSWORD`. Create a `.env` in the project root:
 
 ```bash
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
+echo "POSTGRES_PASSWORD=arkenos" > .env
 ```
 
-Edit each file and add your credentials. See [Environment Variables](/configuration/environment-variables) for the full reference.
-
-<Note>
-The agent needs **no `.env` file** — it fetches all API keys from the backend dashboard on startup. Auth is handled by Better Auth using your Postgres database — no external auth keys needed. The root `.env` only needs `POSTGRES_PASSWORD`.
-</Note>
-
-## 3. Run
+### 2. Start all services
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 This starts 5 services:
 
 | Service | URL |
 |---------|-----|
-| Frontend | http://localhost:4200 |
-| Backend API | http://localhost:4201 |
+| Frontend | [http://localhost:4200](http://localhost:4200) |
+| Backend API | [http://localhost:4201](http://localhost:4201) |
 | Voice Agent | Connected to LiveKit |
 | PostgreSQL | localhost:5434 |
-| MinIO | http://localhost:9002 |
+| MinIO | [http://localhost:9002](http://localhost:9002) |
 
-## 4. Open the Dashboard
+### 3. Configure API keys
 
-Visit [http://localhost:4200](http://localhost:4200) and sign in.
+Open [http://localhost:4200](http://localhost:4200), create an account, then go to **Settings → API Keys** and add:
 
-## 5. Configure API Keys
+1. **LiveKit** — URL, API Key, API Secret ([LiveKit Cloud](https://cloud.livekit.io))
+2. **Google AI** — API Key for Gemini ([Google AI Studio](https://aistudio.google.com))
+3. **Resemble AI** — API Key for TTS ([Resemble AI](https://resemble.ai))
+4. **STT** — AssemblyAI or Deepgram API key
 
-Go to **API Keys** in the dashboard and add your provider credentials:
+### 4. Build custom agent base image (optional)
 
-1. **LiveKit** — API Key, API Secret, Server URL (from [LiveKit Cloud](https://cloud.livekit.io))
-2. **Google** — API Key (for Gemini LLM)
-3. **Resemble AI** — API Key (for TTS)
-4. **STT Provider** — At least one of: AssemblyAI, ElevenLabs, or Deepgram
+Only needed if you want to use custom agents locally:
 
-Use the **Test Connection** button on each card to verify. The agent service will pick up the keys automatically on its next restart.
+```bash
+docker build -t arkenos-agent-base:latest -f agent/Dockerfile.base agent/
+```
 
-## Useful Commands
+### Useful commands
 
 ```bash
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
-# View logs for a specific service
-docker-compose logs -f backend
+# View logs for one service
+docker compose logs -f backend
 
-# Stop all services
-docker-compose down
-
-# Stop and remove volumes (resets database)
-docker-compose down -v
+# Stop everything
+docker compose down
 
 # Rebuild a single service
-docker-compose up -d --build backend
+docker compose up -d --build backend
 ```
+
+For running services outside Docker (frontend with `npm run dev`, backend with `uvicorn`), see the [Local Development Guide](/local-development).
+
+---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Environment Variables" icon="key" href="/configuration/environment-variables">
-    Full reference for all configuration options.
-  </Card>
-  <Card title="LiveKit Setup" icon="signal" href="/configuration/livekit">
-    Get your LiveKit Cloud credentials.
-  </Card>
-  <Card title="Telephony Setup" icon="phone" href="/configuration/telephony">
-    Connect phone numbers for inbound and outbound calls.
+  <Card title="Self-Hosting Guide" icon="server" href="/self-hosting">
+    Full deployment guide with Google Cloud walkthrough.
   </Card>
   <Card title="Agent Configuration" icon="user-gear" href="/features/agents">
     Create and configure your first voice agent.
+  </Card>
+  <Card title="Custom Agents" icon="code" href="/features/custom-agents">
+    Build custom agents with the code editor and AI assistant.
+  </Card>
+  <Card title="LiveKit Setup" icon="signal" href="/configuration/livekit">
+    Get your LiveKit Cloud credentials.
   </Card>
 </CardGroup>

@@ -1,0 +1,172 @@
+---
+title: Custom Agents
+description: Build custom voice agents with Python, the code editor, and AI coding assistant.
+---
+
+# Custom Agents
+
+Custom agents give you full control over the voice pipeline. Write Python code, use any library, define custom tools, and deploy as isolated Docker containers — all from the dashboard.
+
+<Note>
+Custom agents require a [self-hosted deployment](/self-hosting). They are not available on Railway or Render.
+</Note>
+
+## How It Works
+
+1. **Create** a custom agent from the dashboard
+2. **Write code** in the built-in editor or let the AI assistant generate it
+3. **Build** the Docker image from your code
+4. **Deploy** as a persistent worker or **Preview** for testing
+
+```
+Dashboard Code Editor
+        │
+        ▼
+Code stored in MinIO → Docker image built → Container spawned
+                                                    │
+                                                    ▼
+                                            Connects to LiveKit
+                                            Handles voice calls
+```
+
+## Creating a Custom Agent
+
+1. Go to **Dashboard → Agents → Create Agent**
+2. Select **Custom** mode
+3. The agent is scaffolded with default files:
+
+```
+agent.py              — Main entry point (required)
+requirements.txt      — Extra pip dependencies
+prompts/
+  system.txt          — System prompt for the LLM
+tools/
+  __init__.py         — Custom function tools
+webhooks/
+  __init__.py         — Webhook handlers
+pipelines/
+  __init__.py         — Custom pipeline stages
+utils/
+  __init__.py         — Shared helpers
+```
+
+## AI Coding Assistant
+
+Every custom agent includes an AI coding assistant powered by Gemini. Instead of writing code manually, describe what you want in plain English:
+
+**Example prompts:**
+
+> Create a voice agent that can search the web using Tavily to answer questions about current events, news, or facts. Always use the Tavily days parameter set to 7 so results are only from the last week. Keep responses conversational.
+
+> Add a tool that checks order status by calling our REST API at https://api.example.com/orders
+
+> Switch the STT provider to Deepgram and add sentiment analysis
+
+The assistant will:
+- Generate all file changes
+- Detect when API keys are needed and show a secure input form
+- Pick an appropriate voice for the agent
+- Follow LiveKit Agents SDK best practices
+
+## Environment Variables
+
+Custom agents can use third-party API keys securely:
+
+- **Platform keys** (LiveKit, Google, Resemble, STT) are injected automatically from your dashboard Settings
+- **Custom keys** (e.g., Tavily, Stripe, your own APIs) are added per-agent via the Environment Variables tab or through the AI assistant
+
+All values are encrypted with AES-256 in the database and injected into the container at runtime. They never appear in code or logs.
+
+## Preview vs Deploy
+
+| | Preview | Deploy |
+|---|---|---|
+| **Purpose** | Test in browser | Production calls |
+| **Container** | Temporary, connects to one room | Persistent worker |
+| **Telephony** | Browser-only (WebRTC) | Inbound + outbound phone calls |
+| **Lifecycle** | Stops when you close preview | Runs until stopped, auto-restarts |
+
+### Preview
+
+Click **Preview** to start a browser-based voice session. A temporary container spins up, connects to a LiveKit room, and you can talk to your agent immediately. The container is removed when the preview ends.
+
+### Deploy
+
+Click **Deploy** to start a persistent worker container. The worker:
+- Registers with LiveKit as `arkenos-custom-{agent_id}`
+- Accepts dispatched calls (inbound SIP and outbound)
+- Runs with `restart: unless-stopped` (auto-recovery)
+- Can be stopped from the dashboard
+
+## Writing Tools
+
+Tools let your agent perform actions during a conversation:
+
+```python
+from livekit.agents import function_tool, RunContext
+
+@function_tool
+async def search_web(query: str, context: RunContext) -> str:
+    """Search the web for current information."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.post("https://api.tavily.com/search", json={
+            "api_key": os.environ.get("TAVILY_API_KEY"),
+            "query": query,
+            "days": 7,
+            "max_results": 3,
+        })
+        results = resp.json().get("results", [])
+        return "\n".join(f"- {r['title']}: {r['content'][:200]}" for r in results)
+```
+
+Add tools to your agent:
+
+```python
+class MyAgent(Agent):
+    def __init__(self):
+        super().__init__(
+            instructions="You are a helpful assistant with web search.",
+            tools=[search_web],
+        )
+```
+
+### Speak-while-executing
+
+For slow tools, say a filler phrase so the caller isn't left in silence:
+
+```python
+@function_tool
+async def slow_lookup(query: str, context: RunContext) -> str:
+    """Look up information."""
+    await context.session.say("Let me look that up, one moment.")
+    # ... do the slow thing
+    return result
+```
+
+## File Versioning
+
+Every file edit is versioned. You can:
+- View version history for any file
+- Roll back to a previous version
+- See what changed between versions
+
+## Build and Image Caching
+
+When you build a custom agent:
+1. All files are downloaded from MinIO
+2. A Docker image is built on top of `arkenos-agent-base:latest`
+3. The image is tagged with a hash of `requirements.txt`
+4. If requirements haven't changed, the cached image is reused
+
+The base image pre-installs all LiveKit plugins, common libraries, and the Silero VAD model — so your custom builds are fast.
+
+## Pre-Installed Libraries
+
+Available without adding to `requirements.txt`:
+
+| Category | Libraries |
+|----------|-----------|
+| LiveKit | `livekit-agents`, all plugins (assemblyai, deepgram, google, silero, elevenlabs, resemble) |
+| HTTP | `httpx`, `aiohttp` |
+| Data | `pydantic`, `numpy`, `pandas` |
+| Logging | `usage_logger` (cost tracking) |

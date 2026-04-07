@@ -19,7 +19,8 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      ARKENOS_DOMAIN: ${ARKENOS_DOMAIN:-:80}
+      ARKENOS_DOMAIN: ${ARKENOS_DOMAIN:-:443}
+      ARKENOS_TLS: ${ARKENOS_TLS:-internal}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

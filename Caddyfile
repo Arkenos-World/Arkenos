@@ -1,8 +1,8 @@
-# Arkenos Caddyfile (default: self-signed HTTPS for IP-only access)
-# The install script overwrites this file when a domain is provided.
+# Arkenos Caddyfile (default: self-signed HTTPS)
+# The install script overwrites this with the correct config.
 
 :443 {
-	tls internal
+	tls /certs/cert.pem /certs/key.pem
 
 	handle /api/auth/* {
 		reverse_proxy frontend:3000

@@ -847,7 +847,7 @@ export function CodingAgentChat({
                                     if (!value) return;
                                     try {
                                         const res = await fetch(
-                                            `${apiUrl}/agents/${agentId}/env-vars`,
+                                            `${apiUrl}/agents/${agentId}/env-vars/`,
                                             {
                                                 method: "POST",
                                                 headers: { "Content-Type": "application/json", ...auth },

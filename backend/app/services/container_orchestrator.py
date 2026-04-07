@@ -52,7 +52,7 @@ def _resolve_env(agent: Agent, db: Session) -> dict[str, str]:
         "MINIO_SECRET_KEY": settings.minio_secret_key,
         "MINIO_BUCKET": settings.minio_bucket,
         "MINIO_SECURE": "false",
-        "BACKEND_API_URL": "http://host.docker.internal:8000/api",
+        "BACKEND_API_URL": settings.container_backend_url,
     }
 
     # Inject agent-scoped custom environment variables

@@ -1,16 +1,36 @@
-# Arkenos Docker Compose
+# Arkenos Production Docker Compose
 #
-# Setup:
-#   cp .env.example .env    # edit with your values
-#   docker-compose up -d --build
+# Used by install.sh for VPS deployment.
+# All credentials are auto-generated — see .env file.
 #
-# Only 1 env var required (POSTGRES_PASSWORD).
-# All provider keys (LiveKit, Google, Resemble, Twilio, STT) are
-# configured via API Keys in the dashboard after first boot.
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build
 
 name: arkenos
 
 services:
+  # ============================================
+  # Caddy — Reverse Proxy + Auto HTTPS
+  # ============================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: arkenos-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ARKENOS_DOMAIN: ${ARKENOS_DOMAIN:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
   # ============================================
   # PostgreSQL Database
   # ============================================
@@ -20,11 +40,9 @@ services:
     environment:
       POSTGRES_DB: arkenos
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arkenos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -40,13 +58,10 @@ services:
     container_name: arkenos-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
-    ports:
-      - "9002:9000"
-      - "9003:9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
@@ -63,16 +78,18 @@ services:
       dockerfile: Dockerfile
     container_name: arkenos-backend
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arkenos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       DB_HOST: postgres
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      FRONTEND_URL: http://localhost:4200
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      FRONTEND_URL: ${ARKENOS_URL:-http://localhost}
+      CONTAINER_BACKEND_URL: http://arkenos-backend:8000/api
+      DOCKER_SOCKET: unix:///var/run/docker.sock
+      CONTAINER_NETWORK: arkenos_default
+      DEBUG: "false"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - "4201:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,7 +98,7 @@ services:
     restart: unless-stopped
 
   # ============================================
-  # Voice Agent (LiveKit)
+  # Voice Agent (LiveKit — standard agent)
   # ============================================
   agent:
     build:
@@ -102,17 +119,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:4201/api
+        NEXT_PUBLIC_API_URL: ${ARKENOS_URL:-http://localhost}/api
     container_name: arkenos-frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:4201/api
+      NEXT_PUBLIC_API_URL: ${ARKENOS_URL:-http://localhost}/api
       INTERNAL_API_URL: http://backend:8000/api
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-arkenos}@postgres:5432/arkenos
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-arkenos-default-secret-change-in-production}
-      BETTER_AUTH_URL: http://localhost:4200
-      NEXT_PUBLIC_TELEMETRY: ${TELEMETRY:-true}
-    ports:
-      - "4200:3000"
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/arkenos
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${ARKENOS_URL:-http://localhost}
+      NEXT_PUBLIC_TELEMETRY: "false"
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,3 +138,5 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  caddy_data:
+  caddy_config:

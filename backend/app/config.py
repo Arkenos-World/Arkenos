@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     minio_use_ssl: bool = False
 
     # Docker / Custom Agents
+    container_backend_url: str = "http://host.docker.internal:8000/api"
     docker_socket: str = "unix:///var/run/docker.sock"
     base_agent_image: str = "arkenos-agent-base:latest"
     container_network: str = "arkenos_default"

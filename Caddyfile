@@ -1,36 +1,25 @@
-# Arkenos Caddyfile
-#
-# When ARKENOS_DOMAIN is set to a real domain (e.g. arkenos.example.com):
-#   Caddy auto-provisions HTTPS via Let's Encrypt.
-#
-# When no domain is set (IP-only access):
-#   Caddy serves HTTPS with a self-signed certificate on :443
-#   and redirects HTTP :80 → :443.
-#   Browser will show a warning, but crypto APIs work (secure context).
+# Arkenos Caddyfile (default: self-signed HTTPS for IP-only access)
+# The install script overwrites this file when a domain is provided.
 
-{$ARKENOS_DOMAIN::443} {
-	tls {$ARKENOS_TLS:internal}
-	# Auth routes → frontend (Better Auth runs in Next.js)
+:443 {
+	tls internal
+
 	handle /api/auth/* {
 		reverse_proxy frontend:3000
 	}
 
-	# LiveKit token route → frontend (Next.js API route)
 	handle /api/livekit/* {
 		reverse_proxy frontend:3000
 	}
 
-	# All other API requests → backend (FastAPI)
 	handle /api/* {
 		reverse_proxy backend:8000
 	}
 
-	# WebSocket support
 	handle /ws/* {
 		reverse_proxy backend:8000
 	}
 
-	# Everything else → frontend
 	handle {
 		reverse_proxy frontend:3000
 	}

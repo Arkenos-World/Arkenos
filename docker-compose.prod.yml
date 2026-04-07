@@ -1,4 +1,4 @@
-# Arkenos Production Docker Compose
+# Nenyax Production Docker Compose
 #
 # Used by install.sh for VPS deployment.
 # All credentials are auto-generated — see .env file.
@@ -6,7 +6,7 @@
 # Usage:
 #   docker compose -f docker-compose.prod.yml up -d --build
 
-name: arkenos
+name: nenyax
 
 services:
   # ============================================
@@ -14,7 +14,7 @@ services:
   # ============================================
   caddy:
     image: caddy:2-alpine
-    container_name: arkenos-caddy
+    container_name: nenyax-caddy
     ports:
       - "80:80"
       - "443:443"
@@ -35,9 +35,9 @@ services:
   # ============================================
   postgres:
     image: postgres:16-alpine
-    container_name: arkenos-db
+    container_name: nenyax-db
     environment:
-      POSTGRES_DB: arkenos
+      POSTGRES_DB: nenyax
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
@@ -54,7 +54,7 @@ services:
   # ============================================
   minio:
     image: minio/minio:latest
-    container_name: arkenos-minio
+    container_name: nenyax-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -75,7 +75,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: arkenos-backend
+    container_name: nenyax-backend
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       DB_HOST: postgres
@@ -83,9 +83,9 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       FRONTEND_URL: ${ARKENOS_URL:-http://localhost}
-      CONTAINER_BACKEND_URL: http://arkenos-backend:8000/api
+      CONTAINER_BACKEND_URL: http://nenyax-backend:8000/api
       DOCKER_SOCKET: unix:///var/run/docker.sock
-      CONTAINER_NETWORK: arkenos_default
+      CONTAINER_NETWORK: nenyax_default
       DEBUG: "false"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -103,7 +103,7 @@ services:
     build:
       context: ./agent
       dockerfile: Dockerfile
-    container_name: arkenos-agent
+    container_name: nenyax-agent
     environment:
       BACKEND_API_URL: http://backend:8000/api
     depends_on:
@@ -119,11 +119,11 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${ARKENOS_URL:-http://localhost}/api
-    container_name: arkenos-frontend
+    container_name: nenyax-frontend
     environment:
       NEXT_PUBLIC_API_URL: ${ARKENOS_URL:-http://localhost}/api
       INTERNAL_API_URL: http://backend:8000/api
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/arkenos
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/nenyax
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${ARKENOS_URL:-http://localhost}
       NEXT_PUBLIC_TELEMETRY: "false"

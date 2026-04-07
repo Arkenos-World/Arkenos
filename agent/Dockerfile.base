@@ -1,4 +1,4 @@
-# Arkenos Custom Agent — Fat Base Image
+# Nenyax Custom Agent — Fat Base Image
 # Pre-installs all common dependencies so custom agent containers start fast.
 # The standard agent uses agent/Dockerfile; this is only for custom agents.
 FROM python:3.11-slim

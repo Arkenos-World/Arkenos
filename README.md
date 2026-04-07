@@ -1,16 +1,16 @@
 <div align="center">
 
-# Arkenos
+# Nenyax
 
 ### Composable orchestration layer for enterprise-grade conversational AI infrastructure.
 
 Build, deploy, and manage production voice agents with runtime compute, persistent memory, MCP tool integration, and full infrastructure control — all from a single platform.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![GitHub Stars](https://img.shields.io/github/stars/Arkenos-World/Arkenos?style=social)](https://github.com/Arkenos-World/Arkenos)
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/arkenos)
+[![GitHub Stars](https://img.shields.io/github/stars/Nenyax-World/Nenyax?style=social)](https://github.com/Nenyax-World/Nenyax)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/nenyax)
 
-[Website](https://arkenos.ai) · [Documentation](https://arkenos.mintlify.app) · [Discord](https://discord.gg/arkenos) · [Twitter](https://twitter.com/arkenosai)
+[Website](https://nenyax.ai) · [Documentation](https://nenyax.mintlify.app) · [Discord](https://discord.gg/nenyax) · [Twitter](https://twitter.com/nenyaxai)
 
 </div>
 
@@ -20,9 +20,9 @@ Build, deploy, and manage production voice agents with runtime compute, persiste
 
 Building production-grade voice AI is painful. You stitch together STT, LLM, and TTS providers, write glue code for telephony, build dashboards for monitoring, and end up with a fragile pipeline that breaks every time you swap a vendor. Your agents are stateless, your tools are hardcoded, and customizing anything requires a full engineering cycle.
 
-## What is Arkenos?
+## What is Nenyax?
 
-Arkenos is an open-source orchestration layer that gives every voice agent a **personal runtime computer**. Instead of building dumb pipelines, you deploy intelligent agents that can:
+Nenyax is an open-source orchestration layer that gives every voice agent a **personal runtime computer**. Instead of building dumb pipelines, you deploy intelligent agents that can:
 
 - **Process and reason** across live conversations with function calling and tool execution
 - **Manage persistent memory** to maintain context across sessions and interactions
@@ -30,14 +30,14 @@ Arkenos is an open-source orchestration layer that gives every voice agent a **p
 - **Connect to MCP servers** for universal tool access without custom integrations
 - **Self-customize** through on-platform coding agents that modify agent behavior via natural language
 
-You define what your agent should do. Arkenos handles the infrastructure.
+You define what your agent should do. Nenyax handles the infrastructure.
 
 ---
 
 ## Key Capabilities
 
 ### Composable Voice Pipeline
-Swap any component without rewriting your stack. Plug in your preferred STT, LLM, and TTS providers and Arkenos orchestrates the full real-time audio pipeline with sub-second latency.
+Swap any component without rewriting your stack. Plug in your preferred STT, LLM, and TTS providers and Nenyax orchestrates the full real-time audio pipeline with sub-second latency.
 
 | Layer | Supported Providers |
 |-------|-------------------|
@@ -71,7 +71,7 @@ Track spend across every provider, every agent, every call. Per-session cost bre
 ## Architecture
 
 ```
-arkenos/
+nenyax/
 ├── frontend/          Next.js 16 · React 19 · Tailwind · Better Auth
 ├── backend/           FastAPI · SQLAlchemy · PostgreSQL
 ├── agent/             Python · LiveKit Agents SDK
@@ -79,7 +79,7 @@ arkenos/
 ```
 
 ```
-Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Arkenos Agent
+Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Nenyax Agent
                                                │
                           ┌────────────────────┤
                           ▼                    ▼
@@ -100,11 +100,11 @@ Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Arkenos Agent
 ### Local Development
 
 ```bash
-git clone https://github.com/Arkenos-World/Arkenos.git
-cd Arkenos
+git clone https://github.com/Nenyax-World/Nenyax.git
+cd Nenyax
 
 # Only one env var needed
-echo "POSTGRES_PASSWORD=arkenos" > .env
+echo "POSTGRES_PASSWORD=nenyax" > .env
 
 # Launch all services
 docker compose up -d --build
@@ -115,10 +115,10 @@ Open [http://localhost:4200](http://localhost:4200) → create account → add A
 To use custom agents locally, also build the base image:
 
 ```bash
-docker build -t arkenos-agent-base:latest -f agent/Dockerfile.base agent/
+docker build -t nenyax-agent-base:latest -f agent/Dockerfile.base agent/
 ```
 
-For running services outside Docker, see the [Development Guide](https://arkenos.mintlify.app/local-development).
+For running services outside Docker, see the [Development Guide](https://nenyax.mintlify.app/local-development).
 
 ---
 
@@ -126,10 +126,10 @@ For running services outside Docker, see the [Development Guide](https://arkenos
 
 ### Self-Hosted (Recommended — Full Features)
 
-Deploy Arkenos on any Linux VPS with a single command. This is the recommended deployment method — it supports **all features** including custom agents with Docker sandboxes.
+Deploy Nenyax on any Linux VPS with a single command. This is the recommended deployment method — it supports **all features** including custom agents with Docker sandboxes.
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Arkenos-World/Arkenos/master/install.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Nenyax-World/Nenyax/master/install.sh)"
 ```
 
 The install script automatically:
@@ -170,7 +170,7 @@ The install script automatically:
 
 ### Railway (One-Click — Standard Agents Only)
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/arkenos)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/nenyax)
 
 The Railway template provides a **zero-configuration** deployment. It automatically provisions PostgreSQL, deploys all services, and wires internal routing.
 
@@ -204,9 +204,9 @@ Render deployment is also supported via the included [`render.yaml`](render.yaml
 
 ## Documentation
 
-Full documentation is available at **[arkenos.mintlify.app](https://arkenos.mintlify.app)** — quickstart, local development, configuration guides, architecture deep-dives, and interactive API reference.
+Full documentation is available at **[nenyax.mintlify.app](https://nenyax.mintlify.app)** — quickstart, local development, configuration guides, architecture deep-dives, and interactive API reference.
 
-The backend exposes 32+ REST endpoints across 8 routers covering agents, sessions, telephony, costs, usage tracking, voice management, and real-time communication. See the [API Reference](https://arkenos.mintlify.app/api-reference) for the full interactive playground.
+The backend exposes 32+ REST endpoints across 8 routers covering agents, sessions, telephony, costs, usage tracking, voice management, and real-time communication. See the [API Reference](https://nenyax.mintlify.app/api-reference) for the full interactive playground.
 
 ---
 
@@ -220,7 +220,7 @@ The backend exposes 32+ REST endpoints across 8 routers covering agents, session
 - [ ] On-platform coding agents for agent customization
 - [ ] Embeddable voice widget for web apps
 - [ ] Audio recording storage and playback
-- [ ] Arkenos Cloud (managed platform)
+- [ ] Nenyax Cloud (managed platform)
 
 ---
 
@@ -240,8 +240,8 @@ We welcome contributions from the community. See [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-Arkenos is open-source software licensed under the [GNU Affero General Public License v3.0](LICENSE).
+Nenyax is open-source software licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
-This means you can freely use, modify, and distribute Arkenos, but any modifications to the codebase must also be made available under the same license — including when running a modified version as a network service.
+This means you can freely use, modify, and distribute Nenyax, but any modifications to the codebase must also be made available under the same license — including when running a modified version as a network service.
 
-For commercial licensing inquiries, contact [hello@arkenos.ai](mailto:hello@arkenos.ai).
+For commercial licensing inquiries, contact [hello@nenyax.ai](mailto:hello@nenyax.ai).

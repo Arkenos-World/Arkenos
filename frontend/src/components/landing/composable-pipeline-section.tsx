@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Blocks, Mic, BrainCircuit, Volume2, ArrowRight, Zap, RefreshCw, Check } from "lucide-react";
+import { Blocks } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ShimmeringText } from "@/components/ui/shimmering-text";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -17,7 +18,7 @@ const itemVariants = {
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as any } 
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
   },
 };
 
@@ -38,8 +39,17 @@ export function ComposablePipelineSection() {
               <Blocks className="w-4 h-4 text-zinc-400" />
               Composable Infrastructure
             </motion.div>
+            
             <motion.h2 variants={itemVariants} className="text-4xl md:text-5xl lg:text-[4rem] font-medium tracking-tight text-zinc-900 leading-[1.05]">
-              Zero vendor lock-in.<br/>Swap stack instantly.
+              <ShimmeringText 
+                text="Zero vendor lock-in." 
+                color="#18181b" 
+                shimmerColor="#a1a1aa"
+                duration={4}
+                delay={0}
+                repeatDelay={2}
+              /><br/>
+              Swap stack instantly.
             </motion.h2>
           </motion.div>
 
@@ -51,102 +61,74 @@ export function ComposablePipelineSection() {
             className="lg:pt-24"
           >
             <p className="text-lg text-zinc-500 leading-relaxed max-w-xl">
-              Swap any part of your stack (STT, LLM, TTS) without rewriting a single line of code. Connect directly to our orchestration layer and let us handle the low-latency transport.
+              Connect directly to our open-source orchestration layer. Bring your own LLMs, plug in your preferred STT/TTS providers, or deploy entirely air-gapped on your own infrastructure.
             </p>
           </motion.div>
         </div>
 
-        {/* Large Product Canvas */}
+        {/* Large Minimalist Canvas */}
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] as any }}
-            className="w-full bg-stone-50 rounded-[2.5rem] md:rounded-[3rem] border border-black/5 p-8 md:p-16 lg:p-24 relative overflow-hidden"
+            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full bg-stone-50 rounded-[2.5rem] md:rounded-[3rem] border border-black/5 p-8 py-24 md:p-24 relative overflow-hidden flex flex-col justify-center min-h-[500px]"
           >
-            {/* Ambient Background Accents */}
-            <div className="absolute top-0 right-0 w-[40rem] h-[40rem] -translate-y-1/2 translate-x-1/3 bg-white/60 rounded-full blur-[100px] pointer-events-none" />
-            
-            {/* The Pipeline Visualization */}
-            <div className="relative z-10 max-w-5xl mx-auto">
+            {/* The Connecting Wire with Flowing Packets */}
+            <div className="absolute top-1/2 left-0 right-0 h-px bg-black/10 -translate-y-1/2 border-dashed hidden md:block">
+              <motion.div 
+                initial={{ left: "-10%" }}
+                animate={{ left: "110%" }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                className="absolute top-1/2 -translate-y-1/2 w-32 h-px bg-gradient-to-r from-transparent via-zinc-400 to-transparent"
+              />
+              <motion.div 
+                initial={{ left: "-10%" }}
+                animate={{ left: "110%" }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: 1.5 }}
+                className="absolute top-1/2 -translate-y-1/2 w-32 h-px bg-gradient-to-r from-transparent via-zinc-400 to-transparent"
+              />
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center justify-between relative z-10 w-full max-w-5xl mx-auto gap-16 md:gap-8">
               
-              {/* Flow Indicators */}
-              <div className="absolute top-1/2 left-0 right-0 h-px bg-zinc-200/50 -translate-y-1/2 hidden lg:block" />
-              
-              <div className="grid lg:grid-cols-3 gap-8 lg:gap-16 relative">
-                
-                {/* 1. INPUT: Speech-to-Text */}
-                <div className="flex flex-col gap-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center shadow-sm">
-                      <Mic className="w-4 h-4 text-zinc-400" />
-                    </div>
-                    <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-widest">01 / STT</span>
-                  </div>
-
-                  <div className="space-y-4">
-                    <ProviderCard name="Deepgram" active={true} delay={0.1} />
-                    <ProviderCard name="AssemblyAI" active={false} delay={0.2} />
-                    <ProviderCard name="OpenAI Whisper" active={false} delay={0.3} />
-                  </div>
+              {/* STT Column */}
+              <div className="flex flex-col items-center w-full md:w-64">
+                <h3 className="text-[13px] font-medium text-zinc-400 uppercase tracking-widest mb-8 bg-stone-50 px-2">Speech to Text</h3>
+                <div className="relative flex flex-col gap-3.5 w-full">
+                  {/* Glass Pane */}
+                  <div className="absolute -inset-6 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-0 hidden md:block" />
+                  
+                  <InactivePill delay={0.1}>Deepgram</InactivePill>
+                  <ActivePill delay={0.2}>AssemblyAI</ActivePill>
+                  <InactivePill delay={0.3}>Custom</InactivePill>
                 </div>
-
-                {/* 2. CORE: Orchestration & Intelligence */}
-                <div className="flex flex-col gap-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-900 flex items-center justify-center shadow-md">
-                      <BrainCircuit className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-[11px] font-mono text-zinc-900 font-bold uppercase tracking-widest">02 / LLM</span>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="p-1 rounded-[1.5rem] bg-white border border-black/5 shadow-xl shadow-stone-200/50">
-                      <div className="px-6 py-6 rounded-[1.25rem] bg-zinc-900 text-white relative overflow-hidden group">
-                        <div className="relative z-10">
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-[13px] font-medium text-zinc-400">Nenyax Core</span>
-                            <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" />
-                          </div>
-                          <div className="text-lg font-medium mb-1">gemini-2.0-flash</div>
-                          <div className="text-[12px] text-zinc-500 font-mono">LATENCY: 140ms</div>
-                        </div>
-                        
-                        {/* Shimmer Effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                      </div>
-                    </div>
-                    
-                    <ProviderCard name="Claude 3.5 Sonnet" active={false} delay={0.4} />
-                    <ProviderCard name="GPT-4o Mini" active={false} delay={0.5} />
-                  </div>
-                </div>
-
-                {/* 3. OUTPUT: Text-to-Speech */}
-                <div className="flex flex-col gap-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center shadow-sm">
-                      <Volume2 className="w-4 h-4 text-zinc-400" />
-                    </div>
-                    <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-widest">03 / TTS</span>
-                  </div>
-
-                  <div className="space-y-4">
-                    <ProviderCard name="ElevenLabs" active={true} delay={0.6} />
-                    <ProviderCard name="Resemble AI" active={false} delay={0.7} />
-                    <ProviderCard name="Cartesia" active={false} delay={0.8} />
-                  </div>
-                </div>
-
               </div>
-              
-              {/* Call to Action Badge inside canvas */}
-              <div className="mt-16 md:mt-24 flex justify-center">
-                <div className="px-6 py-3 rounded-full bg-white border border-black/5 shadow-sm flex items-center gap-4 hover:border-black/10 transition-colors cursor-pointer group">
-                  <RefreshCw className="w-4 h-4 text-zinc-400 group-hover:rotate-180 transition-transform duration-700" />
-                  <span className="text-[14px] font-medium text-zinc-900">Configure your stack in seconds</span>
-                  <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-1 transition-transform" />
+
+              {/* LLM Column */}
+              <div className="flex flex-col items-center w-full md:w-64">
+                <h3 className="text-[13px] font-medium text-zinc-400 uppercase tracking-widest mb-8 bg-stone-50 px-2">Intelligence</h3>
+                <div className="relative flex flex-col gap-3.5 w-full">
+                  {/* Glass Pane */}
+                  <div className="absolute -inset-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-0 hidden md:block" />
+                  
+                  <BlackPill delay={0.4}>Nenyax computer</BlackPill>
+                  <InactivePill delay={0.5}>gemini-3.0-flash</InactivePill>
+                  <InactivePill delay={0.6}>gpt-5.4-mini</InactivePill>
+                </div>
+              </div>
+
+              {/* TTS Column */}
+              <div className="flex flex-col items-center w-full md:w-64">
+                <h3 className="text-[13px] font-medium text-zinc-400 uppercase tracking-widest mb-8 bg-stone-50 px-2">Text to Speech</h3>
+                <div className="relative flex flex-col gap-3.5 w-full">
+                  {/* Glass Pane */}
+                  <div className="absolute -inset-6 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-0 hidden md:block" />
+                  
+                  <ActivePill delay={0.7}>ElevenLabs</ActivePill>
+                  <InactivePill delay={0.8}>PlayHT</InactivePill>
+                  <InactivePill delay={0.9}>Resemble AI</InactivePill>
                 </div>
               </div>
 
@@ -159,28 +141,56 @@ export function ComposablePipelineSection() {
   );
 }
 
-function ProviderCard({ name, active, delay }: { name: string, active: boolean, delay: number }) {
+// --- Subcomponents for Pills ---
+
+function ActivePill({ children, delay }: { children: React.ReactNode, delay: number }) {
   return (
-    <motion.div
+    <motion.div 
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ delay }}
-      className={cn(
-        "px-6 py-4 rounded-2xl border transition-all duration-300 flex items-center justify-between",
-        active 
-          ? "bg-white border-zinc-200 shadow-sm" 
-          : "bg-white/40 border-black/[0.03] opacity-50 grayscale hover:grayscale-0 hover:opacity-100 hover:bg-white hover:border-zinc-200"
-      )}
+      transition={{ delay, duration: 0.5 }}
+      className="relative z-10 px-6 py-3.5 rounded-full bg-white border border-black/10 shadow-sm text-[14px] font-medium text-zinc-900 w-full text-center flex items-center justify-center gap-2.5 overflow-hidden group"
     >
-      <span className={cn("text-[15px] font-medium", active ? "text-zinc-900" : "text-zinc-500")}>
-        {name}
-      </span>
-      {active && (
-        <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center">
-          <Check className="w-3 h-3 text-emerald-600" />
-        </div>
-      )}
+      <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 relative z-10" />
+      <span className="relative z-10">{children}</span>
     </motion.div>
   );
 }
+
+function InactivePill({ children, delay }: { children: React.ReactNode, delay: number }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay, duration: 0.5 }}
+      className="relative z-10 px-6 py-3 rounded-full bg-white border border-black/5 shadow-sm text-[13px] font-medium text-zinc-500 w-full text-center opacity-60 hover:opacity-100 hover:border-black/10 transition-all cursor-default"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function BlackPill({ children, delay }: { children: React.ReactNode, delay: number }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ delay, duration: 0.5, ease: "easeOut" }}
+      className="relative z-10 px-6 py-4 rounded-full bg-zinc-900 text-white shadow-md text-[14px] font-medium w-full text-center flex items-center justify-center gap-2.5 overflow-hidden group"
+    >
+      {/* Dark Shimmer Sweep (Monochrome) */}
+      <motion.div 
+        initial={{ left: "-100%" }}
+        animate={{ left: "200%" }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: delay + 0.5 }}
+        className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 opacity-50 group-hover:opacity-100 transition-opacity"
+      />
+      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse relative z-10" />
+      <span className="relative z-10">{children}</span>
+    </motion.div>
+  );
+}
+

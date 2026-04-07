@@ -13,7 +13,7 @@
 set -euo pipefail
 
 ARKENOS_DIR="/opt/arkenos"
-REPO_URL="https://github.com/ArkEnoworpdx/arkenos.git"
+REPO_URL="https://github.com/Arkenos-World/Arkenos.git"
 BRANCH="master"
 
 # ── Colors ──────────────────────────────────────────────────────────────────

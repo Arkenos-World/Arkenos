@@ -28,7 +28,7 @@ import {
     MenuIcon,
     XIcon,
 } from "@/components/icons";
-import { ArkenosLogo } from "@/components/ui/arkenos-logo";
+import { NenyaxLogo } from "@/components/ui/nenyax-logo";
 import { PIPELINE_COLORS, STATUS_COLORS } from "@/lib/design-tokens";
 import { getApiUrl } from "@/lib/api";
 import { useAuthHeaders } from "@/lib/auth-headers";
@@ -157,7 +157,7 @@ export default function VoicePage() {
 
             {/* Logo */}
             <div className="p-4 border-b">
-                <ArkenosLogo className="h-6" />
+                <NenyaxLogo className="h-6" />
             </div>
 
             {/* Agent Selection */}

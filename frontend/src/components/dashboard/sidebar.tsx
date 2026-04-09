@@ -12,7 +12,7 @@ import {
     ChartIcon, CurrencyIcon, SettingsIcon, SearchIcon,
     MenuIcon, XIcon, ChevronLeftIcon, ChevronRightIcon,
 } from "@/components/icons";
-import { ArkenosLogo, ArkenosLogoMark } from "@/components/ui/arkenos-logo";
+import { NenyaxLogo, NenyaxLogoMark } from "@/components/ui/nenyax-logo";
 import { OrgSwitcher } from "@/components/dashboard/org-switcher";
 
 interface SidebarProps {
@@ -57,9 +57,9 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
             <div className={cn("border-b", collapsed ? "p-3 flex justify-center" : "p-4")}>
                 <Link href="/" className="flex items-center gap-2">
                     {collapsed ? (
-                        <ArkenosLogoMark className="h-6 w-6" />
+                        <NenyaxLogoMark className="h-6 w-6" />
                     ) : (
-                        <ArkenosLogo className="h-6" />
+                        <NenyaxLogo className="h-6" />
                     )}
                 </Link>
                 {!collapsed && userEmail && (

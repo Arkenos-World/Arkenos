@@ -1,4 +1,4 @@
-# Arkenos Docker Compose
+# Nenyax Docker Compose
 #
 # Setup:
 #   cp .env.example .env    # edit with your values
@@ -8,7 +8,7 @@
 # All provider keys (LiveKit, Google, Resemble, Twilio, STT) are
 # configured via API Keys in the dashboard after first boot.
 
-name: arkenos
+name: nenyax
 
 services:
   # ============================================
@@ -16,17 +16,17 @@ services:
   # ============================================
   postgres:
     image: postgres:16-alpine
-    container_name: arkenos-db
+    container_name: nenyax-db
     environment:
-      POSTGRES_DB: arkenos
+      POSTGRES_DB: nenyax
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arkenos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nenyax}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5434:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,7 +37,7 @@ services:
   # ============================================
   minio:
     image: minio/minio:latest
-    container_name: arkenos-minio
+    container_name: nenyax-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
@@ -48,7 +48,7 @@ services:
       - "9002:9000"
       - "9003:9001"
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -61,9 +61,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: arkenos-backend
+    container_name: nenyax-backend
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arkenos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nenyax}
       DB_HOST: postgres
       DB_PORT: 5432
       MINIO_ENDPOINT: minio:9000
@@ -88,7 +88,7 @@ services:
     build:
       context: ./agent
       dockerfile: Dockerfile
-    container_name: arkenos-agent
+    container_name: nenyax-agent
     environment:
       BACKEND_API_URL: http://backend:8000/api
     depends_on:
@@ -104,11 +104,11 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: http://localhost:4201/api
-    container_name: arkenos-frontend
+    container_name: nenyax-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:4201/api
       INTERNAL_API_URL: http://backend:8000/api
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-arkenos}@postgres:5432/arkenos
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-nenyax}@postgres:5432/nenyax
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-authsecret123}
       BETTER_AUTH_URL: http://localhost:4200
       NEXT_PUBLIC_TELEMETRY: ${TELEMETRY:-true}

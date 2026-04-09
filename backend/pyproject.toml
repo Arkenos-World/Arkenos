@@ -1,7 +1,7 @@
 [project]
-name = "arkenos-backend"
+name = "nenyax-backend"
 version = "0.1.0"
-description = "Arkenos Backend API"
+description = "Nenyax Backend API"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

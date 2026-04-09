@@ -1,6 +1,6 @@
-# Arkenos Backend
+# Nenyax Backend
 
-FastAPI backend for Arkenos Voice Agent Platform.
+FastAPI backend for Nenyax Voice Agent Platform.
 
 ## Tech Stack
 
@@ -39,7 +39,7 @@ cp .env.example .env
 
 ```bash
 # Create the database in PostgreSQL first
-createdb arkenos
+createdb nenyax
 
 # Run migrations
 alembic upgrade head

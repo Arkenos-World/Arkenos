@@ -18,8 +18,8 @@ const notoSansMono = Noto_Sans_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Arkenos",
-  description: "Arkenos — Composable orchestration layer for enterprise-grade conversational AI infrastructure",
+  title: "Nenyax",
+  description: "Nenyax — Composable orchestration layer for enterprise-grade conversational AI infrastructure",
 };
 
 export default function RootLayout({
@@ -35,8 +35,8 @@ export default function RootLayout({
       >
         <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="light"
+            enableSystem={false}
 
           >
             <PostHogProvider>

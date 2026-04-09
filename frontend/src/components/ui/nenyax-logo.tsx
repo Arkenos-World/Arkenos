@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Arkenos logo mark (the "A" shield icon only).
+ * Nenyax logo mark (the "A" shield icon only).
  * Uses currentColor so it adapts to light/dark theme automatically.
  */
-export function ArkenosLogoMark({ className }: { className?: string }) {
+export function NenyaxLogoMark({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 36 37"
@@ -21,10 +21,10 @@ export function ArkenosLogoMark({ className }: { className?: string }) {
 }
 
 /**
- * Full Arkenos logo (icon + wordmark).
+ * Full Nenyax logo (icon + wordmark).
  * Uses currentColor so it adapts to light/dark theme automatically.
  */
-export function ArkenosLogo({ className }: { className?: string }) {
+export function NenyaxLogo({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 198 37"

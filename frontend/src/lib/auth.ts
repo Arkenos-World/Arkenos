@@ -4,7 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { Pool } from "pg";
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:arkenos@localhost:5433/arkenos",
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:arkenos@localhost:5434/arkenos",
 });
 
 const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
@@ -13,7 +13,7 @@ const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export const auth = betterAuth({
   database: pool,
   emailAndPassword: { enabled: true },
-  secret: process.env.BETTER_AUTH_SECRET || "arkenos-default-secret-change-in-production",
+  secret: process.env.BETTER_AUTH_SECRET || "authsecret123",
   baseURL,
   trustedOrigins: [baseURL, backendUrl],
   plugins: [

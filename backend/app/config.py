@@ -4,61 +4,53 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # Database
+    # ── Database ──────────────────────────────────────────────────────
     postgres_password: str = ""
     database_url: str = ""
     db_host: str = "localhost"
+    db_port: int = 5434  # docker-compose maps 5434→5432; overridden to 5432 inside Docker
 
-    # LiveKit
+    # ── LiveKit ───────────────────────────────────────────────────────
     livekit_api_key: str = ""
     livekit_api_secret: str = ""
     livekit_url: str = ""
+    livekit_sip_uri: str = ""
+    livekit_sip_trunk_id: str = ""
 
-    # Resemble AI
+    # ── Voice / Telephony providers ───────────────────────────────────
     resemble_api_key: str = ""
     resemble_voice_uuid: str = ""
-
-    # Twilio
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
-    twilio_sip_domain: str = ""  # e.g. arkenos.sip.livekit.cloud
-
-    # Telnyx
+    twilio_sip_domain: str = ""
     telnyx_api_key: str = ""
 
-
-    # LiveKit SIP
-    livekit_sip_uri: str = ""  # e.g. abc123.sip.livekit.cloud (from LiveKit Telephony tab)
-    livekit_sip_trunk_id: str = ""  # Outbound SIP trunk ID for call transfers
-
-    # MinIO
-    minio_endpoint: str = "localhost:9000"
+    # ── MinIO (object storage for custom agent files) ─────────────────
+    minio_endpoint: str = "localhost:9002"  # docker-compose maps 9002→9000
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"
     minio_bucket: str = "arkenos"
     minio_use_ssl: bool = False
 
-    # Docker / Custom Agents
+    # ── Docker / Custom Agents ────────────────────────────────────────
     container_backend_url: str = "http://host.docker.internal:8000/api"
     docker_socket: str = "unix:///var/run/docker.sock"
     base_agent_image: str = "arkenos-agent-base:latest"
     container_network: str = "arkenos_default"
     container_timeout_seconds: int = 3600
 
-    # STT provider keys (passed to custom agent containers)
+    # ── STT provider keys (passed to custom agent containers) ─────────
     assemblyai_api_key: str = ""
     deepgram_api_key: str = ""
 
-    # Coding Agent
+    # ── Coding Agent ──────────────────────────────────────────────────
     coding_agent_provider: str = "gemini"
     google_api_key: str = ""
 
-    # Server
+    # ── Server ────────────────────────────────────────────────────────
     port: int = 8000
     debug: bool = True
-
-    # CORS — comma-separated origins, e.g. "http://localhost:3000,https://arkenos.onrender.com"
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "http://localhost:3000"  # CORS — comma-separated for multiple origins
 
     @property
     def cors_origins(self) -> list[str]:
@@ -68,7 +60,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def build_database_url(self):
         if not self.database_url:
-            self.database_url = f"postgresql://postgres:{self.postgres_password}@{self.db_host}:5432/arkenos"
+            self.database_url = f"postgresql://postgres:{self.postgres_password}@{self.db_host}:{self.db_port}/arkenos"
         return self
 
     class Config:

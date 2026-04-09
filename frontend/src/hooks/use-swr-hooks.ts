@@ -50,7 +50,7 @@ export function useVoices(config?: SWRConfiguration<VoicesResponse>) {
     const orgId = auth["x-org-id"];
     return useSWR<VoicesResponse>(
         auth.Authorization ? ["/resemble/voices", orgId] : null,
-        () => authFetch<VoicesResponse>("/resemble/voices", auth),
+        () => authFetch<VoicesResponse>("/resemble/voices?language=English+%28US%29&page_size=100", auth),
         config,
     );
 }

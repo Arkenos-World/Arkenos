@@ -63,8 +63,8 @@ export function DeployDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-sm">
+        <Dialog open={open} onOpenChange={isDeploying ? undefined : onOpenChange}>
+            <DialogContent className="max-w-sm" onPointerDownOutside={isDeploying ? (e) => e.preventDefault() : undefined} onEscapeKeyDown={isDeploying ? (e) => e.preventDefault() : undefined}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Rocket className="h-5 w-5" />

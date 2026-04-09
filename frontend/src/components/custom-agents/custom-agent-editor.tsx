@@ -297,6 +297,14 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
                     <div className="h-4 w-px bg-border" />
                     <span className="font-semibold text-sm truncate">{agent.name}</span>
                     <BuildStatusBadge status={buildStatus} />
+                    {deployedVersion !== null && currentVersion > deployedVersion && buildStatus !== "BUILDING" && (
+                        <span
+                            className="text-xs text-amber-400 cursor-pointer hover:underline"
+                            onClick={() => setDeployOpen(true)}
+                        >
+                            {currentVersion - deployedVersion} unpublished change{currentVersion - deployedVersion > 1 ? "s" : ""} — deploy
+                        </span>
+                    )}
                     <Button
                         variant="ghost"
                         size="icon-sm"

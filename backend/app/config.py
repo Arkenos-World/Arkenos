@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # ── Docker / Custom Agents ────────────────────────────────────────
     container_backend_url: str = "http://host.docker.internal:8000/api"
-    docker_socket: str = "unix:///var/run/docker.sock"
+    docker_socket: str = "npipe:////./pipe/docker_engine"  # Windows; overridden to unix socket in Docker
     base_agent_image: str = "nenyax-agent-base:latest"
     container_network: str = "nenyax_default"
     container_timeout_seconds: int = 3600

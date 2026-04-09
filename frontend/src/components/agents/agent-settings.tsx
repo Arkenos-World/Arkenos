@@ -230,7 +230,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             })
             .catch(() => {});
     }, [isCustom, agent.id, auth.Authorization]); // eslint-disable-line react-hooks/exhaustive-deps
-    const [sttProvider, setSttProvider] = useState(agent.config?.stt_provider || "assemblyai");
+    const [sttProvider, setSttProvider] = useState(agent.config?.stt_provider || "deepgram");
 
     const apiUrl = getApiUrl();
 

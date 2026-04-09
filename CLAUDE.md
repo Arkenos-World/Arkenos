@@ -11,9 +11,9 @@ Composable orchestration layer for enterprise-grade conversational AI infrastruc
 | agent    | Python, LiveKit, AssemblyAI, Gemini, Resemble AI   | N/A                   |
 
 ## Database
-Main: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/nenyax
-Test: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/nenyax_test
-(Set POSTGRES_PASSWORD in backend/.env)
+Main: postgresql://postgres:nenyax@localhost:5434/nenyax
+Test: postgresql://postgres:nenyax@localhost:5434/nenyax_test
+(Envless — defaults in config.py and auth.ts. No .env needed for local dev.)
 
 ## How to Run Each Service
 frontend → cd frontend && npm run dev

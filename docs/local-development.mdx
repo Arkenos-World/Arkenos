@@ -5,24 +5,23 @@ description: Run each service individually for development with hot-reload.
 
 # Local Development
 
-Run each service individually for development with hot-reload.
+Run each service individually for development with hot-reload. **No `.env` files needed** — all defaults are hardcoded for local dev.
 
 ## Prerequisites
 
 - Python 3.10+
 - Node.js 20+
-- PostgreSQL running locally
-- Better Auth credentials and Postgres password in the root `.env`. All other provider keys are configured via the dashboard.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL and MinIO)
 
-## Database Setup
+## 1. Start infrastructure
 
-Create the database in PostgreSQL:
-
-```sql
-CREATE DATABASE arkenos;
+```bash
+docker compose up -d postgres minio
 ```
 
-## Backend
+This starts PostgreSQL (port 5434) and MinIO (port 9002) in Docker. The database `nenyax` is created automatically.
+
+## 2. Backend
 
 ```bash
 cd backend
@@ -39,20 +38,13 @@ source venv/bin/activate
 # Install dependencies
 pip install -e .
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your credentials
-
-# Run database migrations
-alembic upgrade head
-
-# Start the server
+# Start the server (runs migrations automatically)
 uvicorn app.main:app --reload
 ```
 
 Backend runs at [http://localhost:8000](http://localhost:8000).
 
-## Frontend
+## 3. Frontend
 
 ```bash
 cd frontend
@@ -60,17 +52,13 @@ cd frontend
 # Install dependencies
 npm install
 
-# Configure environment
-cp .env.example .env.local
-# Edit .env.local with your credentials
-
 # Start dev server
 npm run dev
 ```
 
 Frontend runs at [http://localhost:3000](http://localhost:3000).
 
-## Agent
+## 4. Agent
 
 ```bash
 cd agent
@@ -93,17 +81,30 @@ python agent.py dev
 
 The agent requires **no `.env` file**. On startup it fetches all API keys (LiveKit, Google, Resemble, STT providers) from the backend dashboard. Make sure the backend is running first and provider keys are configured at **API Keys**.
 
+## Environment
+
+**No `.env` files are needed for local dev.** All defaults are hardcoded in the code:
+
+| Setting | Default | Source |
+|---------|---------|--------|
+| Database | `postgresql://postgres:nenyax@localhost:5434/nenyax` | `config.py`, `auth.ts` |
+| MinIO | `localhost:9002`, credentials `minioadmin/minioadmin` | `config.py` |
+| Backend URL | `http://localhost:8000/api` | `api.ts` |
+| Auth secret | `authsecret123` | `auth.ts` |
+
+`.env` files are only needed to **override** a default (e.g., pointing to a different DB host). See [Environment Variables](/configuration/environment-variables) for the full reference.
+
 ## Troubleshooting
 
 <AccordionGroup>
   <Accordion title="Backend can't connect to database">
-    - Ensure PostgreSQL is running
-    - Verify `POSTGRES_PASSWORD` in the root `.env` matches your PostgreSQL credentials
-    - For Docker: the database takes a few seconds to initialize on first run
+    - Ensure Docker containers are running: `docker compose up -d postgres minio`
+    - If you have a `backend/.env` file, make sure it doesn't override `DATABASE_URL` or `POSTGRES_PASSWORD` with stale values
+    - For a fresh start: `docker compose down -v && docker compose up -d postgres minio`
   </Accordion>
   <Accordion title="Frontend shows 'Failed to fetch' errors">
-    - Ensure the backend is running at the URL specified in `NEXT_PUBLIC_API_URL`
-    - Check CORS: `FRONTEND_URL` in backend `.env` should match your frontend URL
+    - Ensure the backend is running at `http://localhost:8000`
+    - If you have a `frontend/.env` file, make sure `NEXT_PUBLIC_API_URL` isn't pointing elsewhere
   </Accordion>
   <Accordion title="Agent doesn't connect to calls">
     - Ensure the backend is running and all provider keys are configured at **API Keys**
@@ -111,9 +112,8 @@ The agent requires **no `.env` file**. On startup it fetches all API keys (LiveK
     - Check that at least one STT provider key is configured in the dashboard
     - Check the agent terminal for "Injected N keys from backend dashboard" on startup
   </Accordion>
-  <Accordion title="Migrations fail">
-    - Ensure PostgreSQL is running and accessible
-    - Run `alembic upgrade head` from the `backend/` directory with the venv activated
-    - If migrations are out of sync: `alembic current` shows the current state
+  <Accordion title="Custom agent files not loading">
+    - Ensure MinIO is running: `docker ps | grep minio`
+    - If MinIO was down when an agent was created, the file scaffold may have failed silently — reload the agent editor page to auto-scaffold
   </Accordion>
 </AccordionGroup>

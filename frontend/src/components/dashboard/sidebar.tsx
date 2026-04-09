@@ -179,13 +179,15 @@ function SidebarContent({ pathname, userEmail, userName, collapsed, onCollapsedC
 export function Sidebar({ userEmail, userName, collapsed: collapsedProp }: SidebarProps) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(() => {
-        if (collapsedProp !== undefined) return collapsedProp;
-        if (typeof window !== "undefined") {
-            return localStorage.getItem("sidebar-collapsed") === "true";
+    const [isCollapsed, setIsCollapsed] = useState(collapsedProp ?? false);
+
+    // Sync collapse state with localStorage after hydration
+    useEffect(() => {
+        if (collapsedProp === undefined) {
+            const stored = localStorage.getItem("sidebar-collapsed");
+            if (stored === "true") setIsCollapsed(true);
         }
-        return false;
-    });
+    }, [collapsedProp]);
 
     // Persist collapse state
     useEffect(() => {

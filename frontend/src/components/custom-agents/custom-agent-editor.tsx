@@ -56,7 +56,7 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
     // Wait for auth headers to be ready (session loads async on refresh)
     const authReady = Boolean(auth.Authorization || auth["x-user-id"]);
 
-    // Fetch file list
+    // Fetch file list (auto-scaffolds if empty — scaffolding can silently fail at creation)
     const fetchFiles = useCallback(async () => {
         if (!authReady) return;
         try {
@@ -66,7 +66,24 @@ export function CustomAgentEditor({ agent, userId }: CustomAgentEditorProps) {
             );
             if (!res.ok) return;
             const data = await res.json();
-            const fileList: AgentFile[] = data.files ?? data;
+            let fileList: AgentFile[] = data.files ?? data;
+
+            // Auto-scaffold if the agent has no files (e.g. MinIO was down at creation)
+            if (fileList.length === 0) {
+                try {
+                    const scaffoldRes = await fetch(
+                        `${apiUrl}/agents/${agent.id}/files/scaffold`,
+                        { method: "POST", headers: auth }
+                    );
+                    if (scaffoldRes.ok) {
+                        const scaffoldData = await scaffoldRes.json();
+                        fileList = scaffoldData.files ?? scaffoldData;
+                    }
+                } catch {
+                    // Scaffold failed — leave empty, user can still create files manually
+                }
+            }
+
             setFiles(fileList);
 
             // Auto-open agent.py if no active file

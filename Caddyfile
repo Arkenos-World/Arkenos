@@ -1,4 +1,4 @@
-# Arkenos Caddyfile (default: self-signed HTTPS)
+# Nenyax Caddyfile (default: self-signed HTTPS)
 # The install script overwrites this with the correct config.
 
 :443 {

@@ -8,7 +8,7 @@ import {
     useListOrganizations,
     organization,
 } from "@/lib/auth-client";
-import { ArkenosLogo } from "@/components/ui/arkenos-logo";
+import { NenyaxLogo } from "@/components/ui/nenyax-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,7 +145,7 @@ export default function OnboardingPage() {
         <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
             {/* Logo */}
             <div className="mb-8">
-                <ArkenosLogo className="h-8 text-foreground" />
+                <NenyaxLogo className="h-8 text-foreground" />
             </div>
 
             {/* Progress indicator */}

@@ -1,4 +1,4 @@
-# Arkenos — Agent Context
+# Nenyax — Agent Context
 
 ## Project Overview
 Composable orchestration layer for enterprise-grade conversational AI infrastructure. Open-source, three services.
@@ -11,8 +11,8 @@ Composable orchestration layer for enterprise-grade conversational AI infrastruc
 | agent    | Python, LiveKit, AssemblyAI, Gemini, Resemble AI   | N/A                   |
 
 ## Database
-Main: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/arkenos
-Test: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/arkenos_test
+Main: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/nenyax
+Test: postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/nenyax_test
 (Set POSTGRES_PASSWORD in backend/.env)
 
 ## How to Run Each Service

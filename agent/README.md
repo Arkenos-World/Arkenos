@@ -1,4 +1,4 @@
-# Arkenos Voice Agent
+# Nenyax Voice Agent
 
 A LiveKit-based voice agent using:
 - **AssemblyAI** (default) or **Deepgram** for Speech-to-Text

@@ -1,15 +1,14 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CallsAreaChart } from "@/components/dashboard/calls-area-chart"
 import { SkeletonStatRow, SkeletonChart } from "@/components/ui/skeleton"
 import { deltaColor } from "@/lib/design-tokens"
-import { getApiUrl } from "@/lib/api"
-import { useAuthHeaders } from "@/lib/auth-headers"
-import type { VoiceSession, Agent, SessionsPage } from "@/lib/api"
+import { useAgents, useSessions } from "@/hooks/use-swr-hooks"
+import type { VoiceSession, Agent } from "@/lib/api"
 
 type Period = "7d" | "30d" | "90d"
 
@@ -63,56 +62,30 @@ interface DashboardStatsProps {
 
 export function DashboardStats({ userId }: DashboardStatsProps) {
     const [period, setPeriod] = useState<Period>("30d")
-    const [currSessions, setCurrSessions] = useState<VoiceSession[]>([])
-    const [prevSessions, setPrevSessions] = useState<VoiceSession[]>([])
-    const [currTotal, setCurrTotal] = useState(0)
-    const [prevTotal, setPrevTotal] = useState(0)
-    const [agents, setAgents] = useState<Agent[]>([])
-    const [isLoading, setIsLoading] = useState(true)
 
-    const apiBase = getApiUrl()
-    const auth = useAuthHeaders();
-    const headers = auth
+    const opt = PERIOD_OPTIONS.find(p => p.value === period)!
+    const now = useMemo(() => new Date(), [period]) // eslint-disable-line react-hooks/exhaustive-deps
+    const currStart = useMemo(() => {
+        const d = new Date(now); d.setDate(now.getDate() - opt.days); return d
+    }, [now, opt.days])
+    const prevStart = useMemo(() => {
+        const d = new Date(now); d.setDate(now.getDate() - opt.days * 2); return d
+    }, [now, opt.days])
 
-    const fetchData = useCallback(async () => {
-        setIsLoading(true)
-        const opt = PERIOD_OPTIONS.find(p => p.value === period)!
-        const now = new Date()
-        const currStart = new Date(now); currStart.setDate(now.getDate() - opt.days)
-        const prevStart = new Date(now); prevStart.setDate(now.getDate() - opt.days * 2)
+    const { data: currData, isLoading: currLoading } = useSessions({
+        limit: 500, start_date: currStart.toISOString(),
+    })
+    const { data: prevData, isLoading: prevLoading } = useSessions({
+        limit: 500, start_date: prevStart.toISOString(), end_date: currStart.toISOString(),
+    })
+    const { data: agentsData, isLoading: agentsLoading } = useAgents()
 
-        try {
-            const [currRes, prevRes, agentsRes] = await Promise.all([
-                fetch(`${apiBase}/sessions/?limit=500&start_date=${currStart.toISOString()}`, { headers }),
-                fetch(`${apiBase}/sessions/?limit=500&start_date=${prevStart.toISOString()}&end_date=${currStart.toISOString()}`, { headers }),
-                fetch(`${apiBase}/agents/`, { headers }),
-            ])
-
-            if (currRes.ok) {
-                const d: SessionsPage = await currRes.json()
-                setCurrSessions(d.sessions)
-                setCurrTotal(d.total)
-            }
-            if (prevRes.ok) {
-                const d: SessionsPage = await prevRes.json()
-                setPrevSessions(d.sessions)
-                setPrevTotal(d.total)
-            }
-            if (agentsRes.ok) {
-                const d: Agent[] = await agentsRes.json()
-                setAgents(d)
-            }
-        } catch (e) {
-            console.error(e)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [period, userId, headers]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        if (!headers.Authorization) return
-        fetchData()
-    }, [fetchData, headers])
+    const currSessions: VoiceSession[] = currData?.sessions ?? []
+    const currTotal = currData?.total ?? 0
+    const prevSessions: VoiceSession[] = prevData?.sessions ?? []
+    const prevTotal = prevData?.total ?? 0
+    const agents: Agent[] = agentsData ?? []
+    const isLoading = currLoading || prevLoading || agentsLoading
 
     // ── Stats ──────────────────────────────────────────────────────────────
     const callsDelta = prevTotal > 0
@@ -157,8 +130,6 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
         d === null ? null : `${d >= 0 ? "+" : ""}${d}${suffix}`
 
     // ── Chart data ─────────────────────────────────────────────────────────
-    const opt = PERIOD_OPTIONS.find(p => p.value === period)!
-
     let chartData: { date: string; calls: number }[]
 
     if (period === "90d") {

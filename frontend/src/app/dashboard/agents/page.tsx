@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
 import { AgentList } from "@/components/agents/agent-list";
+import { SWRFallback } from "@/components/swr-fallback";
 import { getApiUrl } from "@/lib/api";
 import { getServerAuthHeaders } from "@/lib/server-auth";
 
@@ -29,9 +30,15 @@ export default async function AgentsPage() {
         console.error("Failed to fetch agents:", error);
     }
 
+    // Provide server-fetched agents as SWR fallback so useAgents() won't re-fetch
+    const orgId = reqHeaders["x-org-id"];
+    const swrKey = JSON.stringify(["/agents/", orgId]);
+
     return (
         <DashboardLayout>
-            <AgentList initialAgents={agents} userId={userId} />
+            <SWRFallback fallback={{ [swrKey]: agents }}>
+                <AgentList initialAgents={agents} userId={userId} />
+            </SWRFallback>
         </DashboardLayout>
     );
 }

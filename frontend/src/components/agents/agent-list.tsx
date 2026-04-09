@@ -36,6 +36,7 @@ import {
 import { Code2 } from "lucide-react";
 import { STATUS_BG } from "@/lib/design-tokens";
 import { useKeyStatus } from "@/hooks/use-key-status";
+import { useVoices } from "@/hooks/use-swr-hooks";
 import { getApiUrl } from "@/lib/api";
 import { useAuthHeaders } from "@/lib/auth-headers";
 
@@ -136,34 +137,20 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
     const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
     const [agentName, setAgentName] = useState("New Assistant");
     const [selectedVoice, setSelectedVoice] = useState("");
-    const [resembleVoices, setResembleVoices] = useState<ResembleVoice[]>([]);
-    const [isLoadingVoices, setIsLoadingVoices] = useState(true);
     const [creationStep, setCreationStep] = useState<"mode" | "template">("mode");
     const [selectedMode, setSelectedMode] = useState<"STANDARD" | "CUSTOM" | null>(null);
     const { allConfigured } = useKeyStatus();
+    const { data: voicesData, isLoading: isLoadingVoices } = useVoices();
+    const resembleVoices: ResembleVoice[] = voicesData?.voices ?? [];
 
     const apiUrl = getApiUrl();
 
+    // Set default voice when voices load
     useEffect(() => {
-        const fetchVoices = async () => {
-            try {
-                const res = await fetch(`${apiUrl}/resemble/voices`, {
-                    headers: auth,
-                });
-                if (!res.ok) throw new Error("Failed to fetch voices");
-                const data: { voices: ResembleVoice[] } = await res.json();
-                const voices = data.voices ?? [];
-                setResembleVoices(voices);
-                if (voices.length > 0) setSelectedVoice(voices[0].id);
-            } catch (e) {
-                console.error("Could not load voices:", e);
-                setResembleVoices([]);
-            } finally {
-                setIsLoadingVoices(false);
-            }
-        };
-        if (auth.Authorization) fetchVoices();
-    }, [apiUrl, auth]);
+        if (resembleVoices.length > 0 && !selectedVoice) {
+            setSelectedVoice(resembleVoices[0].id);
+        }
+    }, [resembleVoices, selectedVoice]);
 
     const handleSelectTemplate = (template: AgentTemplate) => {
         setSelectedTemplate(template);

@@ -1,21 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowRight } from "lucide-react";
-import { useAuthHeaders } from "@/lib/auth-headers";
-import { getKeyStatus } from "@/lib/api";
+import { useKeyStatus } from "@/hooks/use-swr-hooks";
 
 export function MissingKeysBanner() {
-    const auth = useAuthHeaders();
-    const [show, setShow] = useState(false);
-
-    useEffect(() => {
-        if (!auth.Authorization) return;
-        getKeyStatus(auth)
-            .then(data => setShow(!data.all_required_set))
-            .catch(() => {}); // Silently fail — banner is non-critical
-    }, [auth]);
+    const { data: keyStatus } = useKeyStatus();
+    const show = keyStatus ? !keyStatus.all_required_set : false;
 
     if (!show) return null;
 

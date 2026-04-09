@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/icons";
 import {
-    getKeyStatus,
     saveKeys,
     deleteKey,
     testProvider,
@@ -26,6 +25,7 @@ import {
     type AuthHeaders,
 } from "@/lib/api";
 import { useAuthHeaders } from "@/lib/auth-headers";
+import { useKeyStatus as useKeyStatusSWR } from "@/hooks/use-swr-hooks";
 import {
     CheckCircle2,
     XCircle,
@@ -188,7 +188,7 @@ function ProviderCard({
 }: {
     providerId: string;
     provider: ProviderStatus;
-    meta: typeof PROVIDER_META[string];
+    meta: (typeof PROVIDER_META)[string];
     onSaved: () => void;
     auth: AuthHeaders;
 }) {
@@ -198,7 +198,7 @@ function ProviderCard({
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
-    const Icon = meta.icon;
+    const Icon: React.ElementType = meta.icon;
     const hasChanges = Object.values(values).some(v => v.length > 0);
 
     // Collect non-empty form values
@@ -265,6 +265,7 @@ function ProviderCard({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                            {/* @ts-expect-error — pre-existing: React Compiler loses ElementType narrowing */}
                             <Icon className="h-4 w-4" />
                         </div>
                         <div>
@@ -545,7 +546,7 @@ function SelectedGroupedProvider({
 }: {
     providerId: string;
     provider: ProviderStatus;
-    meta: typeof PROVIDER_META[string];
+    meta: (typeof PROVIDER_META)[string];
     onSaved: () => void;
     auth: AuthHeaders;
 }) {
@@ -730,24 +731,11 @@ function SelectedGroupedProvider({
 
 export function APIKeysClient() {
     const auth = useAuthHeaders();
-    const [status, setStatus] = useState<KeyStatusResponse | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { data: status, isLoading: loading, mutate: refreshStatus } = useKeyStatusSWR();
 
     const fetchStatus = useCallback(async () => {
-        try {
-            const data = await getKeyStatus(auth);
-            setStatus(data);
-        } catch {
-            toast.error("Failed to load key status");
-        } finally {
-            setLoading(false);
-        }
-    }, [auth]);
-
-    useEffect(() => {
-        if (!auth.Authorization) return; // Wait for auth to load
-        fetchStatus();
-    }, [fetchStatus]);
+        await refreshStatus();
+    }, [refreshStatus]);
 
     return (
         <div className="space-y-6">

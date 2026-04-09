@@ -55,69 +55,81 @@ Custom agents (code editor, Docker containers, AI coding assistant) are **not su
 
 For development and contributing. Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
-### 1. Clone and configure
+**No `.env` files needed** — all defaults are hardcoded for local dev.
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/Arkenos-World/Arkenos.git
 cd Arkenos
 ```
 
-The only required environment variable is `POSTGRES_PASSWORD`. Create a `.env` in the project root:
+### 2. Start infrastructure
 
 ```bash
-echo "POSTGRES_PASSWORD=arkenos" > .env
+docker compose up -d postgres minio
 ```
 
-### 2. Start all services
+This starts PostgreSQL (port 5434) and MinIO (port 9002). The `nenyax` database is created automatically.
+
+### 3. Start services
 
 ```bash
-docker compose up -d --build
-```
+# Backend (terminal 1)
+cd backend && python -m venv venv && venv/bin/activate && pip install -e .
+uvicorn app.main:app --reload
 
-This starts 5 services:
+# Frontend (terminal 2)
+cd frontend && npm install && npm run dev
+
+# Agent (terminal 3)
+cd agent && python -m venv venv && venv/bin/activate && pip install -e .
+python agent.py dev
+```
 
 | Service | URL |
 |---------|-----|
-| Frontend | [http://localhost:4200](http://localhost:4200) |
-| Backend API | [http://localhost:4201](http://localhost:4201) |
+| Frontend | [http://localhost:3000](http://localhost:3000) |
+| Backend API | [http://localhost:8000](http://localhost:8000) |
 | Voice Agent | Connected to LiveKit |
 | PostgreSQL | localhost:5434 |
 | MinIO | [http://localhost:9002](http://localhost:9002) |
 
-### 3. Configure API keys
+### 4. Configure API keys
 
-Open [http://localhost:4200](http://localhost:4200), create an account, then go to **Settings → API Keys** and add:
+Open [http://localhost:3000](http://localhost:3000), create an account, then go to **Settings → API Keys** and add:
 
 1. **LiveKit** — URL, API Key, API Secret ([LiveKit Cloud](https://cloud.livekit.io))
 2. **Google AI** — API Key for Gemini ([Google AI Studio](https://aistudio.google.com))
 3. **Resemble AI** — API Key for TTS ([Resemble AI](https://resemble.ai))
 4. **STT** — AssemblyAI or Deepgram API key
 
-### 4. Build custom agent base image (optional)
+### 5. Build custom agent base image (optional)
 
 Only needed if you want to use custom agents locally:
 
 ```bash
-docker build -t arkenos-agent-base:latest -f agent/Dockerfile.base agent/
+docker build -t nenyax-agent-base:latest -f agent/Dockerfile.base agent/
 ```
 
 ### Useful commands
 
 ```bash
-# View logs
-docker compose logs -f
+# View Docker logs
+docker compose logs -f postgres minio
 
-# View logs for one service
-docker compose logs -f backend
-
-# Stop everything
+# Stop infrastructure
 docker compose down
 
-# Rebuild a single service
-docker compose up -d --build backend
+# Full reset (deletes data)
+docker compose down -v
 ```
 
-For running services outside Docker (frontend with `npm run dev`, backend with `uvicorn`), see the [Local Development Guide](/local-development).
+<Tip>
+You can also run **all 5 services** in Docker with `docker compose up -d --build`. This uses ports 4200 (frontend) and 4201 (backend) instead. See [Docker Configuration](/configuration/docker).
+</Tip>
+
+For more details on local development, see the [Local Development Guide](/local-development).
 
 ---
 

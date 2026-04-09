@@ -47,7 +47,7 @@ def _resolve_env(agent: Agent, db: Session) -> dict[str, str]:
         "RESEMBLE_VOICE_UUID": voice_uuid,
         "ASSEMBLYAI_API_KEY": _key("assemblyai_api_key"),
         "DEEPGRAM_API_KEY": _key("deepgram_api_key"),
-        "MINIO_ENDPOINT": "arkenos-minio:9000",
+        "MINIO_ENDPOINT": "nenyax-minio:9000",
         "MINIO_ACCESS_KEY": settings.minio_access_key,
         "MINIO_SECRET_KEY": settings.minio_secret_key,
         "MINIO_BUCKET": settings.minio_bucket,
@@ -242,7 +242,7 @@ def deploy_worker(agent_id: str, db: Session) -> str:
             "arkenos.agent_name": agent_name,
         }
 
-        container_name = f"arkenos-worker-{agent_id[:8]}-{record_id[:8]}"
+        container_name = f"nenyax-worker-{agent_id[:8]}-{record_id[:8]}"
 
         container = client.containers.run(
             image_tag,

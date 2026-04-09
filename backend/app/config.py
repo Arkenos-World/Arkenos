@@ -5,7 +5,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────────────
-    postgres_password: str = ""
+    postgres_password: str = "nenyax"
     database_url: str = ""
     db_host: str = "localhost"
     db_port: int = 5434  # docker-compose maps 5434→5432; overridden to 5432 inside Docker
@@ -29,14 +29,14 @@ class Settings(BaseSettings):
     minio_endpoint: str = "localhost:9002"  # docker-compose maps 9002→9000
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"
-    minio_bucket: str = "arkenos"
+    minio_bucket: str = "nenyax"
     minio_use_ssl: bool = False
 
     # ── Docker / Custom Agents ────────────────────────────────────────
     container_backend_url: str = "http://host.docker.internal:8000/api"
-    docker_socket: str = "unix:///var/run/docker.sock"
-    base_agent_image: str = "arkenos-agent-base:latest"
-    container_network: str = "arkenos_default"
+    docker_socket: str = "npipe:////./pipe/docker_engine"  # Windows; overridden to unix socket in Docker
+    base_agent_image: str = "nenyax-agent-base:latest"
+    container_network: str = "nenyax_default"
     container_timeout_seconds: int = 3600
 
     # ── STT provider keys (passed to custom agent containers) ─────────
@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def build_database_url(self):
         if not self.database_url:
-            self.database_url = f"postgresql://postgres:{self.postgres_password}@{self.db_host}:{self.db_port}/arkenos"
+            self.database_url = f"postgresql://postgres:{self.postgres_password}@{self.db_host}:{self.db_port}/nenyax"
         return self
 
     class Config:

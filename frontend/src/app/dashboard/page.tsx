@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import DashboardLayout from "@/components/dashboard/layout-dashboard";
+import { SWRFallback } from "@/components/swr-fallback";
 import { MicrophoneIcon, PhoneIcon } from "@/components/icons";
 import { sentimentDotColor } from "@/lib/design-tokens";
 import { getApiUrl } from "@/lib/api";
@@ -51,8 +52,15 @@ export default async function DashboardPage() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Provide server-fetched key status as SWR fallback
+    const orgId = reqHeaders["x-org-id"];
+    const keyStatusKey = JSON.stringify(["/settings/keys", orgId]);
+    const fallback: Record<string, unknown> = {};
+    if (keyStatus) fallback[keyStatusKey] = keyStatus;
+
     return (
         <DashboardLayout>
+            <SWRFallback fallback={fallback}>
             <div className="space-y-6">
                 {/* Welcome */}
                 <div>
@@ -126,6 +134,7 @@ export default async function DashboardPage() {
                 </Card>
 
             </div>
+            </SWRFallback>
         </DashboardLayout>
     );
 }

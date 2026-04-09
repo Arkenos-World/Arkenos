@@ -4,7 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { Pool } from "pg";
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:arkenos@localhost:5434/arkenos",
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:nenyax@localhost:5434/nenyax",
 });
 
 const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";

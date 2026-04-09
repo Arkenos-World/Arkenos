@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans, Noto_Sans_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SWRProvider } from "@/components/swr-provider";
 import { PostHogProvider } from "@/components/posthog-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -39,9 +40,11 @@ export default function RootLayout({
             enableSystem={false}
 
           >
-            <PostHogProvider>
-              {children}
-            </PostHogProvider>
+            <SWRProvider>
+              <PostHogProvider>
+                {children}
+              </PostHogProvider>
+            </SWRProvider>
             <Toaster position="bottom-right" />
           </ThemeProvider>
       </body>

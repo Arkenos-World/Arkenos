@@ -5,14 +5,21 @@ description: Docker Compose setup and service configuration.
 
 # Docker Configuration
 
-Arkenos uses Docker Compose to orchestrate all four services.
+Nenyax uses Docker Compose to orchestrate all services.
+
+## Two Modes
+
+| Mode | Command | What runs in Docker |
+|------|---------|-------------------|
+| **Local dev** | `docker compose up -d postgres minio` | Only DB + MinIO. You run backend/frontend/agent locally. |
+| **All-Docker** | `docker compose up -d --build` | All 5 services in Docker. |
 
 ## Services
 
 ```yaml
 services:
   postgres:       # PostgreSQL 16 — port 5434 (host) → 5432 (container)
-  minio:          # MinIO object storage — port 9002/9003
+  minio:          # MinIO object storage — port 9002 (host) → 9000 (container)
   backend:        # FastAPI — port 4201 (depends on postgres)
   agent:          # LiveKit agent (depends on backend)
   frontend:       # Next.js — port 4200 (depends on backend)
@@ -20,53 +27,64 @@ services:
 
 ## Networking
 
-When running in Docker, services communicate on an internal network:
+**Local dev** — services connect to Docker containers via host ports:
 
-| From → To | URL | Reason |
-|-----------|-----|--------|
-| Frontend (server) → Backend | `http://backend:8000/api` | Server-side rendering (internal) |
-| Frontend (client) → Backend | `http://localhost:4201/api` | Browser requests (host-mapped) |
-| Agent → Backend | `http://backend:8000/api` | Config fetch, transcripts, usage |
-| Backend → PostgreSQL | `postgres:5432` | Database queries |
-| Backend → MinIO | `minio:9000` | Custom agent file storage |
+| From → To | URL |
+|-----------|-----|
+| Backend → PostgreSQL | `localhost:5434` |
+| Backend → MinIO | `localhost:9002` |
+| Frontend → Backend | `localhost:8000` |
+| Frontend → PostgreSQL | `localhost:5434` (Better Auth) |
+
+**All-Docker** — services communicate on the internal Docker network:
+
+| From → To | URL |
+|-----------|-----|
+| Backend → PostgreSQL | `postgres:5432` |
+| Backend → MinIO | `minio:9000` |
+| Frontend (server) → Backend | `http://backend:8000/api` |
+| Frontend (client) → Backend | `http://localhost:4201/api` |
+| Agent → Backend | `http://backend:8000/api` |
 
 <Warning>
-The frontend uses two different API URLs:
+In all-Docker mode, the frontend uses two different API URLs:
 - **`INTERNAL_API_URL`** (`http://backend:8000/api`) — used by server components inside Docker
 - **`NEXT_PUBLIC_API_URL`** (`http://localhost:4201/api`) — used by client components in the browser
 
 Do not remove `INTERNAL_API_URL` from docker-compose.yml — server components cannot reach `localhost:4201` from inside the container.
 </Warning>
 
-## Database Password
+## Environment
 
-The database password is configured via `POSTGRES_PASSWORD` in the root `.env`:
+**No `.env` file is required for local dev or Docker dev.** All compose files have defaults:
 
-```bash
-# .env (project root)
-POSTGRES_PASSWORD=your_password_here
-```
+- `POSTGRES_PASSWORD` defaults to `nenyax`
+- `MINIO_ROOT_USER/PASSWORD` defaults to `minioadmin`
+- `BETTER_AUTH_SECRET` defaults to `authsecret123`
 
-Both the PostgreSQL container and the backend read this variable via Docker Compose. The backend uses it to construct `DATABASE_URL` automatically.
+Create a root `.env` only to override these (e.g., for production credentials).
 
 ## Commands
 
 ```bash
-# Start all services
-docker-compose up -d --build
+# Local dev — only infrastructure
+docker compose up -d postgres minio
 
-# View all logs
-docker-compose logs -f
+# All-Docker — all services
+docker compose up -d --build
+
+# View logs
+docker compose logs -f
 
 # View logs for one service
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Stop all services
-docker-compose down
+docker compose down
 
-# Stop and reset database
-docker-compose down -v
+# Stop and reset all data
+docker compose down -v
 
 # Rebuild one service
-docker-compose up -d --build backend
+docker compose up -d --build backend
 ```

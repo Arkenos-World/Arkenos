@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { deltaColor } from "@/lib/design-tokens"
 import { useAuthHeaders } from "@/lib/auth-headers"
+import { useAgents } from "@/hooks/use-swr-hooks"
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 const C = {
@@ -118,19 +119,14 @@ interface AnalyticsClientProps {
 export default function AnalyticsClient({ userId, apiUrl }: AnalyticsClientProps) {
     const auth = useAuthHeaders();
     const [sessions, setSessions] = useState<Session[]>([])
-    const [agents, setAgents] = useState<AgentRecord[]>([])
     const [loading, setLoading] = useState(true)
     const [rangeDays, setRangeDays] = useState(30)
     const [agentPage, setAgentPage] = useState(1)
     const AGENTS_PER_PAGE = 5
 
-    // Fetch agents list once (not range-dependent)
-    useEffect(() => {
-        fetch(`${apiUrl}/agents`, { headers: auth, cache: "no-store" })
-            .then(r => r.ok ? r.json() : [])
-            .then((data: AgentRecord[]) => setAgents(Array.isArray(data) ? data : []))
-            .catch(() => { })
-    }, [userId, apiUrl])
+    // Agents via shared SWR hook (deduped across components)
+    const { data: agentsRaw } = useAgents()
+    const agents: AgentRecord[] = (agentsRaw ?? []).map(a => ({ id: a.id, name: a.name, is_active: a.is_active }))
 
     useEffect(() => {
         async function fetchSessions() {

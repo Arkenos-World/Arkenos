@@ -696,8 +696,8 @@ async def entrypoint(ctx: agents.JobContext):
         system_prompt = system_prompt.replace("{{agent_name}}", agent_name)
         first_message = first_message.replace("{{agent_name}}", agent_name)
             
-    # Get STT provider from config (default to assemblyai)
-    stt_provider = config.get("stt_provider", "assemblyai")
+    # Get STT provider from config (default to deepgram)
+    stt_provider = config.get("stt_provider", "deepgram")
 
     # Create STT based on provider selection
     logger.info(f"[PIPELINE] Initializing STT provider: {stt_provider}")

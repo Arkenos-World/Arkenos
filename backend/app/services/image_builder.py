@@ -25,7 +25,7 @@ def _ensure_base_image() -> None:
     """Build the base agent image if it doesn't exist locally.
 
     Looks for the agent/ directory (sibling of backend/) containing
-    Dockerfile.base and its dependencies. Builds arkenos-agent-base:latest.
+    Dockerfile.base and its dependencies. Builds nenyax-agent-base:latest.
     """
     settings = get_settings()
     base_tag = settings.base_agent_image
@@ -84,7 +84,7 @@ def should_rebuild(agent_id: str, db: Session) -> bool:
         return False
 
     # Compare with stored hash in the image tag
-    # Tag format: arkenos-custom-{agent_id}:{hash_prefix}
+    # Tag format: nenyax-custom-{agent_id}:{hash_prefix}
     tag_parts = agent.image_tag.split(":")
     if len(tag_parts) < 2:
         return True
@@ -117,7 +117,7 @@ def build_custom_image(agent_id: str, db: Session) -> str:
         except Exception:
             req_hash = "base"
 
-        image_tag = f"arkenos-custom-{agent_id}:{req_hash}"
+        image_tag = f"nenyax-custom-{agent_id}:{req_hash}"
 
         # Build a minimal Dockerfile
         dockerfile = (

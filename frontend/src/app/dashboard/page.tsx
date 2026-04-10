@@ -23,7 +23,7 @@ function resolveSessionLabel(session: { agent_name?: string | null; room_name: s
     if (session.outbound_phone_number) return { primary: name, secondary: `Outbound ${session.outbound_phone_number}` }
     if (sipMatch) return { primary: name, secondary: `Inbound ${sipMatch[1].startsWith('+') ? sipMatch[1] : '+' + sipMatch[1]}` }
     if (room.startsWith('preview-')) return { primary: session.agent_name || 'Preview', secondary: room.replace('preview-', '').slice(0, 18) }
-    const shortId = room.replace(/^(preview-|arkenos-)/, '').slice(0, 18)
+    const shortId = room.replace(/^(preview-|nenyax-)/, '').slice(0, 18)
     return { primary: name, secondary: `ID: ${shortId}` }
 }
 

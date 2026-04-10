@@ -1,5 +1,5 @@
 """
-Arkenos Voice Agent
+Nenyax Voice Agent
 
 A LiveKit-based voice agent using:
 - Deepgram for Speech-to-Text
@@ -575,7 +575,7 @@ else:
     logger.info("[INIT] Production mode — using PROCESS executor (5 idle processes)")
 
 
-@server.rtc_session(agent_name="arkenos-agent")
+@server.rtc_session(agent_name="nenyax-agent")
 async def entrypoint(ctx: agents.JobContext):
     """Main entrypoint for the voice agent session."""
 

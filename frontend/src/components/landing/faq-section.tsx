@@ -70,7 +70,7 @@ const itemVariants = {
 
 export function FaqSection() {
   return (
-    <section className="py-24 md:py-32 bg-white">
+    <section className="py-24 md:py-32 bg-white dark:bg-[#0C0C0C]">
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         <motion.div
           initial="hidden"
@@ -80,13 +80,13 @@ export function FaqSection() {
         >
           <motion.h2
             variants={itemVariants}
-            className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-zinc-900 leading-[1.1] mb-4"
+            className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-zinc-900 dark:text-zinc-100 leading-[1.1] mb-4"
           >
             Frequently asked questions
           </motion.h2>
           <motion.p
             variants={itemVariants}
-            className="text-lg text-zinc-500 mb-16"
+            className="text-lg text-zinc-500 dark:text-zinc-400 mb-16"
           >
             Everything you need to know about building with Nenyax.
           </motion.p>

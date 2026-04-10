@@ -21,10 +21,10 @@ const itemVariants = {
 };
 
 const stats = [
-  "$0 Platform Fee",
-  "< 50ms Latency",
-  "AGPL-3.0 Licensed",
-  "99.99% Uptime",
+  { value: "$0", label: "Platform Fee" },
+  { value: "<50ms", label: "Latency" },
+  { value: "AGPL-3.0", label: "Licensed" },
+  { value: "99.99%", label: "Uptime" },
 ];
 
 const integrations = [
@@ -40,26 +40,29 @@ const integrations = [
 
 export function SocialProofSection() {
   return (
-    <section className="py-16 md:py-20 bg-[#FAFAFA]">
+    <section className="py-16 md:py-20 bg-[#FAFAFA] dark:bg-[#080808]">
       <div className="max-w-5xl mx-auto px-6">
+        {/* Stats strip */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={containerVariants}
-          className="flex flex-wrap gap-3 justify-center"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-0 md:divide-x md:divide-black/5 dark:md:divide-white/[0.06] bg-white dark:bg-[#0C0C0C] rounded-[1.5rem] border border-black/5 dark:border-white/[0.06] shadow-[0_2px_8px_rgb(0,0,0,0.02)] p-2 md:p-0"
         >
           {stats.map((stat) => (
-            <motion.span
-              key={stat}
+            <motion.div
+              key={stat.label}
               variants={itemVariants}
-              className="rounded-full bg-white border border-black/5 px-5 py-2 text-sm font-medium text-zinc-700 shadow-sm"
+              className="flex flex-col items-center justify-center py-5 md:py-6"
             >
-              {stat}
-            </motion.span>
+              <span className="text-xl md:text-2xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">{stat.value}</span>
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-500 font-medium mt-1">{stat.label}</span>
+            </motion.div>
           ))}
         </motion.div>
 
+        {/* Integrations marquee */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -69,16 +72,16 @@ export function SocialProofSection() {
         >
           <motion.p
             variants={itemVariants}
-            className="text-sm text-zinc-400 font-medium text-center mb-4"
+            className="text-[11px] text-zinc-400 dark:text-zinc-500 font-semibold uppercase tracking-widest text-center mb-5"
           >
             Integrates with
           </motion.p>
-          <motion.div variants={itemVariants}>
-            <Marquee pauseOnHover className="[--duration:30s]">
+          <motion.div variants={itemVariants} className="[mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+            <Marquee pauseOnHover className="[--duration:25s]">
               {integrations.map((name) => (
                 <span
                   key={name}
-                  className="rounded-full bg-white border border-black/5 px-5 py-2 text-sm font-medium text-zinc-600 shadow-sm whitespace-nowrap"
+                  className="rounded-full bg-white dark:bg-[#0C0C0C] border border-black/5 dark:border-white/[0.06] px-5 py-2.5 text-[13px] font-medium text-zinc-600 dark:text-zinc-400 shadow-sm whitespace-nowrap hover:border-black/10 dark:hover:border-white/10 hover:shadow-md transition-all"
                 >
                   {name}
                 </span>

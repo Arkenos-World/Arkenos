@@ -44,7 +44,7 @@ const sellingPoints = [
 
 export function OpenSourceSection() {
   return (
-    <section className="py-24 md:py-32 bg-[#FAFAFA]">
+    <section className="py-24 md:py-32 bg-[#FAFAFA] dark:bg-[#080808]">
       {/* Section header */}
       <motion.div
         initial="hidden"
@@ -55,19 +55,19 @@ export function OpenSourceSection() {
       >
         <motion.h2
           variants={itemVariants}
-          className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-zinc-900 leading-[1.1]"
+          className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-zinc-900 dark:text-zinc-100 leading-[1.1]"
         >
           Built in the open.
         </motion.h2>
         <motion.p
           variants={itemVariants}
-          className="mt-3 text-zinc-400 text-lg"
+          className="mt-3 text-zinc-400 dark:text-zinc-500 text-lg"
         >
           Community-driven development.
         </motion.p>
         <motion.p
           variants={itemVariants}
-          className="mt-4 text-zinc-500 text-base leading-relaxed max-w-2xl"
+          className="mt-4 text-zinc-500 dark:text-zinc-400 text-base leading-relaxed max-w-2xl"
         >
           Nenyax is open source under the AGPL-3.0 license. Deploy on your own
           infrastructure, audit every line of code, and contribute to the future
@@ -84,36 +84,39 @@ export function OpenSourceSection() {
         className="max-w-4xl mx-auto px-6 md:px-8"
       >
         <motion.div variants={itemVariants}>
-          <div className="rounded-[2rem] bg-stone-50 border border-black/5 p-10 md:p-16 shadow-sm relative overflow-hidden">
-            <BorderBeam size={80} duration={8} />
+          <div className="rounded-[2rem] bg-zinc-900 dark:bg-zinc-800 p-10 md:p-16 shadow-[0_8px_40px_rgb(0,0,0,0.15)] dark:shadow-[0_8px_40px_rgb(0,0,0,0.2)] relative overflow-hidden">
+            <BorderBeam size={80} duration={8} colorFrom="#34d399" colorTo="#10b981" />
+
+            {/* Subtle texture */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.03),transparent_50%)] pointer-events-none" />
 
             {/* GitHub button + license */}
-            <div className="flex flex-wrap items-center gap-4 mb-10">
+            <div className="flex flex-wrap items-center gap-4 mb-10 relative z-10">
               <a
-                href="https://github.com/Nenyax-World/Nenyax"
+                href="https://github.com/Nenyax-AI/Nenyax"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-zinc-900 text-white rounded-full px-8 py-3 text-base font-medium hover:bg-zinc-800 transition-colors shadow-sm"
+                className="inline-flex items-center gap-2 bg-white dark:bg-zinc-100 text-zinc-900 rounded-full px-8 py-3 text-base font-medium hover:bg-zinc-100 transition-colors shadow-sm"
               >
                 <Github className="w-5 h-5" />
                 Star on GitHub
               </a>
-              <span className="rounded-full bg-white border border-black/5 px-4 py-1.5 text-xs font-medium text-zinc-600 shadow-sm">
+              <span className="rounded-full bg-white/10 border border-white/10 px-4 py-1.5 text-xs font-medium text-zinc-300">
                 AGPL-3.0
               </span>
             </div>
 
             {/* Selling points */}
-            <div className="grid sm:grid-cols-3 gap-8">
+            <div className="grid sm:grid-cols-3 gap-8 relative z-10">
               {sellingPoints.map((point) => (
                 <motion.div key={point.title} variants={itemVariants}>
-                  <div className="w-9 h-9 rounded-full bg-white border border-black/5 flex items-center justify-center mb-4 shadow-sm">
-                    <point.icon className="w-4 h-4 text-zinc-500" />
+                  <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/5 flex items-center justify-center mb-4">
+                    <point.icon className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <h3 className="text-sm font-medium text-zinc-900 mb-1">
+                  <h3 className="text-sm font-medium text-white mb-1">
                     {point.title}
                   </h3>
-                  <p className="text-sm text-zinc-500 leading-relaxed">
+                  <p className="text-sm text-zinc-400 leading-relaxed">
                     {point.description}
                   </p>
                 </motion.div>

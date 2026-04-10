@@ -81,7 +81,7 @@ class InstanceSettings(Base):
 
 
 class Organization(Base):
-    """Arkenos organization — top-level tenant for multi-tenancy."""
+    """Nenyax organization — top-level tenant for multi-tenancy."""
     __tablename__ = "organizations"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)

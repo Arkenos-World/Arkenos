@@ -142,10 +142,10 @@ def _auto_create_org_from_ba(
     ba_org_id: str,
     user: User,
 ) -> Optional[Organization]:
-    """Auto-create an Arkenos Organization record from a Better Auth org.
+    """Auto-create a Nenyax Organization record from a Better Auth org.
 
     Queries the Better Auth `organization` table for the name/slug, creates the
-    Arkenos Organization row, and adds an owner membership for the given user.
+    Nenyax Organization row, and adds an owner membership for the given user.
     Returns the new Organization or None if the BA org doesn't exist.
     """
     import uuid
@@ -175,7 +175,7 @@ def _auto_create_org_from_ba(
 
     try:
         db.commit()
-        logger.info(f"Auto-created Arkenos org {org.id} from BA org {ba_org_id}")
+        logger.info(f"Auto-created Nenyax org {org.id} from BA org {ba_org_id}")
     except Exception:
         db.rollback()
         # May have been created concurrently — try to fetch again
@@ -216,7 +216,7 @@ def _resolve_org(
             if not org:
                 ba_org_id_to_resolve = ba_org_id
 
-    # Auto-create Arkenos org from Better Auth org if not found
+    # Auto-create Nenyax org from Better Auth org if not found
     if not org and ba_org_id_to_resolve:
         org = _auto_create_org_from_ba(db, ba_org_id_to_resolve, user)
 

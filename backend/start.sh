@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Arkenos Backend Startup ==="
+echo "=== Nenyax Backend Startup ==="
 echo "PORT=${PORT:-8000}"
 echo "DATABASE_URL set: $([ -n "$DATABASE_URL" ] && echo YES || echo NO)"
 echo "DB_HOST=${DB_HOST:-not set}"

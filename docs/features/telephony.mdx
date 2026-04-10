@@ -5,7 +5,7 @@ description: Inbound and outbound phone calls via Twilio with auto-provisioned S
 
 # Telephony
 
-Arkenos supports real phone calls through Twilio and LiveKit SIP. The SIP infrastructure (trunks, dispatch rules, credentials) is **auto-provisioned** — you just need Twilio and LiveKit account credentials.
+Nenyax supports real phone calls through Twilio and LiveKit SIP. The SIP infrastructure (trunks, dispatch rules, credentials) is **auto-provisioned** — you just need Twilio and LiveKit account credentials.
 
 ## Phone Number Management
 
@@ -39,7 +39,7 @@ curl -X POST http://localhost:8000/api/telephony/numbers/release \
 When someone calls a number assigned to an agent:
 
 1. Twilio routes the call to LiveKit via the auto-provisioned Elastic SIP Trunk
-2. LiveKit's dispatch rule creates a room and dispatches `arkenos-agent`
+2. LiveKit's dispatch rule creates a room and dispatches `nenyax-agent`
 3. The agent calls `/api/telephony/lookup` to resolve the phone number to the correct agent config
 4. The agent loads the matching system prompt, voice, greeting, and tools
 

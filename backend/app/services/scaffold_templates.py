@@ -11,7 +11,7 @@ from app.services import minio_client
 SCAFFOLD_FILES: dict[str, str] = {
     "agent.py": '''\
 """
-Custom Arkenos Voice Agent
+Custom Nenyax Voice Agent
 
 Entry point for your custom agent. The `server` and `@server.rtc_session()`
 entrypoint MUST stay at module level — LiveKit's forkserver pickles them.
@@ -25,7 +25,7 @@ SECURITY:
 
 Environment variables injected at runtime:
     AGENT_ID            - UUID of this agent
-    AGENT_NAME          - LiveKit worker name (arkenos-custom-{agent_id})
+    AGENT_NAME          - LiveKit worker name (nenyax-custom-{agent_id})
     ROOM_NAME           - Room to join (only in preview mode)
     BACKEND_API_URL     - Backend API base (e.g. http://host.docker.internal:8000/api)
     GOOGLE_API_KEY      - Gemini LLM
@@ -221,7 +221,7 @@ async def entrypoint(ctx: agents.JobContext):
 ''',
     "requirements.txt": """\
 # Add your custom Python dependencies here.
-# The base Arkenos runtime already includes:
+# The base Nenyax runtime already includes:
 #   - livekit-agents + all plugins (assemblyai, deepgram, google, silero, elevenlabs)
 #   - httpx, aiohttp, pydantic, numpy
 #   - livekit-plugins-resemble (TTS — uses RESEMBLE_VOICE_UUID env var)
@@ -270,7 +270,7 @@ async def entrypoint(ctx: agents.JobContext):
 #             })
 """,
     "prompts/system.txt": """\
-You are a helpful AI voice assistant built with Arkenos.
+You are a helpful AI voice assistant built with Nenyax.
 
 ## Your Role
 - Answer questions clearly and concisely

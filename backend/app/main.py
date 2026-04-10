@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(
-    title="Arkenos API",
-    description="Backend API for Arkenos — Composable orchestration for conversational AI",
+    title="Nenyax API",
+    description="Backend API for Nenyax — Composable orchestration for conversational AI",
     version="0.1.0",
 )
 
@@ -67,7 +67,7 @@ class UserContextMiddleware(BaseHTTPMiddleware):
                         if not org:
                             ba_org_id_to_resolve = ba_org_id
 
-                # Auto-create Arkenos org from Better Auth org if not found
+                # Auto-create Nenyax org from Better Auth org if not found
                 if not org and ba_org_id_to_resolve:
                     from app.dependencies import _auto_create_org_from_ba
                     org = _auto_create_org_from_ba(db, ba_org_id_to_resolve, user)
@@ -202,9 +202,9 @@ except Exception as e:
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "arkenos-api"}
+    return {"status": "ok", "service": "nenyax-api"}
 
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Arkenos API", "docs": "/docs"}
+    return {"message": "Welcome to Nenyax API", "docs": "/docs"}

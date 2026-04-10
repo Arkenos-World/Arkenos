@@ -1,24 +1,24 @@
 ---
 title: Self-Hosting
-description: Deploy Arkenos on any VPS with a single command. Full features including custom agents.
+description: Deploy Nenyax on any VPS with a single command. Full features including custom agents.
 ---
 
 # Self-Hosting
 
-Self-hosting is the **recommended deployment method** for Arkenos. It gives you full features including custom agents, Docker sandboxes, and the AI coding assistant.
+Self-hosting is the **recommended deployment method** for Nenyax. It gives you full features including custom agents, Docker sandboxes, and the AI coding assistant.
 
 ## One-Command Install
 
 SSH into any Linux VPS and run:
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Arkenos-World/Arkenos/master/install.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Nenyax-World/Nenyax/master/install.sh)"
 ```
 
 The script handles everything:
 
 1. Installs Docker and Docker Compose
-2. Clones the Arkenos repository
+2. Clones the Nenyax repository
 3. Generates secure random credentials (Postgres, MinIO, auth secret)
 4. Sets up HTTPS (Let's Encrypt with a domain, or self-signed for IP-only access)
 5. Builds and starts all services
@@ -27,13 +27,13 @@ The script handles everything:
 When finished, you'll see:
 
 ```
-Arkenos is running!
+Nenyax is running!
 
   URL:        https://your-ip-or-domain
 
-  Credentials (saved to /opt/arkenos/.env):
+  Credentials (saved to /opt/nenyax/.env):
     Postgres:  postgres:x8fK2mN9... @ localhost:5432
-    MinIO:     arkenos-minio:hD5sA8cF...
+    MinIO:     nenyax-minio:hD5sA8cF...
 
   Next steps:
     1. Open the URL in your browser
@@ -65,7 +65,7 @@ Arkenos is running!
     Go to [Google Cloud Console](https://console.cloud.google.com) → **Compute Engine** → **VM Instances** → **Create Instance**.
 
     Configure:
-    - **Name:** `arkenos`
+    - **Name:** `nenyax`
     - **Region:** Pick closest to your users (e.g. `us-central1`)
     - **Machine type:** `e2-medium` (2 vCPU, 4GB RAM)
     - **Boot disk:** Ubuntu 24.04 LTS, x86, 30GB SSD
@@ -78,7 +78,7 @@ Arkenos is running!
   </Step>
   <Step title="Run the install script">
     ```bash
-    sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Arkenos-World/Arkenos/master/install.sh)"
+    sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Nenyax-World/Nenyax/master/install.sh)"
     ```
 
     When prompted for a domain:
@@ -87,7 +87,7 @@ Arkenos is running!
 
     Wait 3-5 minutes for the build to complete.
   </Step>
-  <Step title="Open Arkenos">
+  <Step title="Open Nenyax">
     Find your VM's **External IP** in the Google Cloud Console.
 
     Open `https://<your-ip>` in your browser. If using a self-signed cert, click **Advanced → Proceed**.
@@ -105,7 +105,7 @@ Arkenos is running!
 
 ## HTTPS
 
-Arkenos uses [Caddy](https://caddyserver.com) as a reverse proxy.
+Nenyax uses [Caddy](https://caddyserver.com) as a reverse proxy.
 
 | Setup | How HTTPS works |
 |-------|----------------|
@@ -136,7 +136,7 @@ When a user creates and deploys a custom agent, the backend talks to Docker via 
 ## Managing Your Deployment
 
 ```bash
-cd /opt/arkenos
+cd /opt/nenyax
 
 # View logs
 docker compose -f docker-compose.prod.yml logs -f
@@ -157,7 +157,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## Credentials
 
-All credentials are stored in `/opt/arkenos/.env` (readable only by root). These are auto-generated and used internally between services — you never need to change them.
+All credentials are stored in `/opt/nenyax/.env` (readable only by root). These are auto-generated and used internally between services — you never need to change them.
 
 | Credential | Used by | User needs to know? |
 |------------|---------|-------------------|

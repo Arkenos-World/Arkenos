@@ -145,6 +145,40 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
 
     const apiUrl = getApiUrl();
 
+    // Fetch session stats per agent (calls + avg duration)
+    const [agentStats, setAgentStats] = useState<Record<string, { calls: number; avgDuration: string }>>({});
+
+    const fetchAgentStats = useCallback(async () => {
+        if (!auth["Authorization"]) return;
+        try {
+            const res = await fetch(`${apiUrl}/sessions/?limit=10000`, { headers: auth, cache: "no-store" });
+            if (!res.ok) return;
+            const data = await res.json();
+            const sessions: { agent_id?: string; duration?: number }[] = data.sessions || [];
+
+            const map: Record<string, { count: number; totalDur: number }> = {};
+            for (const s of sessions) {
+                if (!s.agent_id) continue;
+                if (!map[s.agent_id]) map[s.agent_id] = { count: 0, totalDur: 0 };
+                map[s.agent_id].count++;
+                map[s.agent_id].totalDur += s.duration ?? 0;
+            }
+
+            const stats: Record<string, { calls: number; avgDuration: string }> = {};
+            for (const [id, { count, totalDur }] of Object.entries(map)) {
+                const avgSec = count > 0 ? Math.round(totalDur / count) : 0;
+                const mins = Math.floor(avgSec / 60);
+                const secs = String(avgSec % 60).padStart(2, "0");
+                stats[id] = { calls: count, avgDuration: `${mins}:${secs}` };
+            }
+            setAgentStats(stats);
+        } catch {
+            // silently fail — stats are non-critical
+        }
+    }, [apiUrl, auth]);
+
+    useEffect(() => { fetchAgentStats(); }, [fetchAgentStats]);
+
     // Set default voice when voices load
     useEffect(() => {
         if (resembleVoices.length > 0 && !selectedVoice) {
@@ -561,11 +595,11 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                                 <div className="flex gap-6 text-sm">
                                     <div>
                                         <p className="text-muted-foreground">Calls</p>
-                                        <p className="font-medium">{agent.calls || 0}</p>
+                                        <p className="font-medium">{agentStats[agent.id]?.calls ?? 0}</p>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">Avg Duration</p>
-                                        <p className="font-medium">{agent.avgDuration || "0:00"}</p>
+                                        <p className="font-medium">{agentStats[agent.id]?.avgDuration ?? "0:00"}</p>
                                     </div>
                                 </div>
                             </CardContent>

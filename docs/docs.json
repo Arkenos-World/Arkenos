@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "willow",
-  "name": "Arkenos",
+  "name": "Nenyax",
   "colors": {
     "primary": "#6D28D9",
     "light": "#8B5CF6",
@@ -63,13 +63,13 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/Arkenos-World/Arkenos"
+        "href": "https://github.com/Nenyax-World/Nenyax"
       }
     ]
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/Arkenos-World/Arkenos"
+      "github": "https://github.com/Nenyax-World/Nenyax"
     }
   }
 }

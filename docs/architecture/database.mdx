@@ -5,16 +5,16 @@ description: PostgreSQL database tables and relationships.
 
 # Database Schema
 
-Arkenos uses PostgreSQL with SQLAlchemy ORM and Alembic migrations.
+Nenyax uses PostgreSQL with SQLAlchemy ORM and Alembic migrations.
 
 ## Dual User Table Design
 
-Arkenos maintains two separate user-related tables. This is intentional:
+Nenyax maintains two separate user-related tables. This is intentional:
 
 | Table | Owned by | Purpose |
 |-------|----------|---------|
 | `"user"` | Better Auth | Authentication only — email, password hash, sessions, email verification |
-| `"users"` | Arkenos backend | Business data — agents, voice sessions, org membership, API keys all reference this table |
+| `"users"` | Nenyax backend | Business data — agents, voice sessions, org membership, API keys all reference this table |
 
 **Why two tables?** The `users` table acts as an **auth-agnostic abstraction layer**. If the auth provider changes (e.g., switching from Better Auth to Auth.js or a custom solution), only the sync logic needs updating — all business data, foreign keys, and queries remain untouched.
 

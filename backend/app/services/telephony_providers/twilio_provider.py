@@ -52,12 +52,12 @@ class TwilioProvider(TelephonyProvider):
         ]
 
     def _find_trunk_sid(self) -> str | None:
-        """Find the 'Arkenos Inbound' Elastic SIP Trunk SID. Caches result."""
+        """Find the 'Nenyax Inbound' Elastic SIP Trunk SID. Caches result."""
         if self.twilio_trunk_sid:
             return self.twilio_trunk_sid
         client = self._get_client()
         for trunk in client.trunking.v1.trunks.list():
-            if trunk.friendly_name == "Arkenos Inbound":
+            if trunk.friendly_name == "Nenyax Inbound":
                 self.twilio_trunk_sid = trunk.sid
                 return trunk.sid
         return None
@@ -106,7 +106,7 @@ class TwilioProvider(TelephonyProvider):
 
     async def check_external_config(self, phone_number: str) -> dict:
         """Check if a Twilio number has active voice/SIP configurations.
-        Ignores the Arkenos-owned trunk — it will be reconfigured during assignment.
+        Ignores the Nenyax-owned trunk — it will be reconfigured during assignment.
         """
         client = self._get_client()
         numbers = client.incoming_phone_numbers.list(phone_number=phone_number)
@@ -119,11 +119,11 @@ class TwilioProvider(TelephonyProvider):
         has_voice_url = bool(num.voice_url and num.voice_url != default_voice_url)
         has_app = bool(num.voice_application_sid)
 
-        # If the trunk belongs to Arkenos, it's safe — we'll reconfigure during assignment
+        # If the trunk belongs to Nenyax, it's safe — we'll reconfigure during assignment
         has_external_trunk = False
         if num.trunk_sid:
-            arkenos_trunk_sid = self._find_trunk_sid()
-            has_external_trunk = num.trunk_sid != arkenos_trunk_sid
+            nenyax_trunk_sid = self._find_trunk_sid()
+            has_external_trunk = num.trunk_sid != nenyax_trunk_sid
 
         return {
             "has_config": has_voice_url or has_app or has_external_trunk,
@@ -150,7 +150,7 @@ class TwilioProvider(TelephonyProvider):
         if not existing_trunk:
             trunks = client.trunking.v1.trunks.list()
             for trunk in trunks:
-                if trunk.friendly_name == "Arkenos Inbound":
+                if trunk.friendly_name == "Nenyax Inbound":
                     existing_trunk = trunk
                     self.twilio_trunk_sid = trunk.sid
                     logger.info(f"Reusing existing Twilio Elastic SIP Trunk: {trunk.sid}")
@@ -200,7 +200,7 @@ class TwilioProvider(TelephonyProvider):
         if not sip_uri:
             raise ValueError("Cannot determine LiveKit SIP URI — set LIVEKIT_URL or TWILIO_SIP_DOMAIN")
 
-        trunk = client.trunking.v1.trunks.create(friendly_name="Arkenos Inbound")
+        trunk = client.trunking.v1.trunks.create(friendly_name="Nenyax Inbound")
 
         # Add origination URI pointing to LiveKit SIP (TCP required)
         trunk.origination_urls.create(
@@ -226,7 +226,7 @@ class TwilioProvider(TelephonyProvider):
         trunk_sid = self._find_trunk_sid()
         if not trunk_sid:
             raise ValueError(
-                "No 'Arkenos Inbound' Twilio SIP trunk found. "
+                "No 'Nenyax Inbound' Twilio SIP trunk found. "
                 "Run configure_sip_inbound first."
             )
 
@@ -271,13 +271,13 @@ class TwilioProvider(TelephonyProvider):
         the credentials, so the caller should skip trunk recreation.
         """
         client = self._get_client()
-        username = "arkenos-lk"
+        username = "nenyax-lk"
 
         # Find or create credential list for LiveKit -> Twilio auth (reuse-first)
         cred_list = None
         reused = False
         for cl in client.sip.credential_lists.list():
-            if cl.friendly_name == "Arkenos LiveKit":
+            if cl.friendly_name == "Nenyax LiveKit":
                 cred_list = cl
                 self.credential_list_sid = cl.sid
                 reused = True
@@ -287,7 +287,7 @@ class TwilioProvider(TelephonyProvider):
         if not cred_list:
             password = secrets.token_urlsafe(32)
             cred_list = client.sip.credential_lists.create(
-                friendly_name="Arkenos LiveKit"
+                friendly_name="Nenyax LiveKit"
             )
             cred_list.credentials.create(username=username, password=password)
             self.credential_list_sid = cred_list.sid
@@ -302,7 +302,7 @@ class TwilioProvider(TelephonyProvider):
         # Enable termination by setting a domain name if not already set
         if not trunk_obj.domain_name:
             tw_sid = get_key(self.db, "twilio_account_sid")
-            domain_name = f"arkenos-{tw_sid[-6:].lower()}.pstn.twilio.com"
+            domain_name = f"nenyax-{tw_sid[-6:].lower()}.pstn.twilio.com"
             client.trunking.v1.trunks(trunk_sid).update(
                 domain_name=domain_name
             )
@@ -335,18 +335,18 @@ class TwilioProvider(TelephonyProvider):
         }
 
     async def delete_outbound_credentials(self) -> None:
-        """Delete the 'Arkenos LiveKit' credential list from Twilio.
+        """Delete the 'Nenyax LiveKit' credential list from Twilio.
         First detaches it from any SIP trunks, then deletes it.
         Used to reset stale credentials when the LiveKit project changes."""
         client = self._get_client()
         target_cl = None
         for cl in client.sip.credential_lists.list():
-            if cl.friendly_name == "Arkenos LiveKit":
+            if cl.friendly_name == "Nenyax LiveKit":
                 target_cl = cl
                 break
 
         if not target_cl:
-            logger.info("No 'Arkenos LiveKit' credential list found to delete")
+            logger.info("No 'Nenyax LiveKit' credential list found to delete")
             return
 
         # Detach from all trunks first (Twilio blocks deletion otherwise)

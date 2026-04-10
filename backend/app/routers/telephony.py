@@ -278,7 +278,7 @@ async def assign_existing_number(
     if not phone.startswith("+"):
         phone = f"+{phone}"
 
-    # Block if number is assigned to another Arkenos agent
+    # Block if number is assigned to another Nenyax agent
     normalized_phone = normalize_phone(phone)
     all_agents = (
         db.query(models.Agent)
@@ -510,7 +510,7 @@ async def check_number_assignment(
     if not normalized_input:
         raise HTTPException(status_code=400, detail="Invalid phone number")
 
-    # Check 1: Is it assigned to another Arkenos agent?
+    # Check 1: Is it assigned to another Nenyax agent?
     agents = (
         db.query(models.Agent)
         .filter(models.Agent.phone_number.isnot(None), models.Agent.is_active == True)

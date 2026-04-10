@@ -21,8 +21,10 @@ from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import Agent, AgentServer, AgentSession, RunContext, function_tool
 
-from livekit.plugins import assemblyai, deepgram, elevenlabs, google, resemble, silero
+from livekit.plugins import assemblyai, deepgram, elevenlabs, google, openai, resemble, silero
 from usage_logger import log_stt_usage, log_llm_usage, log_tts_usage
+
+
 
 load_dotenv()
 
@@ -810,14 +812,30 @@ async def entrypoint(ctx: agents.JobContext):
     session_id_holder["id"] = session_id
     
     # Create the agent session with STT, LLM, and TTS
-    logger.info("[PIPELINE] Initializing LLM (Google Gemini)")
+    llm_provider = config.get("llm_provider", "gemini")
+    llm_model = config.get("llm_model", "")
+    logger.info(f"[PIPELINE] Initializing LLM (provider={llm_provider}, model={llm_model})")
     try:
-        google_key = os.environ.get("GOOGLE_API_KEY")
-        logger.info(f"[PIPELINE] Google API key present: {bool(google_key)}, length: {len(google_key) if google_key else 0}")
-        llm = google.LLM()
+        if llm_provider == "zai":
+            zai_key = os.environ.get("ZAI_API_KEY")
+            logger.info(f"[PIPELINE] Z.ai API key present: {bool(zai_key)}, length: {len(zai_key) if zai_key else 0}")
+            llm = openai.LLM(
+                model=llm_model or "glm-4.5-flash",
+                base_url="https://api.z.ai/api/paas/v4",
+                api_key=zai_key,
+                max_retries=2,
+            )
+        else:
+            # Default: Google Gemini
+            google_key = os.environ.get("GOOGLE_API_KEY")
+            logger.info(f"[PIPELINE] Google API key present: {bool(google_key)}, length: {len(google_key) if google_key else 0}")
+            if llm_model:
+                llm = google.LLM(model=llm_model)
+            else:
+                llm = google.LLM()
         logger.info("[PIPELINE] LLM initialized successfully")
     except Exception as e:
-        logger.error(f"[PIPELINE] FAILED to initialize LLM (Google Gemini): {e}", exc_info=True)
+        logger.error(f"[PIPELINE] FAILED to initialize LLM ({llm_provider}): {e}", exc_info=True)
         raise
 
     logger.info("[PIPELINE] Loading Silero VAD")
@@ -852,7 +870,7 @@ async def entrypoint(ctx: agents.JobContext):
     logger.info("[PIPELINE] AgentSession created successfully")
     logger.info(f"[PIPELINE] ===== Pipeline Summary =====")
     logger.info(f"[PIPELINE]   STT: {stt_provider}")
-    logger.info(f"[PIPELINE]   LLM: google-gemini")
+    logger.info(f"[PIPELINE]   LLM: {llm_provider} ({llm_model or 'default'})")
     logger.info(f"[PIPELINE]   TTS: resemble-ai (voice={voice_id or 'default'})")
     logger.info(f"[PIPELINE]   VAD: silero")
     logger.info(f"[PIPELINE]   Turn: dynamic endpointing (0.5-1.0s), adaptive interruption (ML)")

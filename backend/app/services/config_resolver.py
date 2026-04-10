@@ -37,6 +37,11 @@ PROVIDERS = {
         "keys": ["google_api_key"],
         "required": True,
     },
+    "zai": {
+        "label": "Z.ai (GLM)",
+        "keys": ["zai_api_key"],
+        "required": False,
+    },
     "resemble": {
         "label": "Resemble AI",
         "keys": ["resemble_api_key"],

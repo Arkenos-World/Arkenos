@@ -52,6 +52,12 @@ const sttModels = [
 const llmModels = [
     { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)", provider: "Google" },
     { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "Google" },
+    { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google" },
+    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google" },
+    { id: "glm-4.5-flash", name: "GLM 4.5 Flash", provider: "Z.ai" },
+    { id: "glm-4.5-air", name: "GLM 4.5 Air", provider: "Z.ai" },
+    { id: "glm-4.7", name: "GLM 4.7", provider: "Z.ai" },
+    { id: "glm-4.5", name: "GLM 4.5", provider: "Z.ai" },
 ];
 
 const ttsModels = [
@@ -65,6 +71,8 @@ interface Agent {
     type: string;
     config?: {
         stt_provider?: string;
+        llm_provider?: string;
+        llm_model?: string;
     };
 }
 
@@ -548,7 +556,7 @@ function SidebarContent({
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Language Model
                     </Label>
-                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    <Select value={selectedModel} onValueChange={selectedAgent === "default" ? setSelectedModel : undefined} disabled={selectedAgent !== "default"}>
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
@@ -560,6 +568,11 @@ function SidebarContent({
                             ))}
                         </SelectContent>
                     </Select>
+                    {selectedAgent !== "default" && (
+                        <p className="text-xs text-muted-foreground">
+                            Configured in agent settings
+                        </p>
+                    )}
                 </div>
 
                 <div className="space-y-3">
@@ -588,7 +601,7 @@ function SidebarContent({
                                 {selectedStt === 'assemblyai' ? 'AssemblyAI' : selectedStt === 'elevenlabs' ? 'ElevenLabs' : 'Deepgram'}
                             </Badge>
                             <span className="text-muted-foreground/30">&rarr;</span>
-                            <Badge variant="outline" className={`text-[10px] ${PIPELINE_COLORS.llm}`}>Gemini</Badge>
+                            <Badge variant="outline" className={`text-[10px] ${PIPELINE_COLORS.llm}`}>{selectedModel.startsWith("glm") ? "GLM" : "Gemini"}</Badge>
                             <span className="text-muted-foreground/30">&rarr;</span>
                             <Badge variant="outline" className={`text-[10px] ${PIPELINE_COLORS.tts}`}>Resemble</Badge>
                         </div>
@@ -663,6 +676,16 @@ function PreviewPageContent() {
             setSelectedStt(agent.config.stt_provider);
         } else {
             setSelectedStt("assemblyai");
+        }
+    }, [selectedAgent, agents]);
+
+    // Update LLM model when agent changes
+    useEffect(() => {
+        const agent = agents.find(a => a.id === selectedAgent);
+        if (agent?.config?.llm_model) {
+            setSelectedModel(agent.config.llm_model);
+        } else {
+            setSelectedModel("gemini-3-flash-preview");
         }
     }, [selectedAgent, agents]);
 

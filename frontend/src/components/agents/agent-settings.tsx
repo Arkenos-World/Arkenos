@@ -141,12 +141,25 @@ interface AgentSettingsProps {
     userId: string;
 }
 
-const LLM_MODELS = [
-    { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)" },
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-    { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
-    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
+const LLM_PROVIDERS = [
+    { id: "gemini", name: "Gemini", keyProvider: "google" },
+    { id: "zai", name: "Z.ai (GLM)", keyProvider: "zai" },
 ];
+
+const LLM_MODELS: Record<string, { id: string; name: string }[]> = {
+    gemini: [
+        { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)" },
+        { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+        { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
+        { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
+    ],
+    zai: [
+        { id: "glm-4.5-flash", name: "GLM 4.5 Flash" },
+        { id: "glm-4.5-air", name: "GLM 4.5 Air" },
+        { id: "glm-4.7", name: "GLM 4.7" },
+        { id: "glm-4.5", name: "GLM 4.5" },
+    ],
+};
 
 const FIRST_MESSAGE_MODES = [
     { id: "assistant_speaks_first", name: "Assistant speaks first" },
@@ -210,6 +223,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
     // Form state
     const [name, setName] = useState(agent.name);
+    const [llmProvider, setLlmProvider] = useState(agent.config?.llm_provider || "gemini");
     const [llmModel, setLlmModel] = useState(agent.config?.llm_model || "gemini-3-flash-preview");
     const [firstMessageMode, setFirstMessageMode] = useState(agent.config?.first_message_mode || "assistant_speaks_first");
     const [firstMessage, setFirstMessage] = useState(agent.config?.first_message || "");
@@ -230,6 +244,14 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             })
             .catch(() => {});
     }, [isCustom, agent.id, auth.Authorization]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        const models = LLM_MODELS[llmProvider] || [];
+        if (models.length > 0 && !models.some(m => m.id === llmModel)) {
+            setLlmModel(models[0].id);
+        }
+    }, [llmProvider]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const [sttProvider, setSttProvider] = useState(agent.config?.stt_provider || "deepgram");
 
     const apiUrl = getApiUrl();
@@ -516,7 +538,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             system_prompt: systemPrompt,
                             first_message: firstMessage,
                             first_message_mode: firstMessageMode,
-                            llm_provider: "gemini",
+                            llm_provider: llmProvider,
                             llm_model: llmModel,
                             stt_provider: sttProvider,
                             voice_id: voiceId,
@@ -538,7 +560,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsSaving(false);
         }
-    }, [agent.id, agent.config, userId, name, systemPrompt, firstMessage, firstMessageMode, llmModel, sttProvider, voiceId, webhookConfig, functions]);
+    }, [agent.id, agent.config, userId, name, systemPrompt, firstMessage, firstMessageMode, llmProvider, llmModel, sttProvider, voiceId, webhookConfig, functions]);
 
     const handleTestCall = () => {
         router.push(`/preview?agentId=${agent.id}`);
@@ -712,12 +734,16 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Provider</Label>
-                                    <Select defaultValue="gemini" disabled>
+                                    <Select value={llmProvider} onValueChange={setLlmProvider}>
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="gemini">Gemini</SelectItem>
+                                            {LLM_PROVIDERS.filter(p => isProviderReady(p.keyProvider)).map((provider) => (
+                                                <SelectItem key={provider.id} value={provider.id}>
+                                                    {provider.name}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -728,7 +754,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {LLM_MODELS.map((model) => (
+                                            {(LLM_MODELS[llmProvider] || []).map((model) => (
                                                 <SelectItem key={model.id} value={model.id}>
                                                     {model.name}
                                                 </SelectItem>

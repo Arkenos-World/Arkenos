@@ -2,7 +2,7 @@
 
 ## Our Commitment
 
-We are committed to providing a welcoming and inclusive environment for everyone who participates in the Arkenos project, regardless of background, identity, or experience level.
+We are committed to providing a welcoming and inclusive environment for everyone who participates in the Nenyax project, regardless of background, identity, or experience level.
 
 ## Expected Behavior
 
@@ -22,7 +22,7 @@ We are committed to providing a welcoming and inclusive environment for everyone
 
 ## Enforcement
 
-Project maintainers are responsible for enforcing this code of conduct. Instances of unacceptable behavior may be reported to [conduct@arkenos.ai](mailto:conduct@arkenos.ai). All reports will be reviewed and investigated promptly and fairly.
+Project maintainers are responsible for enforcing this code of conduct. Instances of unacceptable behavior may be reported to [conduct@nenyax.ai](mailto:conduct@nenyax.ai). All reports will be reviewed and investigated promptly and fairly.
 
 Maintainers have the right to remove, edit, or reject comments, commits, code, issues, and other contributions that violate this code of conduct, and to temporarily or permanently ban any contributor for behavior they deem inappropriate.
 

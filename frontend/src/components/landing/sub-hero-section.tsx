@@ -70,12 +70,12 @@ export function SubHeroSection() {
           variants={containerVariants}
         >
           {FEATURES.map((feature, idx) => (
-            <motion.div key={idx} variants={itemVariants} className="flex flex-col group bg-white dark:bg-[#0C0C0C] rounded-[1.5rem] border border-black/[0.04] dark:border-white/[0.06] p-7 shadow-[0_1px_3px_rgb(0,0,0,0.02)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-500 relative overflow-hidden">
-              <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-white flex items-center justify-center text-white dark:text-zinc-900 mb-5 group-hover:scale-110 transition-transform duration-500">
+            <motion.div key={idx} variants={itemVariants} className="flex flex-col group bg-white dark:bg-[#0C0C0C] bg-grain rounded-[1.5rem] border border-black/[0.04] dark:border-white/[0.06] p-7 shadow-[0_1px_3px_rgb(0,0,0,0.02)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-500 relative overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-white flex items-center justify-center text-white dark:text-zinc-900 mb-5 group-hover:scale-110 transition-transform duration-500 relative z-10">
                 {feature.icon}
               </div>
-              <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100 mb-2 tracking-tight">{feature.title}</h3>
-              <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100 mb-2 tracking-tight relative z-10">{feature.title}</h3>
+              <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed relative z-10">
                 {feature.description}
               </p>
               {/* Subtle accent glow on hover */}

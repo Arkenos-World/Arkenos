@@ -71,20 +71,6 @@ export function CtaSection({ setAuthOpen }: { setAuthOpen: (b: boolean) => void 
                   Sign up
                 </Button>
               </motion.div>
-              <Link
-                href="#"
-                className="group inline-flex items-center gap-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium text-base transition-colors"
-              >
-                Talk to Sales
-                <svg
-                  className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 group-hover:translate-x-0.5 transition-all"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
             </div>
 
             {/* Risk Reversal */}

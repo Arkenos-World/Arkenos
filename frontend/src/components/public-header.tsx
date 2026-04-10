@@ -76,7 +76,7 @@ export function PublicHeader() {
               className="flex items-center gap-2.5 group"
             >
               <NenyaxLogoMark className="h-5 w-5 text-zinc-900 dark:text-zinc-100 transition-transform duration-300 group-hover:scale-105 active:scale-95" />
-              <span className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 hidden sm:block">nenyax</span>
+              <span className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 hidden sm:block">Nenyax</span>
             </Link>
             
             <nav 

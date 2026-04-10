@@ -43,7 +43,7 @@ export function NenyaxLogo({ className }: { className?: string }) {
           fontWeight="600"
           letterSpacing="1"
         >
-          nenyax
+          Nenyax
         </text>
       </svg>
     </div>

@@ -25,11 +25,10 @@ const FOOTER_LINKS = {
     { label: "GitHub", href: "https://github.com/Nenyax-AI/Nenyax", external: true },
     { label: "Self-Hosting", href: "https://nenyax.mintlify.app", external: true },
   ],
-  Company: [
-    { label: "Blog", href: "/blog" },
-    { label: "About", href: "/about" },
-    { label: "Open Source", href: "https://github.com/Nenyax-AI/Nenyax", external: true },
-    { label: "Careers", href: "/careers" },
+  Legal: [
+    { label: "Privacy Policy", href: "#" },
+    { label: "Terms of Service", href: "#" },
+    { label: "Cookie Policy", href: "#" },
   ],
 };
 
@@ -95,11 +94,6 @@ export function PublicFooter() {
             <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
               &copy; {new Date().getFullYear()} Nenyax. AGPL-3.0 Licensed.
             </p>
-            <div className="flex items-center gap-6 text-[13px] text-zinc-500 dark:text-zinc-400">
-              <Link href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Privacy</Link>
-              <Link href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Terms</Link>
-              <Link href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Security</Link>
-            </div>
           </div>
           
           <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/[0.06] shadow-[0_2px_8px_rgb(0,0,0,0.04)]">

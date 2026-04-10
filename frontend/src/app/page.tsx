@@ -24,7 +24,7 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#080808] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-zinc-200 dark:selection:bg-zinc-800 selection:text-zinc-900 dark:selection:text-zinc-100">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#080808] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-zinc-200 dark:selection:bg-zinc-800 selection:text-zinc-900 dark:selection:text-zinc-100 bg-grain">
       <PublicHeader />
 
       <main className="flex flex-col w-full overflow-hidden">

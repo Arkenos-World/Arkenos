@@ -33,7 +33,7 @@ function SubHeading({ children }: { children: React.ReactNode }) {
 
 function Paragraph({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-base leading-7 text-muted-foreground mb-4">
+    <p className="text-base leading-7 text-zinc-500 mb-4">
       {children}
     </p>
   );
@@ -47,10 +47,10 @@ function ComparisonTable({
   rows: string[][];
 }) {
   return (
-    <div className="overflow-x-auto my-8 border">
+    <div className="overflow-x-auto my-8 border border-black/5">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/50">
+          <tr className="border-b border-black/5 bg-muted/50">
             {headers.map((h) => (
               <th
                 key={h}
@@ -63,11 +63,11 @@ function ComparisonTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b last:border-0">
+            <tr key={i} className="border-b border-black/5 last:border-0">
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className={`px-4 py-3 whitespace-nowrap ${j === 0 ? "font-medium" : "text-muted-foreground"
+                  className={`px-4 py-3 whitespace-nowrap ${j === 0 ? "font-medium" : "text-zinc-500"
                     }`}
                 >
                   {cell}
@@ -83,7 +83,7 @@ function ComparisonTable({
 
 function Callout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border-l-2 border-foreground/20 pl-4 my-6 text-sm text-muted-foreground italic">
+    <div className="border-l-2 border-foreground/20 pl-4 my-6 text-sm text-zinc-500 italic">
       {children}
     </div>
   );
@@ -93,12 +93,12 @@ function Callout({ children }: { children: React.ReactNode }) {
 
 export default function WhyOpenSourceBlogPost() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FAFAFA]">
       <PublicHeader />
 
       <main>
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="border-b">
+        <section className="border-b border-black/5">
           <div className="container mx-auto px-4 pt-20 pb-12 lg:pt-28 lg:pb-16">
             <motion.div
               initial="hidden"
@@ -107,8 +107,8 @@ export default function WhyOpenSourceBlogPost() {
               className="max-w-2xl"
             >
               <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
-                <Badge variant="outline">Philosophy</Badge>
-                <span className="text-sm text-muted-foreground">10 min read</span>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 shadow-sm">Philosophy</Badge>
+                <span className="text-sm text-zinc-500">10 min read</span>
               </motion.div>
 
               <motion.h1
@@ -120,14 +120,14 @@ export default function WhyOpenSourceBlogPost() {
 
               <motion.p
                 variants={fadeUp}
-                className="text-lg text-muted-foreground mb-4"
+                className="text-lg text-zinc-500 mb-4"
               >
                 89% of enterprises already use open-source AI. Voice AI is the last
                 holdout &mdash; still dominated by closed platforms with opaque pricing
                 and zero data portability. We think that has to change.
               </motion.p>
 
-              <motion.p variants={fadeUp} className="text-sm text-muted-foreground">
+              <motion.p variants={fadeUp} className="text-sm text-zinc-500">
                 Feb 28, 2026
               </motion.p>
             </motion.div>
@@ -352,7 +352,7 @@ export default function WhyOpenSourceBlogPost() {
 
             <SubHeading>What AGPL means for you</SubHeading>
 
-            <ul className="list-disc list-inside text-muted-foreground space-y-2 mb-6 ml-2">
+            <ul className="list-disc list-inside text-zinc-500 space-y-2 mb-6 ml-2">
               <li><strong>Self-hosting for your company:</strong> Fully allowed. No restrictions.</li>
               <li><strong>Modifying for internal use:</strong> Fully allowed. No obligation to share.</li>
               <li><strong>Building a product on top:</strong> Allowed &mdash; your product code doesn&apos;t need to be AGPL unless it modifies Nenyax core.</li>
@@ -466,7 +466,7 @@ export default function WhyOpenSourceBlogPost() {
             {/* ── Section 7: Sources ───────────────────────────────────────── */}
             <SectionHeading>Sources</SectionHeading>
 
-            <ul className="text-sm text-muted-foreground space-y-1.5 mb-8 ml-2">
+            <ul className="text-sm text-zinc-500 space-y-1.5 mb-8 ml-2">
               <li>&bull; Linux Foundation / Meta &mdash; &ldquo;Economic and Workforce Impacts of Open Source AI&rdquo; (2025)</li>
               <li>&bull; McKinsey &mdash; State of AI 2025</li>
               <li>&bull; Canonical &mdash; State of Global Open Source 2025</li>
@@ -489,11 +489,11 @@ export default function WhyOpenSourceBlogPost() {
             </ul>
 
             {/* ── CTA ─────────────────────────────────────────────────────── */}
-            <div className="border-t pt-12 mt-12">
+            <div className="border-t border-black/5 pt-12 mt-12">
               <p className="text-lg font-semibold mb-2">
                 Voice AI should be open.
               </p>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-zinc-500 mb-6">
                 Nenyax is open-source, self-hosted, and free. Star us on GitHub or
                 read the docs to get started.
               </p>

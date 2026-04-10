@@ -63,12 +63,12 @@ const BLOG_POSTS: BlogPost[] = [
 
 export default function BlogPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FAFAFA]">
       <PublicHeader />
 
       <main>
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <section className="border-b">
+        <section className="border-b border-black/5">
           <div className="container mx-auto px-4 pt-20 pb-12 lg:pt-28 lg:pb-16">
             <motion.div
               initial="hidden"
@@ -77,12 +77,12 @@ export default function BlogPage() {
               className="max-w-2xl"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Blog</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 shadow-sm mb-4">Blog</Badge>
               </motion.div>
               <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
                 Blog
               </motion.h1>
-              <motion.p variants={fadeUp} className="text-lg text-muted-foreground">
+              <motion.p variants={fadeUp} className="text-lg text-zinc-500">
                 Latest updates, tutorials, and insights from the Nenyax team.
               </motion.p>
             </motion.div>
@@ -102,21 +102,21 @@ export default function BlogPage() {
                 >
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="block border bg-card p-6 h-full hover:border-foreground/20 transition-colors group"
+                    className="block border border-black/5 bg-white p-6 h-full hover:border-black/10 hover:shadow-md transition-colors group"
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className="bg-zinc-100 text-zinc-700 hover:bg-zinc-200 text-xs">
                         {post.category}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{post.readTime}</span>
+                      <span className="text-xs text-zinc-500">{post.readTime}</span>
                     </div>
                     <h2 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
                       {post.title}
                     </h2>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-zinc-500 mb-4">
                       {post.description}
                     </p>
-                    <p className="text-xs text-muted-foreground">{post.date}</p>
+                    <p className="text-xs text-zinc-500">{post.date}</p>
                   </Link>
                 </motion.article>
               ))}

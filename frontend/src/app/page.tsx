@@ -21,10 +21,10 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-[#FAFAFA] text-zinc-900 font-sans selection:bg-zinc-200 selection:text-zinc-900">
       <PublicHeader />
 
-      <main>
+      <main className="flex flex-col w-full overflow-hidden">
         <HeroSection setAuthOpen={setAuthOpen} />
         <SubHeroSection />
         <BentoSection />

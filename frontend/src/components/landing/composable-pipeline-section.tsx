@@ -24,8 +24,8 @@ const itemVariants = {
 
 export function ComposablePipelineSection() {
   return (
-    <section className="bg-white py-24 md:py-32 border-t border-black/5 overflow-hidden">
-      <div className="container mx-auto px-6">
+    <section className="bg-[#FAFAFA] py-24 md:py-32 overflow-hidden w-full">
+      <div className="max-w-7xl mx-auto px-6 md:px-8">
         
         {/* Editorial Header Grid */}
         <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-start mb-16 md:mb-24">
@@ -35,8 +35,8 @@ export function ComposablePipelineSection() {
             viewport={{ once: true }}
             variants={containerVariants}
           >
-            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-50 border border-black/5 text-zinc-600 text-[13px] font-medium shadow-sm mb-8">
-              <Blocks className="w-4 h-4 text-zinc-400" />
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-50 border border-black/5 text-zinc-600 text-[12px] font-semibold uppercase tracking-widest shadow-sm mb-8">
+              <Blocks className="w-3.5 h-3.5 text-zinc-400" />
               Composable Infrastructure
             </motion.div>
             
@@ -60,7 +60,7 @@ export function ComposablePipelineSection() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="lg:pt-24"
           >
-            <p className="text-lg text-zinc-500 leading-relaxed max-w-xl">
+            <p className="text-[17px] md:text-lg text-zinc-500 leading-relaxed max-w-xl">
               Connect directly to our open-source orchestration layer. Bring your own LLMs, plug in your preferred STT/TTS providers, or deploy entirely air-gapped on your own infrastructure.
             </p>
           </motion.div>
@@ -73,32 +73,77 @@ export function ComposablePipelineSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full bg-stone-50 rounded-[2.5rem] md:rounded-[3rem] border border-black/5 p-8 py-24 md:p-24 relative overflow-hidden flex flex-col justify-center min-h-[500px]"
+            className="w-full bg-[#FAFAFA] rounded-[2.5rem] md:rounded-[3rem] border border-black/5 p-8 py-24 md:p-24 relative overflow-hidden flex flex-col justify-center min-h-[500px] shadow-[inset_0_4px_20px_rgb(0,0,0,0.02)]"
           >
-            {/* The Connecting Wire with Flowing Packets */}
-            <div className="absolute top-1/2 left-0 right-0 h-px bg-black/10 -translate-y-1/2 border-dashed hidden md:block">
-              <motion.div 
-                initial={{ left: "-10%" }}
-                animate={{ left: "110%" }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                className="absolute top-1/2 -translate-y-1/2 w-32 h-px bg-gradient-to-r from-transparent via-zinc-400 to-transparent"
-              />
-              <motion.div 
-                initial={{ left: "-10%" }}
-                animate={{ left: "110%" }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: 1.5 }}
-                className="absolute top-1/2 -translate-y-1/2 w-32 h-px bg-gradient-to-r from-transparent via-zinc-400 to-transparent"
-              />
-            </div>
-
-            <div className="flex flex-col md:flex-row items-center justify-between relative z-10 w-full max-w-5xl mx-auto gap-16 md:gap-8">
+            <div className="flex flex-col md:flex-row items-center justify-between relative z-10 w-full max-w-5xl mx-auto gap-16 md:gap-8 min-h-[300px]">
+              
+              {/* The Animated Beam Connecting Wire */}
+              <div className="absolute inset-0 hidden lg:block pointer-events-none z-[-1]">
+                <svg 
+                  className="w-full h-full"
+                  viewBox="0 0 100 100" 
+                  fill="none" 
+                  preserveAspectRatio="none"
+                >
+                  {/* Background Path 1 (STT to Intelligence) */}
+                  <path 
+                    d="M 15 63 C 32.5 63, 32.5 37, 50 37" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    strokeDasharray="6 6"
+                    className="text-zinc-300 opacity-40"
+                  />
+                  {/* Background Path 2 (Intelligence to TTS) */}
+                  <path 
+                    d="M 50 37 C 67.5 37, 67.5 89, 85 89" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    strokeDasharray="6 6"
+                    className="text-zinc-300 opacity-40"
+                  />
+                  
+                  {/* Animated Beam 1 */}
+                  <motion.path 
+                    d="M 15 63 C 32.5 63, 32.5 37, 50 37" 
+                    stroke="#10b981" 
+                    strokeWidth="3" 
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    initial={{ pathLength: 0.15, pathOffset: -0.15 }}
+                    animate={{ pathLength: 0.15, pathOffset: 1.15 }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                    style={{ filter: "drop-shadow(0 0 4px rgba(16, 185, 129, 0.6))" }}
+                  />
+                  
+                  {/* Animated Beam 2 */}
+                  <motion.path 
+                    d="M 50 37 C 67.5 37, 67.5 89, 85 89" 
+                    stroke="#10b981" 
+                    strokeWidth="3" 
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    initial={{ pathLength: 0.15, pathOffset: -0.15 }}
+                    animate={{ pathLength: 0.15, pathOffset: 1.15 }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear", delay: 1.25 }}
+                    style={{ filter: "drop-shadow(0 0 4px rgba(16, 185, 129, 0.6))" }}
+                  />
+                </svg>
+              </div>
               
               {/* STT Column */}
               <div className="flex flex-col items-center w-full md:w-64">
-                <h3 className="text-[13px] font-medium text-zinc-400 uppercase tracking-widest mb-8 bg-stone-50 px-2">Speech to Text</h3>
-                <div className="relative flex flex-col gap-3.5 w-full">
+                <h3 className="text-[12px] font-semibold text-zinc-400 uppercase tracking-widest mb-10 bg-[#FAFAFA] px-2">Speech to Text</h3>
+                <div className="relative flex flex-col gap-4 w-full">
                   {/* Glass Pane */}
-                  <div className="absolute -inset-6 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-0 hidden md:block" />
+                  <div className="absolute -inset-6 bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] z-0 hidden md:block" />
                   
                   <InactivePill delay={0.1}>Deepgram</InactivePill>
                   <ActivePill delay={0.2}>AssemblyAI</ActivePill>
@@ -108,27 +153,27 @@ export function ComposablePipelineSection() {
 
               {/* LLM Column */}
               <div className="flex flex-col items-center w-full md:w-64">
-                <h3 className="text-[13px] font-medium text-zinc-400 uppercase tracking-widest mb-8 bg-stone-50 px-2">Intelligence</h3>
-                <div className="relative flex flex-col gap-3.5 w-full">
+                <h3 className="text-[12px] font-semibold text-zinc-400 uppercase tracking-widest mb-10 bg-[#FAFAFA] px-2">Intelligence</h3>
+                <div className="relative flex flex-col gap-4 w-full">
                   {/* Glass Pane */}
-                  <div className="absolute -inset-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-0 hidden md:block" />
+                  <div className="absolute -inset-8 bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] z-0 hidden md:block" />
                   
-                  <BlackPill delay={0.4}>Nenyax computer</BlackPill>
-                  <InactivePill delay={0.5}>gemini-3.0-flash</InactivePill>
-                  <InactivePill delay={0.6}>gpt-5.4-mini</InactivePill>
+                  <BlackPill delay={0.4}>Google Gemini</BlackPill>
+                  <InactivePill delay={0.5}>gpt-4o-mini</InactivePill>
+                  <InactivePill delay={0.6}>claude-3-haiku</InactivePill>
                 </div>
               </div>
 
               {/* TTS Column */}
               <div className="flex flex-col items-center w-full md:w-64">
-                <h3 className="text-[13px] font-medium text-zinc-400 uppercase tracking-widest mb-8 bg-stone-50 px-2">Text to Speech</h3>
-                <div className="relative flex flex-col gap-3.5 w-full">
+                <h3 className="text-[12px] font-semibold text-zinc-400 uppercase tracking-widest mb-10 bg-[#FAFAFA] px-2">Text to Speech</h3>
+                <div className="relative flex flex-col gap-4 w-full">
                   {/* Glass Pane */}
-                  <div className="absolute -inset-6 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-0 hidden md:block" />
+                  <div className="absolute -inset-6 bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] z-0 hidden md:block" />
                   
-                  <ActivePill delay={0.7}>ElevenLabs</ActivePill>
+                  <InactivePill delay={0.7}>ElevenLabs</InactivePill>
                   <InactivePill delay={0.8}>PlayHT</InactivePill>
-                  <InactivePill delay={0.9}>Resemble AI</InactivePill>
+                  <ActivePill delay={0.9}>Resemble AI</ActivePill>
                 </div>
               </div>
 
@@ -150,9 +195,9 @@ function ActivePill({ children, delay }: { children: React.ReactNode, delay: num
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay, duration: 0.5 }}
-      className="relative z-10 px-6 py-3.5 rounded-full bg-white border border-black/10 shadow-sm text-[14px] font-medium text-zinc-900 w-full text-center flex items-center justify-center gap-2.5 overflow-hidden group"
+      className="relative z-10 px-6 py-3.5 rounded-2xl bg-white border border-black/10 shadow-[0_4px_20px_rgb(0,0,0,0.06)] text-[14px] font-semibold tracking-tight text-zinc-900 w-full text-center flex items-center justify-center gap-2.5 overflow-hidden group"
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 relative z-10" />
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 relative z-10" />
       <span className="relative z-10">{children}</span>
     </motion.div>
   );
@@ -165,7 +210,7 @@ function InactivePill({ children, delay }: { children: React.ReactNode, delay: n
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay, duration: 0.5 }}
-      className="relative z-10 px-6 py-3 rounded-full bg-white border border-black/5 shadow-sm text-[13px] font-medium text-zinc-500 w-full text-center opacity-60 hover:opacity-100 hover:border-black/10 transition-all cursor-default"
+      className="relative z-10 px-6 py-3 rounded-2xl bg-white/50 border border-black/5 shadow-sm text-[13px] font-medium text-zinc-500 w-full text-center opacity-70 hover:opacity-100 hover:bg-white hover:shadow-md transition-all cursor-default"
     >
       {children}
     </motion.div>
@@ -179,7 +224,7 @@ function BlackPill({ children, delay }: { children: React.ReactNode, delay: numb
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
       transition={{ delay, duration: 0.5, ease: "easeOut" }}
-      className="relative z-10 px-6 py-4 rounded-full bg-zinc-900 text-white shadow-md text-[14px] font-medium w-full text-center flex items-center justify-center gap-2.5 overflow-hidden group"
+      className="relative z-10 px-6 py-4 rounded-2xl bg-zinc-900 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15)] text-[14px] font-semibold tracking-tight w-full text-center flex items-center justify-center gap-2.5 overflow-hidden group"
     >
       {/* Dark Shimmer Sweep (Monochrome) */}
       <motion.div 
@@ -193,4 +238,3 @@ function BlackPill({ children, delay }: { children: React.ReactNode, delay: numb
     </motion.div>
   );
 }
-

@@ -22,11 +22,10 @@ const itemVariants = {
 
 export function TelephonySection() {
   return (
-    <section className="bg-white py-24 md:py-32 border-t border-black/5 overflow-hidden">
+    <section className="bg-white py-24 md:py-32 overflow-hidden w-full">
       <div className="container mx-auto px-6">
-        
-        {/* Editorial Header */}
-        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-start mb-16 md:mb-24">
+
+        {/* Editorial Header */}        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-start mb-16 md:mb-24">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -79,9 +78,9 @@ export function TelephonySection() {
             <div className="h-14 border-b border-black/5 bg-white flex items-center justify-between px-4 md:px-6">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56] border border-black/10 shadow-sm" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] border border-black/10 shadow-sm" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f] border border-black/10 shadow-sm" />
                 </div>
                 <div className="w-px h-4 bg-zinc-200 ml-2" />
                 <div className="flex items-center gap-2 ml-2">

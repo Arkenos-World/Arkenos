@@ -35,12 +35,11 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
 
-          >
-            <SWRProvider>
+        >            <SWRProvider>
               <PostHogProvider>
                 {children}
               </PostHogProvider>

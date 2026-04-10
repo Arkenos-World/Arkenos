@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export function CtaSection({ setAuthOpen }: { setAuthOpen: (b: boolean) => void }) {
   return (
-    <section className="py-24 md:py-32 bg-white">
+    <section className="py-24 md:py-32 bg-[#FAFAFA] w-full">
       <div className="container mx-auto px-6">
         <div className="relative overflow-hidden rounded-[2.5rem] md:rounded-[3rem] bg-stone-50 border border-black/5 p-12 md:p-24 flex flex-col items-center text-center">
           

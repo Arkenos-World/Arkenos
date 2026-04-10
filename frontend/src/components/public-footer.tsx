@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { NenyaxLogo } from "@/components/ui/nenyax-logo";
+import { motion } from "framer-motion";
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -12,59 +13,56 @@ function GithubIcon({ className }: { className?: string }) {
 }
 
 const FOOTER_LINKS = {
-  Product: [
+  Platform: [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Agents", href: "/dashboard/agents" },
     { label: "Analytics", href: "/dashboard/analytics" },
     { label: "API Keys", href: "/dashboard/keys" },
   ],
-  Developers: [
+  Resources: [
     { label: "Documentation", href: "https://nenyax.mintlify.app", external: true },
     { label: "API Reference", href: "https://nenyax.mintlify.app", external: true },
     { label: "GitHub", href: "https://github.com/Nenyax-World/Nenyax", external: true },
-    { label: "Self-Hosting Guide", href: "https://nenyax.mintlify.app", external: true },
+    { label: "Self-Hosting", href: "https://nenyax.mintlify.app", external: true },
   ],
   Company: [
     { label: "Blog", href: "/blog" },
-    { label: "Product", href: "/product" },
+    { label: "About", href: "/about" },
     { label: "Open Source", href: "https://github.com/Nenyax-World/Nenyax", external: true },
+    { label: "Careers", href: "/careers" },
   ],
 };
 
 export function PublicFooter() {
   return (
-    <footer className="bg-white border-t border-black/5 pt-24 pb-12">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-12 mb-24">
+    <footer className="bg-white border-t border-black/5 pt-20 pb-10">
+      <div className="max-w-7xl mx-auto px-6 md:px-8">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-12 mb-20">
           {/* Brand column */}
-          <div className="col-span-2">
+          <div className="col-span-2 lg:col-span-3 pr-8">
             <Link href="/" className="inline-block mb-6 hover:opacity-80 transition-opacity">
-              <NenyaxLogo className="h-6" />
+              <NenyaxLogo className="h-5" />
             </Link>
-            <p className="text-[15px] text-zinc-500 mb-8 max-w-sm leading-relaxed">
-              The open-source voice AI platform for developers who value performance and control.
+            <p className="text-[14px] text-zinc-500 mb-8 max-w-sm leading-relaxed">
+              The open-source orchestration layer for building and managing production-grade conversational AI.
             </p>
             <div className="flex items-center gap-4">
               <a
                 href="https://github.com/Nenyax-World/Nenyax"
-                className="w-10 h-10 rounded-full bg-stone-50 border border-black/5 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-stone-100 transition-all hover:-translate-y-0.5 shadow-sm"
+                className="w-9 h-9 rounded-full bg-zinc-50 border border-black/5 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm transition-all hover:-translate-y-0.5"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <GithubIcon className="h-5 w-5" />
+                <GithubIcon className="h-4 w-4" />
               </a>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-black/5 shadow-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-zinc-900" />
-                <span className="text-[11px] font-medium text-zinc-600">System Online</span>
-              </div>
             </div>
           </div>
 
           {/* Link columns */}
           {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-            <div key={title} className="col-span-1">
-              <p className="text-[15px] font-medium text-zinc-900 mb-6">{title}</p>
-              <ul className="space-y-4">
+            <div key={title} className="col-span-1 lg:col-span-1">
+              <p className="text-[13px] font-semibold text-zinc-900 tracking-tight mb-5">{title}</p>
+              <ul className="space-y-3.5">
                 {links.map((link) => (
                   <li key={link.label}>
                     {"external" in link && link.external ? (
@@ -72,14 +70,14 @@ export function PublicFooter() {
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[14px] text-zinc-500 hover:text-zinc-900 transition-colors inline-block"
+                        className="text-[13px] text-zinc-500 hover:text-zinc-900 transition-colors inline-block"
                       >
                         {link.label}
                       </a>
                     ) : (
                       <Link
                         href={link.href}
-                        className="text-[14px] text-zinc-500 hover:text-zinc-900 transition-colors inline-block"
+                        className="text-[13px] text-zinc-500 hover:text-zinc-900 transition-colors inline-block"
                       >
                         {link.label}
                       </Link>
@@ -104,12 +102,12 @@ export function PublicFooter() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-50 border border-black/5 shadow-sm">
-            <span className="relative flex h-2 w-2">
+          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white border border-black/5 shadow-[0_2px_8px_rgb(0,0,0,0.04)]">
+            <div className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-[11px] font-medium text-zinc-600">All systems operational</span>
+            </div>
+            <span className="text-[12px] font-medium text-zinc-600">All systems normal</span>
           </div>
         </div>
       </div>

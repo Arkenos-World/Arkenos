@@ -50,11 +50,10 @@ export function DeveloperSection() {
   };
 
   return (
-    <section className="bg-white py-24 md:py-32 border-t border-black/5 overflow-hidden">
+    <section className="bg-white py-24 md:py-32 overflow-hidden w-full">
       <div className="container mx-auto px-6">
-        
-        {/* Editorial Header Grid */}
-        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-start mb-16 md:mb-24">
+
+        {/* Editorial Header Grid */}        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-start mb-16 md:mb-24">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -116,9 +115,9 @@ export function DeveloperSection() {
             <div className="px-6 md:px-8 py-5 border-b border-black/5 flex flex-wrap gap-4 justify-between items-center bg-white">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5 mr-4">
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56] border border-black/10 shadow-sm" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] border border-black/10 shadow-sm" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f] border border-black/10 shadow-sm" />
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-stone-50 rounded-full border border-black/5">
                   <span className="text-[11px] font-mono font-bold text-zinc-900 uppercase">POST</span>

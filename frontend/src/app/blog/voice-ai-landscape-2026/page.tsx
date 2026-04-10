@@ -33,7 +33,7 @@ function SubHeading({ children }: { children: React.ReactNode }) {
 
 function Paragraph({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-base leading-7 text-muted-foreground mb-4">
+    <p className="text-base leading-7 text-zinc-500 mb-4">
       {children}
     </p>
   );
@@ -47,10 +47,10 @@ function ComparisonTable({
   rows: string[][];
 }) {
   return (
-    <div className="my-8 border">
+    <div className="my-8 border border-black/5">
       <table className="w-full text-sm table-fixed">
         <thead>
-          <tr className="border-b bg-muted/50">
+          <tr className="border-b border-black/5 bg-muted/50">
             {headers.map((h) => (
               <th
                 key={h}
@@ -63,11 +63,11 @@ function ComparisonTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b last:border-0">
+            <tr key={i} className="border-b border-black/5 last:border-0">
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className={`px-4 py-3 ${j === 0 ? "font-medium" : "text-muted-foreground"
+                  className={`px-4 py-3 ${j === 0 ? "font-medium" : "text-zinc-500"
                     }`}
                 >
                   {cell}
@@ -112,12 +112,12 @@ function InlineCode({ children }: { children: React.ReactNode }) {
 
 export default function VoiceAILandscape2026() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FAFAFA]">
       <PublicHeader />
 
       <main>
         {/* ── Article Header ──────────────────────────────────────────────── */}
-        <section className="border-b">
+        <section className="border-b border-black/5">
           <div className="container mx-auto px-4 pt-16 pb-10 lg:pt-24 lg:pb-14">
             <motion.div
               initial="hidden"
@@ -126,8 +126,8 @@ export default function VoiceAILandscape2026() {
               className="max-w-3xl"
             >
               <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
-                <Badge variant="secondary">Analysis</Badge>
-                <span className="text-sm text-muted-foreground">12 min read</span>
+                <Badge className="bg-zinc-100 text-zinc-700 hover:bg-zinc-200">Analysis</Badge>
+                <span className="text-sm text-zinc-500">12 min read</span>
               </motion.div>
               <motion.h1
                 variants={fadeUp}
@@ -137,13 +137,13 @@ export default function VoiceAILandscape2026() {
               </motion.h1>
               <motion.p
                 variants={fadeUp}
-                className="text-lg text-muted-foreground mb-6"
+                className="text-lg text-zinc-500 mb-6"
               >
                 A deep comparison of the voice AI platform landscape — real pricing, latency benchmarks, feature gaps, and where open source fits in.
               </motion.p>
               <motion.div
                 variants={fadeUp}
-                className="flex items-center gap-4 text-sm text-muted-foreground"
+                className="flex items-center gap-4 text-sm text-zinc-500"
               >
                 <span>Feb 15, 2026</span>
                 <span>|</span>
@@ -404,7 +404,7 @@ export default function VoiceAILandscape2026() {
               {/* ── Sources ──────────────────────────────────────────────── */}
               <SectionHeading>Sources</SectionHeading>
 
-              <div className="text-sm text-muted-foreground space-y-2 mb-16">
+              <div className="text-sm text-zinc-500 space-y-2 mb-16">
                 <p>Market sizing: market.us Voice AI Agents Report (2024), Technavio Voice AI Forecast, a16z AI Voice Agents 2025 Update</p>
                 <p>Vapi pricing: CloudTalk Vapi Pricing Guide, Telnyx Vapi Pricing Breakdown, Ringg.ai Vapi Pricing Analysis</p>
                 <p>Retell pricing: Retell AI Pricing Page, Dialora Retell Cost Guide, Retell Outbound Caller Cost Breakdown</p>
@@ -417,10 +417,10 @@ export default function VoiceAILandscape2026() {
             </article>
 
             {/* ── Back + CTA ──────────────────────────────────────────────── */}
-            <div className="max-w-3xl border-t pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="max-w-3xl border-t border-black/5 pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <Link
                 href="/blog"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
               >
                 &larr; Back to Blog
               </Link>

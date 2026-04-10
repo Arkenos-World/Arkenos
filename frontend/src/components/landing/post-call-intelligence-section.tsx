@@ -19,7 +19,7 @@ const itemVariants = {
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }
   },
 };
 
@@ -36,7 +36,7 @@ const listItemVariants = {
   visible: { 
     opacity: 1, 
     x: 0, 
-    transition: { duration: 0.5, ease: "easeOut" } 
+    transition: { duration: 0.5, ease: "easeOut" as const }
   },
 };
 
@@ -45,7 +45,7 @@ const pillVariants = {
   visible: { 
     opacity: 1, 
     scale: 1, 
-    transition: { duration: 0.4, ease: "backOut" } 
+    transition: { duration: 0.4, ease: "backOut" as const }
   },
 };
 

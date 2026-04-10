@@ -1,4 +1,4 @@
-# Arkenos Marketing UI Design System
+# Nenyax Marketing UI Design System
 
 ## Reference
 This marketing UI is intentionally modeled after the current ElevenLabs public site language shown in the reference screenshots:

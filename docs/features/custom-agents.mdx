@@ -97,7 +97,7 @@ Click **Preview** to start a browser-based voice session. A temporary container 
 ### Deploy
 
 Click **Deploy** to start a persistent worker container. The worker:
-- Registers with LiveKit as `arkenos-custom-{agent_id}`
+- Registers with LiveKit as `nenyax-custom-{agent_id}`
 - Accepts dispatched calls (inbound SIP and outbound)
 - Runs with `restart: unless-stopped` (auto-recovery)
 - Can be stopped from the dashboard
@@ -158,7 +158,7 @@ Every file edit is versioned. You can:
 
 When you build a custom agent:
 1. All files are downloaded from MinIO
-2. A Docker image is built on top of `arkenos-agent-base:latest`
+2. A Docker image is built on top of `nenyax-agent-base:latest`
 3. The image is tagged with a hash of `requirements.txt`
 4. If requirements haven't changed, the cached image is reused
 

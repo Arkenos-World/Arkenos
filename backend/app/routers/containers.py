@@ -59,7 +59,7 @@ async def deploy(
 ):
     """Build the Docker image (if needed), start a persistent worker, and mark deployed.
 
-    The worker container registers with LiveKit as 'arkenos-custom-{agent_id}'
+    The worker container registers with LiveKit as 'nenyax-custom-{agent_id}'
     and accepts dispatched calls — both inbound SIP and outbound.
     """
     # Block if already building

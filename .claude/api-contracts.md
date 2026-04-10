@@ -1,4 +1,4 @@
-# Arkenos API Contracts
+# Nenyax API Contracts
 
 ## Auth
 All /api/* endpoints require Better Auth session (x-user-id header)
@@ -99,7 +99,7 @@ Session (updated): { ..., call_direction?: "INBOUND"|"OUTBOUND",
 
 ### Phone Number Pre-Assignment Check
 GET  /api/telephony/numbers/check?phone_number=+1234567890&provider=twilio → NumberCheckResponse
-  Checks if number is assigned to any Arkenos agent OR has active external configurations on the provider.
+  Checks if number is assigned to any Nenyax agent OR has active external configurations on the provider.
   Blocks assignment in both cases — user must release/remove config first.
 
 NumberCheckResponse: { assigned: boolean, agent_id?: string, agent_name?: string, user_id?: string, has_external_config?: boolean, external_provider?: string }

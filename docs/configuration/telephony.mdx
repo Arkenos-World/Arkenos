@@ -1,11 +1,11 @@
 ---
 title: Telephony Setup
-description: Connect Twilio phone numbers to Arkenos via LiveKit SIP — mostly automated.
+description: Connect Twilio phone numbers to Nenyax via LiveKit SIP — mostly automated.
 ---
 
 # Telephony Setup
 
-Connect real phone numbers to your Arkenos voice agents using Twilio and LiveKit SIP. Arkenos **auto-provisions** most of the SIP infrastructure — you just need accounts and credentials.
+Connect real phone numbers to your Nenyax voice agents using Twilio and LiveKit SIP. Nenyax **auto-provisions** most of the SIP infrastructure — you just need accounts and credentials.
 
 <Note>
 Telephony is **optional**. Browser-based voice testing via the Preview page works without any Twilio or SIP setup.
@@ -14,7 +14,7 @@ Telephony is **optional**. Browser-based voice testing via the Preview page work
 ## How It Works
 
 ```
-Inbound:  Caller --> Twilio --> Elastic SIP Trunk --> LiveKit SIP --> Arkenos Agent
+Inbound:  Caller --> Twilio --> Elastic SIP Trunk --> LiveKit SIP --> Nenyax Agent
 Outbound: Dashboard --> LiveKit SIP --> Twilio Outbound Trunk --> Phone
 ```
 
@@ -27,14 +27,14 @@ Outbound: Dashboard --> LiveKit SIP --> Twilio Outbound Trunk --> Phone
 
 ## What's Automated
 
-When you buy or assign a number through the dashboard/API, Arkenos **automatically**:
+When you buy or assign a number through the dashboard/API, Nenyax **automatically**:
 
 | Resource | Auto-Created |
 |----------|-------------|
-| LiveKit Inbound SIP Trunk | Yes — "Arkenos Inbound" |
-| LiveKit Dispatch Rule | Yes — routes to `arkenos-agent` |
-| LiveKit Outbound SIP Trunk | Yes — "Arkenos Outbound" (on first outbound call) |
-| Twilio Elastic SIP Trunk | Yes — "Arkenos Inbound" with LiveKit origination |
+| LiveKit Inbound SIP Trunk | Yes — "Nenyax Inbound" |
+| LiveKit Dispatch Rule | Yes — routes to `nenyax-agent` |
+| LiveKit Outbound SIP Trunk | Yes — "Nenyax Outbound" (on first outbound call) |
+| Twilio Elastic SIP Trunk | Yes — "Nenyax Inbound" with LiveKit origination |
 | Twilio ↔ Number association | Yes — links your number to the SIP trunk |
 | Twilio termination credentials | Yes — for outbound calls via LiveKit |
 
@@ -57,7 +57,7 @@ You need two accounts:
 
 ### Step 2: Add API Keys via Dashboard
 
-Open the **Arkenos Dashboard** → **API Keys** (under Build in the sidebar) and configure:
+Open the **Nenyax Dashboard** → **API Keys** (under Build in the sidebar) and configure:
 
 1. **LiveKit** — API Key, API Secret, Server URL (from [LiveKit Cloud](https://cloud.livekit.io))
 2. **Twilio** — Account SID, Auth Token (from [Twilio Console](https://console.twilio.com))
@@ -73,7 +73,7 @@ All keys are encrypted and stored in the database. No `.env` files needed for pr
 Start the backend, then use the dashboard or API:
 
 **Option A: Via Dashboard**
-1. Open the **Arkenos Dashboard** → **Agents** → select your agent
+1. Open the **Nenyax Dashboard** → **Agents** → select your agent
 2. Go to the **Phone** tab → **Search** for available numbers
 3. **Buy** a number — it's automatically provisioned and assigned
 
@@ -130,7 +130,7 @@ That's it. The backend will automatically:
 
 ### Assign an Existing Twilio Number
 
-If you already own a Twilio number and want to use it with Arkenos:
+If you already own a Twilio number and want to use it with Nenyax:
 
 **Via Dashboard:** Go to **Agents** → select agent → **Phone** tab → enter the number → **Assign**. Then click **Test & Setup Pipeline** to verify and provision the full SIP routing.
 
@@ -183,7 +183,7 @@ curl -X POST http://localhost:8000/api/telephony/numbers/provision \
     **Most common cause:** The agent service isn't running.
 
     1. Start the agent: `cd agent && python agent.py dev`
-    2. Verify in LiveKit Cloud → Telephony → Dispatch Rules that a rule exists with `arkenos-agent`
+    2. Verify in LiveKit Cloud → Telephony → Dispatch Rules that a rule exists with `nenyax-agent`
     3. Check the agent terminal for errors (missing API keys, etc.)
   </Accordion>
 
@@ -198,7 +198,7 @@ curl -X POST http://localhost:8000/api/telephony/numbers/provision \
   <Accordion title="Inbound call doesn't ring / goes to voicemail">
     Twilio isn't routing to LiveKit:
 
-    1. Go to **Twilio Console → Elastic SIP Trunking** — verify "Arkenos Inbound" trunk exists
+    1. Go to **Twilio Console → Elastic SIP Trunking** — verify "Nenyax Inbound" trunk exists
     2. Check the trunk has an **Origination URI** pointing to LiveKit (e.g. `sip:2w0eusjtqsa.sip.livekit.cloud`)
     3. Check your phone number is **associated** with the trunk (under Phone Numbers tab)
     4. Check **Twilio → Calls Log** to see if the call attempt was received
@@ -209,7 +209,7 @@ curl -X POST http://localhost:8000/api/telephony/numbers/provision \
     The outbound SIP trunk may not be configured correctly:
 
     1. Check **Twilio Console → Elastic SIP Trunking** — verify the trunk has a **Termination SIP URI** set
-    2. Check **LiveKit Cloud → Telephony → SIP Trunks** — verify "Arkenos Outbound" exists with the correct Twilio termination address
+    2. Check **LiveKit Cloud → Telephony → SIP Trunks** — verify "Nenyax Outbound" exists with the correct Twilio termination address
     3. Check backend logs for `Failed to provision outbound trunk` errors
     4. **Twilio trial accounts**: The destination number must be verified at **Twilio Console → Verified Caller IDs**
     5. **Geographic permissions**: Enable the destination country at **Twilio Console → Voice → Geographic Permissions**
@@ -243,11 +243,11 @@ All SIP resources are created with a **reuse-first** strategy — the system che
 
 | Resource | Name | Purpose |
 |----------|------|---------|
-| LiveKit Inbound Trunk | "Arkenos Inbound" | Receives SIP calls from Twilio |
-| LiveKit Dispatch Rule | "Arkenos Dispatch" | Routes calls to `arkenos-agent` worker |
-| LiveKit Outbound Trunk | "Arkenos Outbound" | Sends SIP calls to Twilio |
-| Twilio Elastic SIP Trunk | "Arkenos Inbound" | Routes calls between Twilio and LiveKit |
-| Twilio Credential List | "Arkenos LiveKit" | Authenticates LiveKit → Twilio for outbound |
+| LiveKit Inbound Trunk | "Nenyax Inbound" | Receives SIP calls from Twilio |
+| LiveKit Dispatch Rule | "Nenyax Dispatch" | Routes calls to `nenyax-agent` worker |
+| LiveKit Outbound Trunk | "Nenyax Outbound" | Sends SIP calls to Twilio |
+| Twilio Elastic SIP Trunk | "Nenyax Inbound" | Routes calls between Twilio and LiveKit |
+| Twilio Credential List | "Nenyax LiveKit" | Authenticates LiveKit → Twilio for outbound |
 
 ### How the SIP Domain is Resolved
 

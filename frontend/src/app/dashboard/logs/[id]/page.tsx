@@ -116,7 +116,7 @@ export default async function CallDetailsPage({
                                 if (session.outbound_phone_number) return `${name} — Outbound ${session.outbound_phone_number}`
                                 const sipMatch = session.room_name.match(/(?:sip-)?_?(\+?\d{7,15})_?/)
                                 if (sipMatch) return `${name} — Inbound ${sipMatch[1].startsWith('+') ? sipMatch[1] : '+' + sipMatch[1]}`
-                                return `${name} — ID: ${session.room_name.replace(/^(preview-|arkenos-)/, '')}`
+                                return `${name} — ID: ${session.room_name.replace(/^(preview-|nenyax-)/, '')}`
                             })()}
                         </p>
                     </div>

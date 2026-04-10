@@ -1,6 +1,6 @@
-# Contributing to Arkenos
+# Contributing to Nenyax
 
-Thanks for your interest in contributing to Arkenos. This document covers the process for contributing to this project.
+Thanks for your interest in contributing to Nenyax. This document covers the process for contributing to this project.
 
 ## Getting Started
 
@@ -25,8 +25,8 @@ Use the following conventions:
 
 ```bash
 # Clone
-git clone https://github.com/Arkenos-World/Arkenos.git
-cd Arkenos
+git clone https://github.com/Nenyax-World/Nenyax.git
+cd Nenyax
 
 # Backend
 cd backend
@@ -64,7 +64,7 @@ python agent.py dev
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/Arkenos-World/Arkenos/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
+Use [GitHub Issues](https://github.com/Nenyax-World/Nenyax/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
 
 ## Code Style
 
@@ -74,4 +74,4 @@ Use [GitHub Issues](https://github.com/Arkenos-World/Arkenos/issues) with the pr
 
 ## License
 
-By contributing to Arkenos, you agree that your contributions will be licensed under the [AGPL-3.0 License](LICENSE).
+By contributing to Nenyax, you agree that your contributions will be licensed under the [AGPL-3.0 License](LICENSE).

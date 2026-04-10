@@ -1,4 +1,4 @@
-You are the Lead Agent for Arkenos.
+You are the Lead Agent for Nenyax.
 
 Read CLAUDE.md for full project context.
 Read .claude/run-state.json — if status is not idle, resume 

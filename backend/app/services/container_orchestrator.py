@@ -105,7 +105,7 @@ def spawn_container(
 
     try:
         client = _docker_client()
-        agent_name = f"arkenos-custom-{agent_id}"
+        agent_name = f"nenyax-custom-{agent_id}"
         env = _resolve_env(agent, db)
         env["ROOM_NAME"] = room_name
         env["AGENT_ID"] = agent_id
@@ -114,16 +114,16 @@ def spawn_container(
             env["SESSION_ID"] = session_id
 
         labels = {
-            "arkenos.agent_id": agent_id,
-            "arkenos.container_type": container_type,
+            "nenyax.agent_id": agent_id,
+            "nenyax.container_type": container_type,
         }
         if session_id:
-            labels["arkenos.session_id"] = session_id
+            labels["nenyax.session_id"] = session_id
 
         container = client.containers.run(
             image_tag,
             detach=True,
-            name=f"arkenos-agent-{agent_id[:8]}-{record_id[:8]}",
+            name=f"nenyax-agent-{agent_id[:8]}-{record_id[:8]}",
             network=settings.container_network,
             environment=env,
             labels=labels,
@@ -186,7 +186,7 @@ def deploy_worker(agent_id: str, db: Session) -> str:
 
     Unlike spawn_container (which connects to a specific room), this starts
     the container in worker mode — it registers with LiveKit as
-    'arkenos-custom-{agent_id}' and accepts dispatched calls.
+    'nenyax-custom-{agent_id}' and accepts dispatched calls.
 
     Stops any existing running worker for this agent first.
 
@@ -217,7 +217,7 @@ def deploy_worker(agent_id: str, db: Session) -> str:
             logger.warning(f"Failed to stop existing worker {existing.id}, continuing")
 
     record_id = str(uuid.uuid4())
-    agent_name = f"arkenos-custom-{agent_id}"
+    agent_name = f"nenyax-custom-{agent_id}"
     record = AgentContainer(
         id=record_id,
         agent_id=agent_id,
@@ -237,9 +237,9 @@ def deploy_worker(agent_id: str, db: Session) -> str:
         # No ROOM_NAME — worker mode: entrypoint_loader runs `agent start`
 
         labels = {
-            "arkenos.agent_id": agent_id,
-            "arkenos.container_type": "worker",
-            "arkenos.agent_name": agent_name,
+            "nenyax.agent_id": agent_id,
+            "nenyax.container_type": "worker",
+            "nenyax.agent_name": agent_name,
         }
 
         container_name = f"nenyax-worker-{agent_id[:8]}-{record_id[:8]}"

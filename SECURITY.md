@@ -2,9 +2,9 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Arkenos, please report it responsibly. **Do not open a public GitHub issue.**
+If you discover a security vulnerability in Nenyax, please report it responsibly. **Do not open a public GitHub issue.**
 
-Email your findings to **[security@arkenos.ai](mailto:security@arkenos.ai)** with:
+Email your findings to **[security@nenyax.ai](mailto:security@nenyax.ai)** with:
 
 - Description of the vulnerability
 - Steps to reproduce

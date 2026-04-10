@@ -495,18 +495,18 @@ export default function HiddenCostBlogPost() {
 
               <Paragraph>
                 What they don&apos;t give you is the dashboard, the agent builder, the
-                analytics, the one-click deployment. That&apos;s the gap Arkenos fills.
+                analytics, the one-click deployment. That&apos;s the gap Nenyax fills.
               </Paragraph>
 
               <Paragraph>
-                Arkenos is an open-source platform layer on top of these frameworks.
+                Nenyax is an open-source platform layer on top of these frameworks.
                 You get the same managed-platform experience &mdash; dashboard, agent config,
                 call logs, analytics &mdash; but the platform fee is $0. You bring your own
                 provider keys and pay only raw API costs.
               </Paragraph>
 
               <ComparisonTable
-                headers={["", "Vapi", "Retell", "Arkenos"]}
+                headers={["", "Vapi", "Retell", "Nenyax"]}
                 rows={[
                   ["Platform fee", "$0.05/min", "$0.055/min", "$0 (open source)"],
                   ["Dashboard", "Yes", "Yes", "Yes"],
@@ -525,7 +525,7 @@ export default function HiddenCostBlogPost() {
               <ComparisonTable
                 headers={["Platform", "Monthly cost", "Effective $/min"]}
                 rows={[
-                  ["Arkenos (self-hosted)", "$150–$450", "$0.015–$0.045"],
+                  ["Nenyax (self-hosted)", "$150–$450", "$0.015–$0.045"],
                   ["Retell", "$700–$1,300", "$0.07–$0.13"],
                   ["Vapi", "$1,400–$2,600", "$0.14–$0.26"],
                 ]}
@@ -565,14 +565,14 @@ export default function HiddenCostBlogPost() {
                   Stop paying the platform tax.
                 </p>
                 <p className="text-muted-foreground mb-6">
-                  Arkenos gives you the dashboard and agent builder without the per-minute markup.
+                  Nenyax gives you the dashboard and agent builder without the per-minute markup.
                   Open source, self-hosted, $0 platform fee.
                 </p>
                 <div className="flex gap-3">
-                  <Link href="https://github.com/Arkenos-World/Arkenos" target="_blank">
+                  <Link href="https://github.com/Nenyax-World/Nenyax" target="_blank">
                     <Button variant="outline">GitHub</Button>
                   </Link>
-                  <Link href="https://arkenos.mintlify.app/">
+                  <Link href="https://nenyax.mintlify.app/">
                     <Button>Read the docs</Button>
                   </Link>
                 </div>

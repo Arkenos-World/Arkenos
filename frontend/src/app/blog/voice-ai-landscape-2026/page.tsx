@@ -147,7 +147,7 @@ export default function VoiceAILandscape2026() {
               >
                 <span>Feb 15, 2026</span>
                 <span>|</span>
-                <span>Arkenos Team</span>
+                <span>Nenyax Team</span>
               </motion.div>
             </motion.div>
           </div>
@@ -167,7 +167,7 @@ export default function VoiceAILandscape2026() {
               </Paragraph>
 
               <Paragraph>
-                We compare the three main approaches: <strong>Vapi</strong> (the most flexible managed platform), <strong>Retell AI</strong> (the most polished managed platform), and <strong>open-source stacks</strong> (Pipecat, LiveKit Agents, and Arkenos). We cover pricing, latency, features, lock-in, and the tradeoffs that actually matter in production.
+                We compare the three main approaches: <strong>Vapi</strong> (the most flexible managed platform), <strong>Retell AI</strong> (the most polished managed platform), and <strong>open-source stacks</strong> (Pipecat, LiveKit Agents, and Nenyax). We cover pricing, latency, features, lock-in, and the tradeoffs that actually matter in production.
               </Paragraph>
 
               {/* ── Section: The $0.05 Lie ──────────────────────────────────── */}
@@ -261,7 +261,7 @@ export default function VoiceAILandscape2026() {
                   ["Visual flow builder", "Yes (Flow Studio)", "Yes (basic)", "No**"],
                   ["Multi-agent transfer", "Yes (Squads)", "Yes (Warm Transfer 2.0)", "Framework-dependent"],
                   ["Batch outbound", "Limited", "Yes", "Build your own"],
-                  ["Dashboard", "Yes", "Yes", "Framework: No / Arkenos: Yes"],
+                  ["Dashboard", "Yes", "Yes", "Framework: No / Nenyax: Yes"],
                   ["Self-hosting", "No", "No", "Yes"],
                   ["HIPAA", "Yes (+$1K/mo)", "Yes (enterprise)", "You control compliance"],
                   ["SOC 2 Type II", "Yes", "Claimed", "N/A (your infra)"],
@@ -271,7 +271,7 @@ export default function VoiceAILandscape2026() {
               />
 
               <Paragraph>
-                <em>*Open Source covers Pipecat, LiveKit Agents, and Arkenos. **Arkenos&apos;s visual builder is on the roadmap.</em>
+                <em>*Open Source covers Pipecat, LiveKit Agents, and Nenyax. **Nenyax&apos;s visual builder is on the roadmap.</em>
               </Paragraph>
 
               <SubHeading>Where Vapi wins</SubHeading>
@@ -340,7 +340,7 @@ export default function VoiceAILandscape2026() {
               </Paragraph>
 
               <ComparisonTable
-                headers={["", "Managed (Vapi/Retell)", "Framework (Pipecat/LiveKit)", "Platform (Arkenos)"]}
+                headers={["", "Managed (Vapi/Retell)", "Framework (Pipecat/LiveKit)", "Platform (Nenyax)"]}
                 rows={[
                   ["Dashboard", "Yes", "No", "Yes"],
                   ["Self-hosting", "No", "Yes", "Yes"],
@@ -352,7 +352,7 @@ export default function VoiceAILandscape2026() {
               />
 
               <Paragraph>
-                Arkenos sits in the gap between managed platforms and raw frameworks. It&apos;s open-source (AGPL-3.0), self-hostable, and includes the dashboard — agent management, call logs, analytics, and API keys — so you get the convenience of Vapi/Retell without the lock-in or markup.
+                Nenyax sits in the gap between managed platforms and raw frameworks. It&apos;s open-source (AGPL-3.0), self-hostable, and includes the dashboard — agent management, call logs, analytics, and API keys — so you get the convenience of Vapi/Retell without the lock-in or markup.
               </Paragraph>
 
               {/* ── Section: Who Should Use What ──────────────────────────── */}
@@ -373,7 +373,7 @@ export default function VoiceAILandscape2026() {
                 You have infrastructure engineers who can manage WebRTC servers, set up observability, and build custom dashboards. You want zero vendor lock-in and the lowest possible per-minute cost. Best for teams already running significant infrastructure who want to add voice as a capability.
               </Paragraph>
 
-              <SubHeading>Choose Arkenos if...</SubHeading>
+              <SubHeading>Choose Nenyax if...</SubHeading>
               <Paragraph>
                 You want the economics and control of open source with the usability of a managed platform. Self-host on your own infrastructure, manage agents through a dashboard, and pay only for the providers you use — no platform markup. Best for teams building voice products who want to own their stack without building everything from scratch.
               </Paragraph>
@@ -425,7 +425,7 @@ export default function VoiceAILandscape2026() {
                 &larr; Back to Blog
               </Link>
               <Link href="/">
-                <Button size="sm">Try Arkenos Free</Button>
+                <Button size="sm">Try Nenyax Free</Button>
               </Link>
             </div>
           </div>

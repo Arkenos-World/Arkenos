@@ -203,7 +203,7 @@ export function LiveCallDemo({ className }: LiveCallDemoProps) {
               "text-xs font-semibold transition-colors duration-500",
               isLive ? "text-chart-2" : "text-foreground",
             )}>
-              Arkenos
+              Nenyax
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -379,7 +379,7 @@ export function LiveCallDemo({ className }: LiveCallDemoProps) {
                     <svg className="h-3.5 w-3.5 text-muted-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
                     </svg>
-                    <span className="text-[11px] text-muted-foreground/50 font-mono">$ arkenos deploy</span>
+                    <span className="text-[11px] text-muted-foreground/50 font-mono">$ nenyax deploy</span>
                   </div>
                   <div className="px-3.5 py-3 font-mono text-[11px] space-y-2">
                     {BOOT_STEPS.slice(0, visibleBoot).map((step, i) => {

@@ -90,7 +90,7 @@ async def ensure_inbound_trunk(phone: str | None = None) -> str:
                 f"numbers={list(trunk.numbers) if trunk.numbers else []}, "
                 f"allowed_addresses={list(trunk.allowed_addresses) if trunk.allowed_addresses else []}"
             )
-            if trunk.name == "Arkenos Inbound":
+            if trunk.name == "Nenyax Inbound":
                 _state.inbound_trunk_id = trunk.sip_trunk_id
                 # Ensure allowed_addresses includes 0.0.0.0/0 so all providers can reach it
                 # (security is handled by the numbers allowlist)
@@ -109,7 +109,7 @@ async def ensure_inbound_trunk(phone: str | None = None) -> str:
         new_trunk = await lk.sip.create_sip_inbound_trunk(
             CreateSIPInboundTrunkRequest(
                 trunk=SIPInboundTrunkInfo(
-                    name="Arkenos Inbound",
+                    name="Nenyax Inbound",
                     numbers=numbers,
                     allowed_addresses=["0.0.0.0/0"],
                 )
@@ -123,7 +123,7 @@ async def ensure_inbound_trunk(phone: str | None = None) -> str:
 
 
 async def ensure_dispatch_rule() -> str:
-    """Ensure a SIP dispatch rule exists for the arkenos-agent. Returns rule ID."""
+    """Ensure a SIP dispatch rule exists for the nenyax-agent. Returns rule ID."""
     global _state
 
     if _state.dispatch_rule_id:
@@ -148,7 +148,7 @@ async def ensure_dispatch_rule() -> str:
                 f"[ensure_dispatch_rule]   rule id={rule.sip_dispatch_rule_id}, name={rule.name}, "
                 f"trunk_ids={list(rule.trunk_ids) if rule.trunk_ids else []}"
             )
-            if rule.name == "Arkenos Dispatch":
+            if rule.name == "Nenyax Dispatch":
                 _state.dispatch_rule_id = rule.sip_dispatch_rule_id
                 logger.info(f"[ensure_dispatch_rule] Reusing existing dispatch rule: {rule.sip_dispatch_rule_id}")
                 return rule.sip_dispatch_rule_id
@@ -157,14 +157,14 @@ async def ensure_dispatch_rule() -> str:
         logger.info("[ensure_dispatch_rule] No matching dispatch rule found, creating new one")
         new_rule = await lk.sip.create_sip_dispatch_rule(
             CreateSIPDispatchRuleRequest(
-                name="Arkenos Dispatch",
+                name="Nenyax Dispatch",
                 rule=SIPDispatchRule(
                     dispatch_rule_individual=SIPDispatchRuleIndividual(
                         room_prefix="sip-",
                     )
                 ),
                 room_config=RoomConfiguration(
-                    agents=[RoomAgentDispatch(agent_name="arkenos-agent")]
+                    agents=[RoomAgentDispatch(agent_name="nenyax-agent")]
                 ),
             )
         )
@@ -178,7 +178,7 @@ async def ensure_dispatch_rule() -> str:
 async def ensure_custom_agent_dispatch_rule(agent_id: str, phone_number: str) -> str:
     """Create or reuse a SIP dispatch rule for a custom agent.
 
-    Custom agents register with LiveKit as 'arkenos-custom-{agent_id}', so they
+    Custom agents register with LiveKit as 'nenyax-custom-{agent_id}', so they
     need their own dispatch rule that routes calls to that specific worker.
     The rule is pin-locked to the agent's phone number(s).
 
@@ -193,8 +193,8 @@ async def ensure_custom_agent_dispatch_rule(agent_id: str, phone_number: str) ->
     from livekit.protocol.agent_dispatch import RoomAgentDispatch
     from livekit.protocol.room import RoomConfiguration
 
-    agent_name = f"arkenos-custom-{agent_id}"
-    rule_name = f"Arkenos Custom ({agent_id[:8]})"
+    agent_name = f"nenyax-custom-{agent_id}"
+    rule_name = f"Nenyax Custom ({agent_id[:8]})"
 
     lk = _get_lk()
     try:
@@ -241,7 +241,7 @@ async def delete_custom_agent_dispatch_rule(agent_id: str) -> None:
     """Delete the SIP dispatch rule for a custom agent (e.g. when phone released)."""
     from livekit.api import ListSIPDispatchRuleRequest
 
-    rule_name = f"Arkenos Custom ({agent_id[:8]})"
+    rule_name = f"Nenyax Custom ({agent_id[:8]})"
 
     lk = _get_lk()
     try:
@@ -397,7 +397,7 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
         SIPOutboundTrunkInfo,
     )
 
-    trunk_name = f"Arkenos Outbound ({provider_name})"
+    trunk_name = f"Nenyax Outbound ({provider_name})"
     logger.info(f"[ensure_outbound_trunk] provider_name={provider_name}, trunk_name={trunk_name}")
 
     # Always sync numbers even if trunk ID is cached — new numbers may have been added
@@ -422,9 +422,6 @@ async def ensure_outbound_trunk(provider_name: str = "twilio") -> str:
                 f"auth_username={trunk.auth_username}"
             )
             if trunk.name == trunk_name:
-                existing_lk_trunk = trunk
-            # Backward compat: match old "Arkenos Outbound" name for twilio
-            elif provider_name == "twilio" and trunk.name == "Arkenos Outbound":
                 existing_lk_trunk = trunk
 
         # Use provider factory to get outbound SIP config
@@ -539,12 +536,12 @@ async def delete_outbound_trunk(provider_name: str) -> None:
     from livekit.api import ListSIPOutboundTrunkRequest
     from livekit.protocol.sip import DeleteSIPTrunkRequest
 
-    trunk_name = f"Arkenos Outbound ({provider_name})"
+    trunk_name = f"Nenyax Outbound ({provider_name})"
     lk = _get_lk()
     try:
         resp = await lk.sip.list_sip_outbound_trunk(ListSIPOutboundTrunkRequest())
         for trunk in resp.items:
-            if trunk.name == trunk_name or (provider_name == "twilio" and trunk.name == "Arkenos Outbound"):
+            if trunk.name == trunk_name:
                 logger.info(f"[delete_outbound_trunk] Deleting LiveKit outbound trunk {trunk.sip_trunk_id}")
                 await lk.sip.delete_sip_trunk(DeleteSIPTrunkRequest(sip_trunk_id=trunk.sip_trunk_id))
                 _state.outbound_trunk_ids.pop(provider_name, None)

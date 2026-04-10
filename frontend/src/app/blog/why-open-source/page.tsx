@@ -115,7 +115,7 @@ export default function WhyOpenSourceBlogPost() {
                 variants={fadeUp}
                 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
               >
-                Why We&apos;re Building Arkenos Open Source
+                Why We&apos;re Building Nenyax Open Source
               </motion.h1>
 
               <motion.p
@@ -153,7 +153,7 @@ export default function WhyOpenSourceBlogPost() {
             </Paragraph>
 
             <Paragraph>
-              We started Arkenos because we think voice AI deserves the same open-source
+              We started Nenyax because we think voice AI deserves the same open-source
               revolution that hit every other part of the stack. Here&apos;s why.
             </Paragraph>
 
@@ -298,7 +298,7 @@ export default function WhyOpenSourceBlogPost() {
             </Paragraph>
 
             <Paragraph>
-              Arkenos is that product layer. An open-source platform that gives you the
+              Nenyax is that product layer. An open-source platform that gives you the
               managed-platform experience &mdash; dashboard, agent configuration, call logs,
               analytics, API keys &mdash; on top of open-source infrastructure. You self-host
               it. You own your data. The platform fee is $0.
@@ -315,7 +315,7 @@ export default function WhyOpenSourceBlogPost() {
             <Paragraph>
               The MIT and Apache licenses have a cloud loophole: a company can take your
               open-source code, run it as a hosted service, and never contribute a single
-              line back. The AGPL closes this. If you modify Arkenos and run it as a network
+              line back. The AGPL closes this. If you modify Nenyax and run it as a network
               service, you must release your modifications as open source.
             </Paragraph>
 
@@ -355,8 +355,8 @@ export default function WhyOpenSourceBlogPost() {
             <ul className="list-disc list-inside text-muted-foreground space-y-2 mb-6 ml-2">
               <li><strong>Self-hosting for your company:</strong> Fully allowed. No restrictions.</li>
               <li><strong>Modifying for internal use:</strong> Fully allowed. No obligation to share.</li>
-              <li><strong>Building a product on top:</strong> Allowed &mdash; your product code doesn&apos;t need to be AGPL unless it modifies Arkenos core.</li>
-              <li><strong>Running a hosted service with modifications:</strong> You must open-source your modifications to Arkenos itself.</li>
+              <li><strong>Building a product on top:</strong> Allowed &mdash; your product code doesn&apos;t need to be AGPL unless it modifies Nenyax core.</li>
+              <li><strong>Running a hosted service with modifications:</strong> You must open-source your modifications to Nenyax itself.</li>
               <li><strong>Commercial use:</strong> Fully allowed. AGPL is not &ldquo;non-commercial.&rdquo;</li>
             </ul>
 
@@ -432,12 +432,12 @@ export default function WhyOpenSourceBlogPost() {
             <SectionHeading>What we&apos;re building</SectionHeading>
 
             <Paragraph>
-              Arkenos is an open-source voice AI platform. Not a framework &mdash; a platform.
+              Nenyax is an open-source voice AI platform. Not a framework &mdash; a platform.
               The distinction matters.
             </Paragraph>
 
             <ComparisonTable
-              headers={["", "Frameworks (Pipecat, LiveKit)", "Platforms (Vapi, Retell)", "Arkenos"]}
+              headers={["", "Frameworks (Pipecat, LiveKit)", "Platforms (Vapi, Retell)", "Nenyax"]}
               rows={[
                 ["Dashboard", "No", "Yes", "Yes"],
                 ["Agent builder", "No", "Yes", "Yes"],
@@ -453,7 +453,7 @@ export default function WhyOpenSourceBlogPost() {
             <Paragraph>
               We sit in the gap between raw frameworks and closed platforms. Open-source
               frameworks give you freedom but not productivity. Closed platforms give you
-              productivity but not freedom. Arkenos gives you both.
+              productivity but not freedom. Nenyax gives you both.
             </Paragraph>
 
             <Paragraph>
@@ -494,14 +494,14 @@ export default function WhyOpenSourceBlogPost() {
                 Voice AI should be open.
               </p>
               <p className="text-muted-foreground mb-6">
-                Arkenos is open-source, self-hosted, and free. Star us on GitHub or
+                Nenyax is open-source, self-hosted, and free. Star us on GitHub or
                 read the docs to get started.
               </p>
               <div className="flex gap-3">
-                <Link href="https://github.com/Arkenos-World/Arkenos" target="_blank">
+                <Link href="https://github.com/Nenyax-World/Nenyax" target="_blank">
                   <Button variant="outline">GitHub</Button>
                 </Link>
-                <Link href="https://arkenos.mintlify.app/">
+                <Link href="https://nenyax.mintlify.app/">
                   <Button>Read the docs</Button>
                 </Link>
               </div>

@@ -183,7 +183,7 @@ export default function ProductPage() {
                 The full picture
               </motion.h1>
               <motion.p variants={fadeUp} className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                How Arkenos works, what it costs, how it compares to Vapi and Retell, and what you can build with it.
+                How Nenyax works, what it costs, how it compares to Vapi and Retell, and what you can build with it.
               </motion.p>
               <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
                 {["How it works", "Use cases", "Tech specs", "Pricing", "Comparison"].map((item) => (
@@ -211,7 +211,7 @@ export default function ProductPage() {
                 Describe it. We build it.
               </motion.h2>
               <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Tell Arkenos what your agent should do in plain English. The platform generates the entire agent — config, pipeline, tools, memory — and deploys it.
+                Tell Nenyax what your agent should do in plain English. The platform generates the entire agent — config, pipeline, tools, memory — and deploys it.
               </motion.p>
             </motion.div>
 
@@ -234,7 +234,7 @@ export default function ProductPage() {
                 <div className="space-y-4">
                   {[
                     { step: "1", title: "Describe", desc: "Tell the platform what your agent should do, what tools it needs, and how it should sound." },
-                    { step: "2", title: "Build", desc: "Arkenos generates the full agent — config, STT, LLM, TTS, function definitions, and memory layer." },
+                    { step: "2", title: "Build", desc: "Nenyax generates the full agent — config, STT, LLM, TTS, function definitions, and memory layer." },
                     { step: "3", title: "Go Live", desc: "Deploy with one click. Assign a phone number. Your agent starts taking real calls." },
                   ].map((item, i) => (
                     <motion.div
@@ -465,10 +465,10 @@ export default function ProductPage() {
                 <Badge variant="outline" className="mb-4">Pricing</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                You pay $0 to Arkenos
+                You pay $0 to Nenyax
               </motion.h2>
               <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Arkenos is free and open source. Your only costs are the APIs you choose — STT, LLM, TTS, and telephony — paid directly to the providers at their rates.
+                Nenyax is free and open source. Your only costs are the APIs you choose — STT, LLM, TTS, and telephony — paid directly to the providers at their rates.
               </motion.p>
             </motion.div>
 
@@ -490,7 +490,7 @@ export default function ProductPage() {
                 </thead>
                 <tbody>
                   {[
-                    ["Arkenos platform fee", "$0", "$0", "$0"],
+                    ["Nenyax platform fee", "$0", "$0", "$0"],
                     ["STT (Deepgram)", "~$10", "~$100", "~$1,000"],
                     ["LLM (Gemini Flash)", "~$27", "~$270", "~$2,700"],
                     ["TTS (Resemble AI)", "~$15", "~$150", "~$1,500"],
@@ -517,7 +517,7 @@ export default function ProductPage() {
               className="max-w-4xl mx-auto mt-6 border-l-4 border-primary bg-primary/5 px-6 py-4"
             >
               <p className="text-sm">
-                <strong>For comparison:</strong> The same 10,000 minutes costs ~$1,443 on Vapi or ~$700 on Retell — because they add a $0.05–0.06/min platform fee on every minute. That&apos;s $500–600/month you pay just for orchestration that Arkenos gives you for free.
+                <strong>For comparison:</strong> The same 10,000 minutes costs ~$1,443 on Vapi or ~$700 on Retell — because they add a $0.05–0.06/min platform fee on every minute. That&apos;s $500–600/month you pay just for orchestration that Nenyax gives you for free.
               </p>
             </motion.div>
           </div>
@@ -537,7 +537,7 @@ export default function ProductPage() {
                 <Badge variant="outline" className="mb-4">Comparison</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                Arkenos vs Vapi vs Retell
+                Nenyax vs Vapi vs Retell
               </motion.h2>
               <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
                 Managed platforms charge $0.10–0.33/min and lock you in. Here&apos;s what you get with each.
@@ -554,36 +554,36 @@ export default function ProductPage() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-semibold"></th>
-                    <th className="text-center px-4 py-3 font-semibold bg-primary/5">Arkenos</th>
+                    <th className="text-center px-4 py-3 font-semibold bg-primary/5">Nenyax</th>
                     <th className="text-center px-4 py-3 font-semibold">Vapi</th>
                     <th className="text-center px-4 py-3 font-semibold">Retell</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { feature: "Platform fee", arkenos: "$0/min", vapi: "$0.05/min", retell: "$0.055/min", win: true },
-                    { feature: "Real cost (10K min)", arkenos: "~$670", vapi: "~$1,443", retell: "~$700", win: true },
-                    { feature: "Self-hosting", arkenos: true, vapi: false, retell: false, win: true },
-                    { feature: "Source code", arkenos: true, vapi: false, retell: false, win: true },
-                    { feature: "Choose STT provider", arkenos: true, vapi: true, retell: false, win: true },
-                    { feature: "Choose LLM", arkenos: true, vapi: true, retell: true },
-                    { feature: "Choose TTS", arkenos: true, vapi: true, retell: true },
-                    { feature: "Function calling", arkenos: true, vapi: true, retell: true },
-                    { feature: "Persistent memory", arkenos: true, vapi: false, retell: false, win: true },
-                    { feature: "Dashboard", arkenos: true, vapi: true, retell: true },
-                    { feature: "Visual flow builder", arkenos: "Roadmap", vapi: true, retell: "Basic" },
-                    { feature: "Data residency", arkenos: "You control", vapi: "Cloud only", retell: "Cloud only", win: true },
-                    { feature: "HIPAA", arkenos: "Self-host = you control", vapi: "+$1K/mo", retell: "Enterprise only", win: true },
-                    { feature: "Vendor lock-in", arkenos: "None", vapi: "High", retell: "High", win: true },
-                    { feature: "Latency", arkenos: "<500ms", vapi: "~465ms (web)", retell: "~600ms" },
+                    { feature: "Platform fee", nenyax: "$0/min", vapi: "$0.05/min", retell: "$0.055/min", win: true },
+                    { feature: "Real cost (10K min)", nenyax: "~$670", vapi: "~$1,443", retell: "~$700", win: true },
+                    { feature: "Self-hosting", nenyax: true, vapi: false, retell: false, win: true },
+                    { feature: "Source code", nenyax: true, vapi: false, retell: false, win: true },
+                    { feature: "Choose STT provider", nenyax: true, vapi: true, retell: false, win: true },
+                    { feature: "Choose LLM", nenyax: true, vapi: true, retell: true },
+                    { feature: "Choose TTS", nenyax: true, vapi: true, retell: true },
+                    { feature: "Function calling", nenyax: true, vapi: true, retell: true },
+                    { feature: "Persistent memory", nenyax: true, vapi: false, retell: false, win: true },
+                    { feature: "Dashboard", nenyax: true, vapi: true, retell: true },
+                    { feature: "Visual flow builder", nenyax: "Roadmap", vapi: true, retell: "Basic" },
+                    { feature: "Data residency", nenyax: "You control", vapi: "Cloud only", retell: "Cloud only", win: true },
+                    { feature: "HIPAA", nenyax: "Self-host = you control", vapi: "+$1K/mo", retell: "Enterprise only", win: true },
+                    { feature: "Vendor lock-in", nenyax: "None", vapi: "High", retell: "High", win: true },
+                    { feature: "Latency", nenyax: "<500ms", vapi: "~465ms (web)", retell: "~600ms" },
                   ].map((row, i) => (
                     <tr key={i} className="border-b last:border-0">
                       <td className="px-4 py-3 font-medium whitespace-nowrap">{row.feature}</td>
                       <td className={`px-4 py-3 text-center ${row.win ? "bg-primary/5" : ""}`}>
-                        {typeof row.arkenos === "boolean" ? (
-                          row.arkenos ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                        {typeof row.nenyax === "boolean" ? (
+                          row.nenyax ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-muted-foreground/40 mx-auto" />
                         ) : (
-                          <span className={row.win ? "font-medium text-foreground" : "text-muted-foreground"}>{row.arkenos}</span>
+                          <span className={row.win ? "font-medium text-foreground" : "text-muted-foreground"}>{row.nenyax}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">

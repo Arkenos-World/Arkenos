@@ -1,5 +1,5 @@
 """
-Arkenos Custom Agent Entrypoint Loader
+Nenyax Custom Agent Entrypoint Loader
 
 Downloads user-authored agent files from MinIO, installs any extra
 requirements, then imports and runs the custom agent via LiveKit's CLI.
@@ -158,7 +158,7 @@ def load_custom_agent():
 
 def _patch_agent_name(server, agent_name: str) -> None:
     """Patch the AgentServer so it registers with the given agent_name.
-    This ensures custom agents register as 'arkenos-custom-{agent_id}'
+    This ensures custom agents register as 'nenyax-custom-{agent_id}'
     instead of the default name, so LiveKit dispatches calls correctly.
     """
     # AgentServer stores the name in _agent_name (set by @server.rtc_session(agent_name=...))
@@ -170,13 +170,13 @@ def _patch_agent_name(server, agent_name: str) -> None:
 
 
 def main() -> None:
-    logger.info("=== Arkenos Custom Agent Entrypoint ===")
+    logger.info("=== Nenyax Custom Agent Entrypoint ===")
 
     agent_id = get_required_env("AGENT_ID")
     bucket = os.environ.get("MINIO_BUCKET", "agent-code")
 
     # Unique agent name for LiveKit dispatch routing
-    agent_name = os.environ.get("AGENT_NAME", f"arkenos-custom-{agent_id}")
+    agent_name = os.environ.get("AGENT_NAME", f"nenyax-custom-{agent_id}")
 
     # Step 1: Download agent files from MinIO
     try:

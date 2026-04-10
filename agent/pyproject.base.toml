@@ -1,7 +1,7 @@
 [project]
-name = "arkenos-custom-agent-base"
+name = "nenyax-custom-agent-base"
 version = "0.1.0"
-description = "Base dependencies for Arkenos custom agent containers"
+description = "Base dependencies for Nenyax custom agent containers"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

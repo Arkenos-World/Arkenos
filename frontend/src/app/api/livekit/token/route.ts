@@ -88,15 +88,15 @@ export async function POST(request: NextRequest) {
 
       if (agentMode === "CUSTOM") {
         // Custom agents: dispatch to their persistent worker container
-        // Worker registers as 'arkenos-custom-{agentId}' with LiveKit
-        const customAgentName = `arkenos-custom-${agentId}`;
+        // Worker registers as 'nenyax-custom-{agentId}' with LiveKit
+        const customAgentName = `nenyax-custom-${agentId}`;
         const dispatchMetadata = JSON.stringify({ agentId });
         await agentDispatch.createDispatch(roomName, customAgentName, { metadata: dispatchMetadata });
         console.log(`Dispatched to custom agent worker: ${customAgentName} in room: ${roomName}`);
       } else {
         // Standard agents: dispatch via AgentDispatchClient
         const dispatchMetadata = agentId ? JSON.stringify({ agentId }) : undefined;
-        await agentDispatch.createDispatch(roomName, "arkenos-agent", { metadata: dispatchMetadata });
+        await agentDispatch.createDispatch(roomName, "nenyax-agent", { metadata: dispatchMetadata });
         console.log(`Dispatched agent to room: ${roomName} with agentId: ${agentId || 'none'}`);
       }
     } catch (err) {

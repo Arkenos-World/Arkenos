@@ -239,11 +239,11 @@ class TelnyxProvider(TelephonyProvider):
         num = data[0]
         has_messaging = bool(num.get("messaging_profile_id"))
 
-        # If the connection belongs to Arkenos, it's safe — we'll reconfigure during assignment
+        # If the connection belongs to Nenyax, it's safe — we'll reconfigure during assignment
         has_external_connection = False
         if num.get("connection_id"):
-            arkenos_conn_id = await self._find_connection()
-            has_external_connection = num["connection_id"] != arkenos_conn_id
+            nenyax_conn_id = await self._find_connection()
+            has_external_connection = num["connection_id"] != nenyax_conn_id
 
         return {
             "has_config": has_external_connection or has_messaging,
@@ -251,7 +251,7 @@ class TelnyxProvider(TelephonyProvider):
         }
 
     async def _find_connection(self) -> str | None:
-        """Find existing 'Arkenos Inbound' FQDN connection. Returns connection ID or None.
+        """Find existing 'Nenyax Inbound' FQDN connection. Returns connection ID or None.
         Ensures transport_protocol is TCP (required by LiveKit SIP).
         """
         headers = self._headers()
@@ -268,7 +268,7 @@ class TelnyxProvider(TelephonyProvider):
 
         connections = resp.json().get("data", [])
         for conn in connections:
-            if conn.get("connection_name") == "Arkenos Inbound":
+            if conn.get("connection_name") == "Nenyax Inbound":
                 self.connection_id = conn["id"]
                 transport = conn.get("transport_protocol", "")
                 logger.info(f"Reusing existing Telnyx FQDN Connection: {conn['id']}, transport={transport}")
@@ -318,7 +318,7 @@ class TelnyxProvider(TelephonyProvider):
                     f"{TELNYX_API_BASE}/fqdn_connections",
                     headers=headers,
                     json={
-                        "connection_name": "Arkenos Inbound",
+                        "connection_name": "Nenyax Inbound",
                         "active": True,
                         "transport_protocol": "TCP",
                         "anchorsite_override": "Latency",
@@ -518,7 +518,7 @@ class TelnyxProvider(TelephonyProvider):
         Returns the profile ID.
         """
         headers = self._headers()
-        profile_name = "Arkenos Outbound"
+        profile_name = "Nenyax Outbound"
 
         # Check for ANY existing profile (reuse-first — many accounts are limited to 1)
         async with httpx.AsyncClient() as client:
@@ -620,7 +620,7 @@ class TelnyxProvider(TelephonyProvider):
 
         Telnyx uses a SEPARATE credential connection for outbound auth
         (FQDN connections are for inbound only). Flow:
-          1. Create/reuse a credential connection ("Arkenos Outbound")
+          1. Create/reuse a credential connection ("Nenyax Outbound")
              with a username and password
           2. Create/reuse an Outbound Voice Profile and attach the connection
           3. LiveKit outbound trunk uses sip.telnyx.com with those credentials
@@ -630,7 +630,7 @@ class TelnyxProvider(TelephonyProvider):
         the credentials, so the caller should skip trunk recreation.
         """
         headers = self._headers()
-        username = "arkenoslk"  # 4-32 alphanumeric, no spaces/special chars
+        username = "nenyaxlk"  # 4-32 alphanumeric, no spaces/special chars
 
         # Check for existing credential connection (reuse-first)
         async with httpx.AsyncClient() as client:
@@ -649,7 +649,7 @@ class TelnyxProvider(TelephonyProvider):
                     f"[configure_sip_outbound]   conn id={conn.get('id')}, name={conn.get('connection_name')}, "
                     f"user_name={conn.get('user_name')}, active={conn.get('active')}"
                 )
-                if conn.get("connection_name") == "Arkenos Outbound":
+                if conn.get("connection_name") == "Nenyax Outbound":
                     existing_conn_id = conn["id"]
                     break
 
@@ -665,12 +665,12 @@ class TelnyxProvider(TelephonyProvider):
             }
 
         # Create new credential connection for outbound
-        logger.info(f"[configure_sip_outbound] No existing 'Arkenos Outbound' credential connection found, creating new one")
+        logger.info(f"[configure_sip_outbound] No existing 'Nenyax Outbound' credential connection found, creating new one")
         import secrets
         password = secrets.token_urlsafe(32)
 
         create_payload = {
-            "connection_name": "Arkenos Outbound",
+            "connection_name": "Nenyax Outbound",
             "user_name": username,
             "password": password,
             "active": True,
@@ -704,7 +704,7 @@ class TelnyxProvider(TelephonyProvider):
         }
 
     async def delete_outbound_credentials(self) -> None:
-        """Delete the 'Arkenos Outbound' credential connection from Telnyx.
+        """Delete the 'Nenyax Outbound' credential connection from Telnyx.
         Used to reset stale credentials when the LiveKit project changes."""
         headers = self._headers()
         async with httpx.AsyncClient() as client:
@@ -715,7 +715,7 @@ class TelnyxProvider(TelephonyProvider):
             )
         if resp.status_code == 200:
             for conn in resp.json().get("data", []):
-                if conn.get("connection_name") == "Arkenos Outbound":
+                if conn.get("connection_name") == "Nenyax Outbound":
                     conn_id = conn["id"]
                     async with httpx.AsyncClient() as client:
                         await client.delete(
@@ -725,7 +725,7 @@ class TelnyxProvider(TelephonyProvider):
                         )
                     logger.info(f"Deleted stale Telnyx credential connection: {conn_id}")
                     return
-        logger.info("No 'Arkenos Outbound' credential connection found to delete")
+        logger.info("No 'Nenyax Outbound' credential connection found to delete")
 
     async def test_connection(self) -> bool:
         """Validate Telnyx API key by fetching account balance."""

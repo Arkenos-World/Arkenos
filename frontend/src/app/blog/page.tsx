@@ -63,12 +63,12 @@ const BLOG_POSTS: BlogPost[] = [
 
 export default function BlogPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#080808]">
       <PublicHeader />
 
       <main>
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <section className="border-b">
+        <section className="border-b border-black/5 dark:border-white/[0.06]">
           <div className="container mx-auto px-4 pt-20 pb-12 lg:pt-28 lg:pb-16">
             <motion.div
               initial="hidden"
@@ -77,12 +77,12 @@ export default function BlogPage() {
               className="max-w-2xl"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Blog</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm mb-4">Blog</Badge>
               </motion.div>
               <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
                 Blog
               </motion.h1>
-              <motion.p variants={fadeUp} className="text-lg text-muted-foreground">
+              <motion.p variants={fadeUp} className="text-lg text-zinc-500 dark:text-zinc-400">
                 Latest updates, tutorials, and insights from the Nenyax team.
               </motion.p>
             </motion.div>
@@ -102,21 +102,21 @@ export default function BlogPage() {
                 >
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="block border bg-card p-6 h-full hover:border-foreground/20 transition-colors group"
+                    className="block border border-black/5 bg-white p-6 h-full hover:border-black/10 hover:shadow-md transition-colors group rounded-2xl dark:bg-[#0C0C0C] dark:border-white/[0.06] dark:hover:border-white/10"
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className="bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 text-xs">
                         {post.category}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{post.readTime}</span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{post.readTime}</span>
                     </div>
                     <h2 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
                       {post.title}
                     </h2>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
                       {post.description}
                     </p>
-                    <p className="text-xs text-muted-foreground">{post.date}</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{post.date}</p>
                   </Link>
                 </motion.article>
               ))}

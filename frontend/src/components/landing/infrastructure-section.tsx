@@ -4,17 +4,22 @@ import { CustomAgentDemo } from "@/components/ui/custom-agent-demo";
 
 export function InfrastructureSection() {
   return (
-    <section className="py-48 bg-white dark:bg-background border-t border-border/10">
+    <section className="py-32 md:py-48 bg-white border-t border-black/5 w-full">
       <div className="container mx-auto px-6">
-        <div className="max-w-3xl mb-24">
-          <h2 className="text-5xl sm:text-6xl font-medium tracking-tight mb-10 text-foreground">Infrastructure</h2>
-          <p className="text-2xl text-muted-foreground leading-relaxed">
-            Every agent gets a personal computer. Code in Python or design visually — with an AI assistant that builds alongside you.
+        <div className="max-w-3xl mb-16 md:mb-24">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-50 border border-black/5 text-[13px] font-medium text-zinc-600 mb-6 shadow-sm">
+            Extensible Architecture
+          </div>
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight mb-8 text-zinc-900 leading-[1.1]">
+            Infrastructure designed <br className="hidden md:block"/> for scale.
+          </h2>
+          <p className="text-lg text-zinc-500 leading-relaxed max-w-2xl">
+            Every agent gets a personal computer. Code in Python or design visually — with an AI assistant that builds alongside you, connected directly to your existing systems.
           </p>
         </div>
 
-        <div className="rounded-[3rem] bg-stone-50 dark:bg-stone-900/50 p-6 md:p-12 lg:p-20 border border-border/20">
-          <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-black/[0.03] dark:border-white/[0.03] shadow-sm overflow-hidden p-8 md:p-12">
+        <div className="rounded-[2.5rem] bg-stone-50 p-6 md:p-12 lg:p-16 border border-black/5 shadow-sm">
+          <div className="bg-white rounded-2xl border border-black/5 shadow-md overflow-hidden">
             <CustomAgentDemo />
           </div>
         </div>

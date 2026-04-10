@@ -163,7 +163,7 @@ export default function ProductPage() {
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#080808]">
       <PublicHeader />
 
       <main>
@@ -177,17 +177,17 @@ export default function ProductPage() {
               className="text-center max-w-3xl mx-auto"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Product</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm mb-4">Product</Badge>
               </motion.div>
               <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
                 The full picture
               </motion.h1>
-              <motion.p variants={fadeUp} className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <motion.p variants={fadeUp} className="text-lg sm:text-xl text-zinc-500 dark:text-zinc-400 mb-8 max-w-2xl mx-auto">
                 How Nenyax works, what it costs, how it compares to Vapi and Retell, and what you can build with it.
               </motion.p>
-              <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
+              <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
                 {["How it works", "Use cases", "Tech specs", "Pricing", "Comparison"].map((item) => (
-                  <span key={item} className="px-3 py-1 border bg-card">{item}</span>
+                  <span key={item} className="px-3 py-1 border border-black/5 bg-white dark:bg-[#0C0C0C] dark:border-white/[0.06] rounded-full">{item}</span>
                 ))}
               </motion.div>
             </motion.div>
@@ -195,7 +195,7 @@ export default function ProductPage() {
         </section>
 
         {/* ── How It Works: Build From Chat ────────────────────────────────── */}
-        <section className="border-t">
+        <section className="border-t border-black/5 dark:border-white/[0.06]">
           <div className="container mx-auto px-4 py-20 lg:py-28">
             <motion.div
               initial="hidden"
@@ -205,12 +205,12 @@ export default function ProductPage() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">How It Works</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm mb-4">How It Works</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 Describe it. We build it.
               </motion.h2>
-              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-zinc-500 dark:text-zinc-400">
                 Tell Nenyax what your agent should do in plain English. The platform generates the entire agent — config, pipeline, tools, memory — and deploys it.
               </motion.p>
             </motion.div>
@@ -224,8 +224,8 @@ export default function ProductPage() {
                 transition={{ duration: 0.5 }}
                 className="space-y-6"
               >
-                <div className="border bg-card p-6">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Your prompt</p>
+                <div className="border border-black/5 bg-white dark:bg-[#0C0C0C] dark:border-white/[0.06] p-6 rounded-2xl">
+                  <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Your prompt</p>
                   <p className="text-sm leading-relaxed">
                     &quot;Create a restaurant receptionist that books tables, checks availability, and sends SMS confirmations. Use a warm, professional voice.&quot;
                   </p>
@@ -245,12 +245,12 @@ export default function ProductPage() {
                       transition={{ delay: i * 0.15 }}
                       className="flex items-start gap-4"
                     >
-                      <div className="h-8 w-8 border bg-card flex items-center justify-center flex-shrink-0 text-sm font-bold">
+                      <div className="h-8 w-8 border border-black/5 bg-white dark:bg-[#0C0C0C] dark:border-white/[0.06] rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold">
                         {item.step}
                       </div>
                       <div>
                         <h4 className="font-semibold">{item.title}</h4>
-                        <p className="text-sm text-muted-foreground">{item.desc}</p>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">{item.desc}</p>
                       </div>
                     </motion.div>
                   ))}
@@ -263,12 +263,12 @@ export default function ProductPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="border bg-card overflow-hidden"
+                className="border border-black/5 bg-white dark:bg-[#0C0C0C] dark:border-white/[0.06] overflow-hidden rounded-2xl"
               >
-                <div className="px-4 py-3 border-b bg-muted/30 flex items-center gap-2">
+                <div className="px-4 py-3 border-b border-black/5 dark:border-white/[0.06] bg-muted/30 flex items-center gap-2">
                   <FolderIcon className="h-4 w-4 text-primary" />
                   <span className="text-xs font-medium">Generated Agent</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{AGENT_FILES.length} files</span>
+                  <span className="ml-auto text-xs text-zinc-500 dark:text-zinc-400">{AGENT_FILES.length} files</span>
                 </div>
                 <div className="p-4 font-mono text-xs space-y-0.5">
                   {AGENT_FILES.map((file, i) => (
@@ -284,20 +284,20 @@ export default function ProductPage() {
                       {file.isDir ? (
                         <FolderIcon className="h-3.5 w-3.5 text-chart-5 flex-shrink-0 mt-0.5" />
                       ) : (
-                        <FileIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <FileIcon className="h-3.5 w-3.5 text-zinc-500 flex-shrink-0 mt-0.5" />
                       )}
-                      <span className={file.isDir ? "text-chart-5 font-medium" : "text-foreground"}>
+                      <span className={file.isDir ? "text-chart-5 font-medium" : "text-zinc-900 dark:text-zinc-100"}>
                         {file.name}
                       </span>
                       {file.snippet && (
-                        <span className="text-muted-foreground ml-2 truncate hidden sm:inline">
+                        <span className="text-zinc-500 dark:text-zinc-400 ml-2 truncate hidden sm:inline">
                           — {file.snippet}
                         </span>
                       )}
                     </motion.div>
                   ))}
                 </div>
-                <div className="px-4 py-3 border-t bg-muted/30">
+                <div className="px-4 py-3 border-t border-black/5 dark:border-white/[0.06] bg-muted/30">
                   <div className="flex items-center gap-2 text-xs text-chart-2">
                     <CheckIcon className="h-3.5 w-3.5" />
                     <span>Agent built and deployed</span>
@@ -309,7 +309,7 @@ export default function ProductPage() {
         </section>
 
         {/* ── Use Cases ───────────────────────────────────────────────────── */}
-        <section className="border-t bg-muted/30">
+        <section className="border-t border-black/5 dark:border-white/[0.06] bg-muted/30">
           <div className="container mx-auto px-4 py-20 lg:py-28">
             <motion.div
               initial="hidden"
@@ -319,12 +319,12 @@ export default function ProductPage() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Use Cases</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm mb-4">Use Cases</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 What you can build
               </motion.h2>
-              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-zinc-500 dark:text-zinc-400">
                 Every agent gets a brain, tools, and memory. Here&apos;s what that looks like in practice.
               </motion.p>
             </motion.div>
@@ -337,10 +337,10 @@ export default function ProductPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.5 }}
-                  className="border bg-card overflow-hidden"
+                  className="border border-black/5 bg-white dark:bg-[#0C0C0C] dark:border-white/[0.06] overflow-hidden rounded-2xl"
                 >
                   {/* Header */}
-                  <div className="px-6 py-4 border-b bg-muted/30 flex items-center gap-3">
+                  <div className="px-6 py-4 border-b border-black/5 dark:border-white/[0.06] bg-muted/30 flex items-center gap-3">
                     <uc.icon className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">{uc.title}</h3>
                   </div>
@@ -348,26 +348,26 @@ export default function ProductPage() {
                   <div className="p-6 space-y-4">
                     {/* Caller says */}
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Caller</p>
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Caller</p>
                       <p className="text-sm">&quot;{uc.caller}&quot;</p>
                     </div>
 
                     {/* Agent executes */}
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Agent executes</p>
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Agent executes</p>
                       <div className="space-y-1 font-mono text-xs">
                         {uc.actions.map((action, j) => (
                           <div key={j} className="flex items-center gap-2">
                             <CheckIcon className="h-3 w-3 text-chart-2 flex-shrink-0" />
-                            <span className="text-muted-foreground">{action}</span>
+                            <span className="text-zinc-500 dark:text-zinc-400">{action}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
                     {/* Result */}
-                    <div className="pt-3 border-t">
-                      <p className="text-sm text-muted-foreground">{uc.result}</p>
+                    <div className="pt-3 border-t border-black/5 dark:border-white/[0.06]">
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{uc.result}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -377,7 +377,7 @@ export default function ProductPage() {
         </section>
 
         {/* ── Technical Specs ─────────────────────────────────────────────── */}
-        <section className="border-t">
+        <section className="border-t border-black/5 dark:border-white/[0.06]">
           <div className="container mx-auto px-4 py-20 lg:py-28">
             <motion.div
               initial="hidden"
@@ -387,12 +387,12 @@ export default function ProductPage() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Technical Specs</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm mb-4">Technical Specs</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 What&apos;s under the hood
               </motion.h2>
-              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-zinc-500 dark:text-zinc-400">
                 Every component is swappable. Here&apos;s what ships today and what you can plug in.
               </motion.p>
             </motion.div>
@@ -406,12 +406,12 @@ export default function ProductPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08 }}
-                  className="border bg-card p-6"
+                  className="border border-black/5 bg-white dark:bg-[#0C0C0C] dark:border-white/[0.06] p-6 rounded-2xl"
                 >
                   <h3 className="font-semibold mb-3">{spec.category}</h3>
                   <ul className="space-y-2">
                     {spec.items.map((item) => (
-                      <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <li key={item} className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                         <CheckIcon className="h-3.5 w-3.5 text-chart-2 flex-shrink-0" />
                         {item}
                       </li>
@@ -441,10 +441,10 @@ export default function ProductPage() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.4 + i * 0.08 }}
-                  className="border bg-card p-6 text-center"
+                  className="border border-black/5 bg-white dark:bg-[#0C0C0C] dark:border-white/[0.06] p-6 text-center rounded-2xl"
                 >
                   <p className="text-2xl font-bold text-primary mb-1">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{stat.label}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -452,7 +452,7 @@ export default function ProductPage() {
         </section>
 
         {/* ── Pricing ─────────────────────────────────────────────────────── */}
-        <section className="border-t bg-muted/30">
+        <section className="border-t border-black/5 dark:border-white/[0.06] bg-muted/30">
           <div className="container mx-auto px-4 py-20 lg:py-28">
             <motion.div
               initial="hidden"
@@ -462,12 +462,12 @@ export default function ProductPage() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Pricing</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm mb-4">Pricing</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 You pay $0 to Nenyax
               </motion.h2>
-              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-zinc-500 dark:text-zinc-400">
                 Nenyax is free and open source. Your only costs are the APIs you choose — STT, LLM, TTS, and telephony — paid directly to the providers at their rates.
               </motion.p>
             </motion.div>
@@ -479,9 +479,9 @@ export default function ProductPage() {
               viewport={{ once: true }}
               className="max-w-4xl mx-auto overflow-x-auto"
             >
-              <table className="w-full text-sm border">
+              <table className="w-full text-sm border border-black/5 dark:border-white/[0.06] rounded-2xl overflow-hidden">
                 <thead>
-                  <tr className="border-b bg-muted/50">
+                  <tr className="border-b border-black/5 dark:border-white/[0.06] bg-muted/50">
                     <th className="text-left px-4 py-3 font-semibold">Monthly Volume</th>
                     <th className="text-center px-4 py-3 font-semibold">1,000 min</th>
                     <th className="text-center px-4 py-3 font-semibold">10,000 min</th>
@@ -497,9 +497,9 @@ export default function ProductPage() {
                     ["Telephony (Twilio US)", "~$15", "~$150", "~$1,500"],
                     ["Your total", "~$67", "~$670", "~$6,700"],
                   ].map((row, i) => (
-                    <tr key={i} className={`border-b last:border-0 ${i === 5 ? "bg-primary/5 font-semibold" : ""}`}>
+                    <tr key={i} className={`border-b border-black/5 dark:border-white/[0.06] last:border-0 ${i === 5 ? "bg-primary/5 font-semibold" : ""}`}>
                       {row.map((cell, j) => (
-                        <td key={j} className={`px-4 py-3 ${j === 0 ? "text-left" : "text-center"} ${j > 0 && i < 5 ? "text-muted-foreground" : ""}`}>
+                        <td key={j} className={`px-4 py-3 ${j === 0 ? "text-left" : "text-center"} ${j > 0 && i < 5 ? "text-zinc-500 dark:text-zinc-400" : ""}`}>
                           {cell}
                         </td>
                       ))}
@@ -514,7 +514,7 @@ export default function ProductPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="max-w-4xl mx-auto mt-6 border-l-4 border-primary bg-primary/5 px-6 py-4"
+              className="max-w-4xl mx-auto mt-6 border-l-4 border-primary bg-primary/5 px-6 py-4 rounded-xl"
             >
               <p className="text-sm">
                 <strong>For comparison:</strong> The same 10,000 minutes costs ~$1,443 on Vapi or ~$700 on Retell — because they add a $0.05–0.06/min platform fee on every minute. That&apos;s $500–600/month you pay just for orchestration that Nenyax gives you for free.
@@ -524,7 +524,7 @@ export default function ProductPage() {
         </section>
 
         {/* ── vs Managed Platforms ─────────────────────────────────────────── */}
-        <section className="border-t">
+        <section className="border-t border-black/5 dark:border-white/[0.06]">
           <div className="container mx-auto px-4 py-20 lg:py-28">
             <motion.div
               initial="hidden"
@@ -534,12 +534,12 @@ export default function ProductPage() {
               className="text-center mb-16"
             >
               <motion.div variants={fadeUp}>
-                <Badge variant="outline" className="mb-4">Comparison</Badge>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm mb-4">Comparison</Badge>
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 Nenyax vs Vapi vs Retell
               </motion.h2>
-              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              <motion.p variants={fadeUp} className="mx-auto max-w-2xl text-lg text-zinc-500 dark:text-zinc-400">
                 Managed platforms charge $0.10–0.33/min and lock you in. Here&apos;s what you get with each.
               </motion.p>
             </motion.div>
@@ -550,9 +550,9 @@ export default function ProductPage() {
               viewport={{ once: true }}
               className="max-w-4xl mx-auto overflow-x-auto"
             >
-              <table className="w-full text-sm border">
+              <table className="w-full text-sm border border-black/5 dark:border-white/[0.06] rounded-2xl overflow-hidden">
                 <thead>
-                  <tr className="border-b bg-muted/50">
+                  <tr className="border-b border-black/5 dark:border-white/[0.06] bg-muted/50">
                     <th className="text-left px-4 py-3 font-semibold"></th>
                     <th className="text-center px-4 py-3 font-semibold bg-primary/5">Nenyax</th>
                     <th className="text-center px-4 py-3 font-semibold">Vapi</th>
@@ -577,27 +577,27 @@ export default function ProductPage() {
                     { feature: "Vendor lock-in", nenyax: "None", vapi: "High", retell: "High", win: true },
                     { feature: "Latency", nenyax: "<500ms", vapi: "~465ms (web)", retell: "~600ms" },
                   ].map((row, i) => (
-                    <tr key={i} className="border-b last:border-0">
+                    <tr key={i} className="border-b border-black/5 dark:border-white/[0.06] last:border-0">
                       <td className="px-4 py-3 font-medium whitespace-nowrap">{row.feature}</td>
                       <td className={`px-4 py-3 text-center ${row.win ? "bg-primary/5" : ""}`}>
                         {typeof row.nenyax === "boolean" ? (
-                          row.nenyax ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                          row.nenyax ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-zinc-500/40 mx-auto" />
                         ) : (
-                          <span className={row.win ? "font-medium text-foreground" : "text-muted-foreground"}>{row.nenyax}</span>
+                          <span className={row.win ? "font-medium text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"}>{row.nenyax}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {typeof row.vapi === "boolean" ? (
-                          row.vapi ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                          row.vapi ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-zinc-500/40 mx-auto" />
                         ) : (
-                          <span className="text-muted-foreground">{row.vapi}</span>
+                          <span className="text-zinc-500 dark:text-zinc-400">{row.vapi}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {typeof row.retell === "boolean" ? (
-                          row.retell ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                          row.retell ? <CheckIcon className="h-4 w-4 text-chart-2 mx-auto" /> : <XMarkIcon className="h-4 w-4 text-zinc-500/40 mx-auto" />
                         ) : (
-                          <span className="text-muted-foreground">{row.retell}</span>
+                          <span className="text-zinc-500 dark:text-zinc-400">{row.retell}</span>
                         )}
                       </td>
                     </tr>
@@ -607,7 +607,7 @@ export default function ProductPage() {
             </motion.div>
 
             <div className="max-w-4xl mx-auto mt-6 text-center">
-              <Link href="/blog/voice-ai-landscape-2026" className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4">
+              <Link href="/blog/voice-ai-landscape-2026" className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors underline underline-offset-4">
                 Read the full comparison with latency benchmarks and detailed pricing breakdowns
               </Link>
             </div>
@@ -615,7 +615,7 @@ export default function ProductPage() {
         </section>
 
         {/* ── CTA ─────────────────────────────────────────────────────────── */}
-        <section className="border-t bg-muted/30">
+        <section className="border-t border-black/5 dark:border-white/[0.06] bg-muted/30">
           <div className="container mx-auto px-4 py-20 lg:py-28">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -627,7 +627,7 @@ export default function ProductPage() {
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
                 Ready to build?
               </h2>
-              <p className="mx-auto max-w-xl text-lg text-muted-foreground mb-8">
+              <p className="mx-auto max-w-xl text-lg text-zinc-500 dark:text-zinc-400 mb-8">
                 Describe your agent. We build it. You own it. Free forever.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

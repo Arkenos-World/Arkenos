@@ -15,18 +15,22 @@ import { PostCallIntelligenceSection } from "@/components/landing/post-call-inte
 import { TelephonySection } from "@/components/landing/telephony-section";
 import { EconomicsSection } from "@/components/landing/economics-section";
 import { DeveloperSection } from "@/components/landing/developer-section";
+import { OpenSourceSection } from "@/components/landing/open-source-section";
+import { FaqSection } from "@/components/landing/faq-section";
 import { CtaSection } from "@/components/landing/cta-section";
+import { SocialProofSection } from "@/components/landing/social-proof-section";
 
 export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#080808] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-zinc-200 dark:selection:bg-zinc-800 selection:text-zinc-900 dark:selection:text-zinc-100">
       <PublicHeader />
 
-      <main>
+      <main className="flex flex-col w-full overflow-hidden">
         <HeroSection setAuthOpen={setAuthOpen} />
         <SubHeroSection />
+        <SocialProofSection />
         <BentoSection />
         <RuntimeComputerSection />
         <ComposablePipelineSection />
@@ -35,6 +39,8 @@ export default function Home() {
         <TelephonySection />
         <EconomicsSection />
         <DeveloperSection />
+        <OpenSourceSection />
+        <FaqSection />
         <CtaSection setAuthOpen={setAuthOpen} />
       </main>
 

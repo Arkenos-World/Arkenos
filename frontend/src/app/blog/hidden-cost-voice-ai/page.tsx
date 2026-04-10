@@ -33,7 +33,7 @@ function SubHeading({ children }: { children: React.ReactNode }) {
 
 function Paragraph({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-base leading-7 text-muted-foreground mb-4">
+    <p className="text-base leading-7 text-zinc-500 dark:text-zinc-400 mb-4">
       {children}
     </p>
   );
@@ -47,10 +47,10 @@ function ComparisonTable({
   rows: string[][];
 }) {
   return (
-    <div className="overflow-x-auto my-8 border">
+    <div className="overflow-x-auto my-8 border border-black/5 dark:border-white/[0.06] rounded-2xl">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/50">
+          <tr className="border-b border-black/5 dark:border-white/[0.06] bg-muted/50">
             {headers.map((h) => (
               <th
                 key={h}
@@ -63,11 +63,11 @@ function ComparisonTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b last:border-0">
+            <tr key={i} className="border-b border-black/5 dark:border-white/[0.06] last:border-0">
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className={`px-4 py-3 whitespace-nowrap ${j === 0 ? "font-medium" : "text-muted-foreground"
+                  className={`px-4 py-3 whitespace-nowrap ${j === 0 ? "font-medium" : "text-zinc-500 dark:text-zinc-400"
                     }`}
                 >
                   {cell}
@@ -83,7 +83,7 @@ function ComparisonTable({
 
 function Callout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border-l-2 border-foreground/20 pl-4 my-6 text-sm text-muted-foreground italic">
+    <div className="border-l-2 border-foreground/20 pl-4 my-6 text-sm text-zinc-500 dark:text-zinc-400 italic">
       {children}
     </div>
   );
@@ -101,12 +101,12 @@ function InlineCode({ children }: { children: React.ReactNode }) {
 
 export default function HiddenCostBlogPost() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#080808]">
       <PublicHeader />
 
       <main>
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="border-b">
+        <section className="border-b border-black/5 dark:border-white/[0.06]">
           <div className="container mx-auto px-4 pt-20 pb-12 lg:pt-28 lg:pb-16">
             <motion.div
               initial="hidden"
@@ -115,8 +115,8 @@ export default function HiddenCostBlogPost() {
               className="max-w-2xl"
             >
               <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
-                <Badge variant="outline">Pricing</Badge>
-                <span className="text-sm text-muted-foreground">14 min read</span>
+                <Badge className="bg-zinc-50 text-zinc-600 border border-black/5 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/[0.06] dark:hover:bg-zinc-800 shadow-sm">Pricing</Badge>
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">14 min read</span>
               </motion.div>
 
               <motion.h1
@@ -128,13 +128,13 @@ export default function HiddenCostBlogPost() {
 
               <motion.p
                 variants={fadeUp}
-                className="text-lg text-muted-foreground mb-4"
+                className="text-lg text-zinc-500 dark:text-zinc-400 mb-4"
               >
                 Vapi advertises $0.05/min. Retell says $0.055/min. Your actual bill?
                 Multiply by 3&ndash;5x. Here&apos;s the real math, with every number sourced.
               </motion.p>
 
-              <motion.p variants={fadeUp} className="text-sm text-muted-foreground">
+              <motion.p variants={fadeUp} className="text-sm text-zinc-500 dark:text-zinc-400">
                 Mar 1, 2026
               </motion.p>
             </motion.div>
@@ -471,7 +471,7 @@ export default function HiddenCostBlogPost() {
                 But the tradeoff stops making sense when:
               </Paragraph>
 
-              <ul className="list-disc list-inside text-muted-foreground space-y-2 mb-6 ml-2">
+              <ul className="list-disc list-inside text-zinc-500 dark:text-zinc-400 space-y-2 mb-6 ml-2">
                 <li>You cross 10,000 minutes/month and the bills keep climbing</li>
                 <li>You need HIPAA/GDPR compliance and face $1,000+/month add-ons</li>
                 <li>You want to switch providers but your agent configs aren&apos;t portable</li>
@@ -539,7 +539,7 @@ export default function HiddenCostBlogPost() {
                 independent analyses. Key sources:
               </Paragraph>
 
-              <ul className="text-sm text-muted-foreground space-y-1.5 mb-8 ml-2">
+              <ul className="text-sm text-zinc-500 dark:text-zinc-400 space-y-1.5 mb-8 ml-2">
                 <li>&bull; Deepgram pricing &mdash; deepgram.com/pricing</li>
                 <li>&bull; AssemblyAI pricing &mdash; assemblyai.com/pricing</li>
                 <li>&bull; Google Cloud STT pricing &mdash; cloud.google.com/speech-to-text/pricing</li>
@@ -560,16 +560,16 @@ export default function HiddenCostBlogPost() {
               </ul>
 
               {/* ── CTA ─────────────────────────────────────────────────────── */}
-              <div className="border-t pt-12 mt-12">
+              <div className="border-t border-black/5 dark:border-white/[0.06] pt-12 mt-12">
                 <p className="text-lg font-semibold mb-2">
                   Stop paying the platform tax.
                 </p>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-zinc-500 dark:text-zinc-400 mb-6">
                   Nenyax gives you the dashboard and agent builder without the per-minute markup.
                   Open source, self-hosted, $0 platform fee.
                 </p>
                 <div className="flex gap-3">
-                  <Link href="https://github.com/Nenyax-World/Nenyax" target="_blank">
+                  <Link href="https://github.com/Nenyax-AI/Nenyax" target="_blank">
                     <Button variant="outline">GitHub</Button>
                   </Link>
                   <Link href="https://nenyax.mintlify.app/">

@@ -337,6 +337,31 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
     const [pipelineExpanded, setPipelineExpanded] = useState(false);
     const [isCheckingNumber, setIsCheckingNumber] = useState(false);
     const [blockDialog, setBlockDialog] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: "", message: "" });
+    const [providerChangeDialog, setProviderChangeDialog] = useState<{ open: boolean; newProvider: string }>({ open: false, newProvider: "" });
+
+    const handleProviderChange = useCallback((newProvider: string) => {
+        if (phoneNumber && newProvider !== telephonyProvider) {
+            setProviderChangeDialog({ open: true, newProvider });
+        } else {
+            setTelephonyProvider(newProvider);
+        }
+    }, [phoneNumber, telephonyProvider]);
+
+    const handleProviderChangeConfirm = useCallback(async () => {
+        const newProvider = providerChangeDialog.newProvider;
+        setProviderChangeDialog({ open: false, newProvider: "" });
+        setIsReleasing(true);
+        try {
+            await releasePhoneNumber(auth, agent.id);
+            setPhoneNumber("");
+            setTelephonyProvider(newProvider);
+            toast.success("Phone number released. Provider switched to " + TELEPHONY_PROVIDERS.find(p => p.id === newProvider)?.name + ".");
+        } catch (error) {
+            toast.error("Failed to release number. Provider was not changed.");
+        } finally {
+            setIsReleasing(false);
+        }
+    }, [auth, agent.id, providerChangeDialog.newProvider]);
 
     const handleSearchNumbers = useCallback(async () => {
         setIsSearching(true);
@@ -1013,7 +1038,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                         No telephony providers configured. <a href="/dashboard/keys" className="text-primary hover:underline">Configure API keys</a> for Twilio or Telnyx first.
                                     </p>
                                 ) : (
-                                    <Select value={telephonyProvider} onValueChange={setTelephonyProvider}>
+                                    <Select value={telephonyProvider} onValueChange={handleProviderChange}>
                                         <SelectTrigger className="w-48">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -1289,6 +1314,44 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                     <DialogFooter>
                         <Button onClick={() => setBlockDialog({ open: false, title: "", message: "" })}>
                             OK
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Provider Change Confirmation Dialog */}
+            <Dialog open={providerChangeDialog.open} onOpenChange={(open) => {
+                if (!open) setProviderChangeDialog({ open: false, newProvider: "" });
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-amber-500" />
+                            Change Telephony Provider
+                        </DialogTitle>
+                        <DialogDescription>
+                            Switching providers will release the currently assigned phone number.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-2">
+                        <div className="p-3 rounded-md border border-border bg-accent/50">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Currently Assigned</p>
+                            <p className="text-lg font-semibold tracking-wide mt-1 font-mono">
+                                {phoneNumber.replace(/^\+?1?(\d{3})(\d{3})(\d{4})$/, "+1 ($1) $2-$3") !== phoneNumber
+                                    ? phoneNumber.replace(/^\+?1?(\d{3})(\d{3})(\d{4})$/, "+1 ($1) $2-$3")
+                                    : phoneNumber}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                via {TELEPHONY_PROVIDERS.find(p => p.id === telephonyProvider)?.name}
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-3">
+                        <Button variant="outline" onClick={() => setProviderChangeDialog({ open: false, newProvider: "" })}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleProviderChangeConfirm} disabled={isReleasing}>
+                            {isReleasing ? "Releasing..." : "Release Number"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

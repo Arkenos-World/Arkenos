@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Noto_Sans, Noto_Sans_Mono } from "next/font/google";
+import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SWRProvider } from "@/components/swr-provider";
 import { PostHogProvider } from "@/components/posthog-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const notoSans = Noto_Sans({
-  variable: "--font-noto-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const notoSansMono = Noto_Sans_Mono({
-  variable: "--font-noto-sans-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jb-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -31,16 +31,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${notoSans.variable} ${notoSansMono.variable} antialiased`}
+        className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
 
-          >
-            <SWRProvider>
+        >            <SWRProvider>
               <PostHogProvider>
                 {children}
               </PostHogProvider>

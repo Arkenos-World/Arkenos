@@ -115,8 +115,6 @@ htmlcov/
 # Project Internal Docs
 # ===================
 VISION.md
-ARCHITECTURE.md
-LIVEKIT_MULTIORG.md
 
 # ===================
 # Misc

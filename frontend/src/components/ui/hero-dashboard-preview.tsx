@@ -599,11 +599,11 @@ const PAGES: Record<Page, React.ReactNode> = {
 };
 
 const URL_MAP: Record<Page, string> = {
-  dashboard: "app.arkenos.ai/dashboard",
-  agents: "app.arkenos.ai/dashboard/agents",
-  logs: "app.arkenos.ai/dashboard/logs",
-  analytics: "app.arkenos.ai/dashboard/analytics",
-  keys: "app.arkenos.ai/dashboard/keys",
+  dashboard: "app.nenyax.ai/dashboard",
+  agents: "app.nenyax.ai/dashboard/agents",
+  logs: "app.nenyax.ai/dashboard/logs",
+  analytics: "app.nenyax.ai/dashboard/analytics",
+  keys: "app.nenyax.ai/dashboard/keys",
 };
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
@@ -636,7 +636,7 @@ export function HeroDashboardPreview({ className }: { className?: string }) {
               <svg viewBox="0 0 36 37" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0 text-white/70">
                 <path d="M17.0019 0.177314C16.168 0.457512 9.77492 4.28688 9.10318 4.91733C8.73257 5.22088 8.68624 5.78127 8.68624 9.96089C8.68624 12.5527 8.59359 14.771 8.50093 14.8877C8.40828 15.0278 6.71736 16.1019 4.72532 17.2927C2.73327 18.4836 0.857042 19.7211 0.555919 20.048C0 20.6318 0 20.6785 0 25.8855V31.1158L0.694899 31.8163C1.66776 32.797 8.17665 36.7198 9.10318 36.8833C9.75175 37 10.3772 36.6965 13.759 34.6417C15.9132 33.3574 17.8357 32.2833 18.0211 32.2833C18.2064 32.2833 20.1058 33.3574 22.2368 34.6417C24.3446 35.9493 26.3367 37 26.6378 37C27.3327 37 34.467 32.6569 35.2082 31.7696C35.9495 30.8823 36.0653 29.855 35.9726 24.9048C35.9031 21.1688 35.8568 20.6084 35.463 20.1881C35.2314 19.9079 33.4247 18.7404 31.4558 17.5496C29.4637 16.3587 27.7033 15.238 27.5412 15.0512C27.2864 14.8177 27.2169 13.7202 27.2169 10.0076C27.2169 5.78127 27.1706 5.22088 26.8231 4.91733C25.9892 4.19348 19.3414 0.317413 18.577 0.107264C18.0442 -0.0561846 17.5346 -0.0328347 17.0019 0.177314ZM25.6881 7.43911C25.7576 7.64926 25.8271 9.51725 25.8271 11.5954C25.8271 15.238 25.8039 15.4014 25.3175 15.8684C24.3678 16.7323 19.295 19.6978 18.9244 19.6277C18.577 19.5577 18.5306 19.0673 18.4843 15.4715C18.438 13.2299 18.4843 11.2685 18.6001 11.105C18.8318 10.7314 24.8774 7.06551 25.248 7.06551C25.4102 7.06551 25.6186 7.22896 25.6881 7.43911ZM17.025 22.6866C17.303 23.2469 17.3262 29.7149 17.0482 30.462C16.9092 30.8356 15.7742 31.6762 13.6664 32.9371C11.9291 33.9879 10.4003 34.8518 10.3077 34.8518C9.77492 34.8518 9.61277 33.7077 9.61277 30.3453C9.61277 27.2398 9.6591 26.656 10.0297 26.2357C10.5393 25.6053 15.8437 22.2896 16.3765 22.2663C16.6081 22.2429 16.8861 22.4531 17.025 22.6866ZM34.328 26.4459C34.3744 28.6875 34.328 30.6488 34.2122 30.7889C34.0732 31.0224 29.5101 33.9178 28.1897 34.595C27.1242 35.1787 26.9853 34.7117 26.9853 30.4153C26.9853 26.7728 27.0084 26.4926 27.4717 26.0723C28.3982 25.2083 33.3552 22.2663 33.8184 22.313C34.2585 22.3597 34.2817 22.5465 34.328 26.4459Z" fill="currentColor"/>
               </svg>
-              <span className="text-[10px] text-white/70 font-semibold">arkenos</span>
+              <span className="text-[10px] text-white/70 font-semibold">nenyax</span>
             </div>
 
             <div className="space-y-0.5 flex-1">
@@ -660,7 +660,7 @@ export function HeroDashboardPreview({ className }: { className?: string }) {
             <div className="border-t border-white/[0.06] pt-2.5 mt-2">
               <div className="flex items-center gap-2 px-1.5">
                 <div className="w-5 h-5 rounded-full bg-white/[0.08] flex items-center justify-center text-[8px] text-white/40 font-bold">D</div>
-                <span className="text-[9px] text-white/30 truncate">demo@arkenos.ai</span>
+                <span className="text-[9px] text-white/30 truncate">demo@nenyax.ai</span>
               </div>
             </div>
           </div>

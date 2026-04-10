@@ -169,7 +169,7 @@ Watch for these architectural anti-patterns:
 - **Tight Coupling**: Components too dependent
 - **God Object**: One class/component does everything
 
-## Arkenos-Specific Architecture
+## Nenyax-Specific Architecture
 
 ### Current Stack
 - **Frontend**: Next.js 16, React 19, Tailwind, Better Auth

@@ -186,7 +186,7 @@ export function TelephonySection() {
                       <span className="text-zinc-300 ml-1">•</span> 42ms
                     </div>
                     <div className="text-[15px] font-medium text-zinc-900 leading-relaxed">
-                      "Hello! Thanks for calling Arkenos support. How can I help?"
+                      "Hello! Thanks for calling Nenyax support. How can I help?"
                     </div>
                   </motion.div>
 

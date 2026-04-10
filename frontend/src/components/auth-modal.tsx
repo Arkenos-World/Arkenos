@@ -96,7 +96,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = "sign-in" }: AuthM
                     <DialogDescription>
                         {mode === "sign-in"
                             ? "Enter your credentials to access your account"
-                            : "Get started with your free Arkenos account"}
+                            : "Get started with your free Nenyax account"}
                     </DialogDescription>
                 </DialogHeader>
                 <form key={mode} onSubmit={handleSubmit} className="space-y-4 animate-[slide-up-fade_0.3s_ease-out]">

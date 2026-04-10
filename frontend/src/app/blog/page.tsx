@@ -41,7 +41,7 @@ const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "why-open-source",
-    title: "Why We're Building Arkenos Open Source",
+    title: "Why We're Building Nenyax Open Source",
     description:
       "89% of enterprises use open-source AI. Voice AI is the last holdout. Here's why we chose AGPL-3.0 and what it means for the industry.",
     date: "Feb 28, 2026",
@@ -83,7 +83,7 @@ export default function BlogPage() {
                 Blog
               </motion.h1>
               <motion.p variants={fadeUp} className="text-lg text-muted-foreground">
-                Latest updates, tutorials, and insights from the Arkenos team.
+                Latest updates, tutorials, and insights from the Nenyax team.
               </motion.p>
             </motion.div>
           </div>

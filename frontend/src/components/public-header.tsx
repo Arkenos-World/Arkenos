@@ -10,7 +10,7 @@ import { NenyaxLogoMark } from "@/components/ui/nenyax-logo";
 import { AuthModal } from "@/components/auth-modal";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDownIcon, CommandIcon } from "lucide-react";
+import { ChevronDownIcon, Star } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/product", label: "Platform", hasDropdown: true },
@@ -25,11 +25,33 @@ export function PublicHeader() {
   const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [scrolled, setScrolled] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [starCount, setStarCount] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const cached = sessionStorage.getItem("nenyax-gh-stars");
+    if (cached) {
+      setStarCount(cached);
+      return;
+    }
+    fetch("https://api.github.com/repos/Nenyax-World/Nenyax")
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.stargazers_count === "number") {
+          const count = data.stargazers_count;
+          const formatted = count >= 1000 ? `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(count);
+          sessionStorage.setItem("nenyax-gh-stars", formatted);
+          setStarCount(formatted);
+        }
+      })
+      .catch(() => {
+        // Silently fail — badge will show fallback
+      });
   }, []);
 
   return (
@@ -110,6 +132,16 @@ export function PublicHeader() {
                 );
               })}
             </nav>
+
+            <a
+              href="https://github.com/Nenyax-World/Nenyax"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:flex items-center gap-1.5 rounded-full bg-zinc-50 border border-black/5 text-[12px] font-medium px-3 py-1.5 text-zinc-700 hover:text-zinc-900 transition-colors"
+            >
+              <Star className="w-3.5 h-3.5" />
+              {starCount ? starCount : "Star"}
+            </a>
           </div>
 
           <div className="flex items-center gap-3">

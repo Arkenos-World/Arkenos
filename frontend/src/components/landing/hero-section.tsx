@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { HeroPipelineAnimation } from "@/components/ui/hero-pipeline-animation";
-import { ShimmeringText } from "@/components/ui/shimmering-text";
+import { TextRotate } from "@/components/ui/text-rotate";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -43,13 +43,8 @@ export function HeroSection({ setAuthOpen }: { setAuthOpen: (b: boolean) => void
               className="text-4xl sm:text-5xl lg:text-[4.5rem] font-medium leading-[1.05] text-zinc-900"
             >
               Enterprise-grade<br />
-              <ShimmeringText
-                text="conversational AI"
-                color="#18181b"
-                shimmerColor="#a1a1aa"
-                duration={3}
-                delay={0.8}
-                spread={1.5}
+              <TextRotate
+                words={["conversational AI", "voice agents", "call automation", "AI pipelines"]}
                 className="text-4xl sm:text-5xl lg:text-[4.5rem] font-medium"
               /><br />
               infrastructure.

@@ -77,65 +77,20 @@ export function ComposablePipelineSection() {
           >
             <div className="flex flex-col md:flex-row items-center justify-between relative z-10 w-full max-w-5xl mx-auto gap-16 md:gap-8 min-h-[300px]">
               
-              {/* The Animated Beam Connecting Wire */}
-              <div className="absolute inset-0 hidden lg:block pointer-events-none z-[-1]">
-                <svg 
-                  className="w-full h-full"
-                  viewBox="0 0 100 100" 
-                  fill="none" 
-                  preserveAspectRatio="none"
-                >
-                  {/* Background Path 1 (STT to Intelligence) */}
-                  <path 
-                    d="M 15 63 C 32.5 63, 32.5 37, 50 37" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                    strokeDasharray="6 6"
-                    className="text-zinc-300 opacity-40"
-                  />
-                  {/* Background Path 2 (Intelligence to TTS) */}
-                  <path 
-                    d="M 50 37 C 67.5 37, 67.5 89, 85 89" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                    strokeDasharray="6 6"
-                    className="text-zinc-300 opacity-40"
-                  />
-                  
-                  {/* Animated Beam 1 */}
-                  <motion.path 
-                    d="M 15 63 C 32.5 63, 32.5 37, 50 37" 
-                    stroke="#10b981" 
-                    strokeWidth="3" 
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                    initial={{ pathLength: 0.15, pathOffset: -0.15 }}
-                    animate={{ pathLength: 0.15, pathOffset: 1.15 }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-                    style={{ filter: "drop-shadow(0 0 4px rgba(16, 185, 129, 0.6))" }}
-                  />
-                  
-                  {/* Animated Beam 2 */}
-                  <motion.path 
-                    d="M 50 37 C 67.5 37, 67.5 89, 85 89" 
-                    stroke="#10b981" 
-                    strokeWidth="3" 
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                    initial={{ pathLength: 0.15, pathOffset: -0.15 }}
-                    animate={{ pathLength: 0.15, pathOffset: 1.15 }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear", delay: 1.25 }}
-                    style={{ filter: "drop-shadow(0 0 4px rgba(16, 185, 129, 0.6))" }}
-                  />
-                </svg>
+              {/* The Connecting Wire with Flowing Packets */}
+              <div className="absolute top-1/2 left-0 right-0 h-px bg-black/[0.06] -translate-y-1/2 border-dashed hidden md:block z-0">
+                <motion.div 
+                  initial={{ left: "-10%" }}
+                  animate={{ left: "110%" }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  className="absolute top-1/2 -translate-y-1/2 w-32 h-px bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+                />
+                <motion.div 
+                  initial={{ left: "-10%" }}
+                  animate={{ left: "110%" }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: 1.5 }}
+                  className="absolute top-1/2 -translate-y-1/2 w-32 h-px bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+                />
               </div>
               
               {/* STT Column */}

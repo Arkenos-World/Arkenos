@@ -32,7 +32,7 @@ const FILES: { name: string; depth: number; type: "py" | "folder" | "txt" | "yam
   { name: "tools", depth: 0, type: "folder", active: false },
   { name: "calendar.py", depth: 1, type: "py", active: false },
   { name: "__init__.py", depth: 1, type: "py", active: false },
-  { name: "arkenos.yaml", depth: 0, type: "yaml", active: false },
+  { name: "nenyax.yaml", depth: 0, type: "yaml", active: false },
 ];
 
 const fileIcon: Record<string, React.ReactNode> = {

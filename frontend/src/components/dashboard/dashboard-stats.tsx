@@ -194,8 +194,8 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
             {isLoading ? (
                 <SkeletonStatRow />
             ) : (
-            <Card className="overflow-hidden">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y lg:divide-y-0">
+            <Card className="overflow-hidden rounded-2xl border-black/5 dark:border-white/[0.06] shadow-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y lg:divide-y-0 divide-black/5 dark:divide-white/[0.06]">
                     <StatCell
                         label={`Total Calls`}
                         value={isLoading ? "—" : String(currTotal)}
@@ -248,15 +248,15 @@ export function DashboardStats({ userId }: DashboardStatsProps) {
             )}
 
             {/* Call Volume Chart */}
-            <Card className="animate-[scale-in_0.5s_ease-out_0.3s_both]">
+            <Card className="animate-[scale-in_0.5s_ease-out_0.3s_both] rounded-2xl border-black/5 dark:border-white/[0.06] shadow-sm">
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-base">Call Volume</CardTitle>
+                            <CardTitle className="text-base font-semibold tracking-tight">Call Volume</CardTitle>
                             <CardDescription className="text-xs">{chartLabel}</CardDescription>
                         </div>
                         <Link href="/dashboard/analytics">
-                            <Button variant="ghost" size="sm" className="text-xs">View analytics</Button>
+                            <Button variant="outline" size="sm" className="rounded-full h-8 text-xs font-medium px-4">View analytics</Button>
                         </Link>
                     </div>
                 </CardHeader>

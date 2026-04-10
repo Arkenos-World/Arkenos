@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react"
 import {
-    Area, AreaChart, Bar, BarChart, CartesianGrid,
+    Area, AreaChart, CartesianGrid,
     XAxis, YAxis, Pie, PieChart, Cell
 } from "recharts"
 import {
@@ -245,19 +245,35 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
         return config
     }, [timelineProviders])
 
-    // Timeline data formatted for chart
+    // Timeline data formatted as cumulative for chart
     const timelineChartData = useMemo(() => {
-        return timeline.map(entry => {
-            const dateLabel = granularity === "monthly"
-                ? new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })
-                : new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
-            return {
-                date: dateLabel,
-                ...entry.costs,
-                total: entry.total,
+        const fmtDate = (d: string) => granularity === "monthly"
+            ? new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+            : new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+
+        // Build cumulative sums per provider
+        const cumulative: Record<string, number> = {}
+        const points = timeline.map(entry => {
+            const point: Record<string, string | number> = { date: fmtDate(entry.date) }
+            let total = 0
+            for (const [provider, cost] of Object.entries(entry.costs)) {
+                cumulative[provider] = (cumulative[provider] || 0) + Number(cost)
+                point[provider] = cumulative[provider]
+                total += cumulative[provider]
             }
+            point.total = total
+            return point
         })
-    }, [timeline, granularity])
+
+        // Prepend a $0 origin so the chart always starts from zero
+        if (points.length > 0) {
+            const zeroPoint: Record<string, string | number> = { date: "" }
+            timelineProviders.forEach(p => { zeroPoint[p] = 0 })
+            zeroPoint.total = 0
+            return [zeroPoint, ...points]
+        }
+        return points
+    }, [timeline, granularity, timelineProviders])
 
     // Provider categories for grouped display
     const PROVIDER_CATEGORIES: Record<string, { label: string; icon: string }> = {
@@ -459,8 +475,8 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
                 <Card className="lg:col-span-2 animate-[slide-up-fade_0.4s_ease-out_both]" style={{ animationDelay: "0.2s" }}>
                     <CardHeader className="flex flex-row items-center justify-between pb-3">
                         <div>
-                            <CardTitle>Cost Timeline</CardTitle>
-                            <CardDescription>Spending over time by provider</CardDescription>
+                            <CardTitle>Cumulative Spend</CardTitle>
+                            <CardDescription>Running total by provider</CardDescription>
                         </div>
                         <div className="flex gap-1 border rounded-lg p-1">
                             {(["daily", "weekly", "monthly"] as const).map(g => (
@@ -485,17 +501,18 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
                                     <defs>
                                         {timelineProviders.map((p, i) => (
                                             <linearGradient key={p} id={`costGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={PROVIDER_COLORS[i % PROVIDER_COLORS.length]} stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor={PROVIDER_COLORS[i % PROVIDER_COLORS.length]} stopOpacity={0} />
+                                                <stop offset="5%" stopColor={PROVIDER_COLORS[i % PROVIDER_COLORS.length]} stopOpacity={0.25} />
+                                                <stop offset="95%" stopColor={PROVIDER_COLORS[i % PROVIDER_COLORS.length]} stopOpacity={0.02} />
                                             </linearGradient>
                                         ))}
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
                                     <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} tickFormatter={(v: number | string) => `$${(Number(v) || 0).toFixed(2)}`} />
                                     <ChartTooltip
                                         content={<ChartTooltipContent
                                             formatter={(value) => fmtCost(value as number)}
+                                            labelFormatter={(label) => label || "Start"}
                                         />}
                                     />
                                     {timelineProviders.map((p, i) => (
@@ -507,8 +524,8 @@ export default function CostsClient({ userId, apiUrl }: CostsClientProps) {
                                             stroke={PROVIDER_COLORS[i % PROVIDER_COLORS.length]}
                                             strokeWidth={2}
                                             fill={`url(#costGrad-${i})`}
-                                            dot={false}
-                                            activeDot={{ r: 4, fill: PROVIDER_COLORS[i % PROVIDER_COLORS.length] }}
+                                            dot={{ r: 3, fill: PROVIDER_COLORS[i % PROVIDER_COLORS.length], strokeWidth: 0 }}
+                                            activeDot={{ r: 5, fill: PROVIDER_COLORS[i % PROVIDER_COLORS.length], strokeWidth: 2, stroke: "var(--background)" }}
                                         />
                                     ))}
                                 </AreaChart>

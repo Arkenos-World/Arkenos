@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Arkenos — One-Command Installer
+# Nenyax — One-Command Installer
 #
 # Usage:
-#   curl -fsSL https://get.arkenos.dev | sh
+#   curl -fsSL https://get.nenyax.dev | sh
 #   (or)
 #   bash install.sh
 #
@@ -12,8 +12,8 @@
 
 set -euo pipefail
 
-ARKENOS_DIR="/opt/arkenos"
-REPO_URL="https://github.com/Arkenos-World/Arkenos.git"
+NENYAX_DIR="/opt/nenyax"
+REPO_URL="https://github.com/Nenyax-World/Nenyax.git"
 BRANCH="master"
 
 # ── Colors ──────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ fi
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║         Arkenos Installer            ║${NC}"
+echo -e "${CYAN}║         Nenyax Installer             ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
 echo ""
 
@@ -130,16 +130,16 @@ detect_ip() {
 ask_domain() {
     echo ""
     echo -e "${YELLOW}Do you have a domain name pointed at this server?${NC}"
-    echo "  Enter your domain (e.g. arkenos.example.com) for auto HTTPS,"
+    echo "  Enter your domain (e.g. nenyax.example.com) for auto HTTPS,"
     echo "  or press Enter to use IP-based access (HTTP only)."
     echo ""
     read -rp "Domain (or Enter to skip): " USER_DOMAIN
 
     if [ -n "$USER_DOMAIN" ]; then
-        ARKENOS_URL="https://$USER_DOMAIN"
+        NENYAX_URL="https://$USER_DOMAIN"
         ok "Will configure HTTPS for: $USER_DOMAIN"
     else
-        ARKENOS_URL="https://$PUBLIC_IP"
+        NENYAX_URL="https://$PUBLIC_IP"
         ok "Will configure HTTPS (self-signed) at: https://$PUBLIC_IP"
     fi
 }
@@ -165,40 +165,40 @@ configure_firewall() {
 
 # ── Clone or update repo ───────────────────────────────────────────────────
 clone_repo() {
-    if [ -d "$ARKENOS_DIR/.git" ]; then
-        info "Arkenos directory exists, pulling latest..."
-        cd "$ARKENOS_DIR"
+    if [ -d "$NENYAX_DIR/.git" ]; then
+        info "Nenyax directory exists, pulling latest..."
+        cd "$NENYAX_DIR"
         git fetch origin
         git reset --hard "origin/$BRANCH"
         ok "Updated to latest"
     else
-        info "Cloning Arkenos..."
-        git clone --branch "$BRANCH" --depth 1 "$REPO_URL" "$ARKENOS_DIR"
-        ok "Cloned to $ARKENOS_DIR"
+        info "Cloning Nenyax..."
+        git clone --branch "$BRANCH" --depth 1 "$REPO_URL" "$NENYAX_DIR"
+        ok "Cloned to $NENYAX_DIR"
     fi
-    cd "$ARKENOS_DIR"
+    cd "$NENYAX_DIR"
 }
 
 # ── Generate self-signed certs ──────────────────────────────────────────────
 generate_certs() {
     if [ -n "$USER_DOMAIN" ]; then
         # Real domain — Caddy handles certs via Let's Encrypt, no self-signed needed
-        mkdir -p "$ARKENOS_DIR/certs"
+        mkdir -p "$NENYAX_DIR/certs"
         # Create dummy files so the volume mount doesn't fail
-        touch "$ARKENOS_DIR/certs/cert.pem" "$ARKENOS_DIR/certs/key.pem"
+        touch "$NENYAX_DIR/certs/cert.pem" "$NENYAX_DIR/certs/key.pem"
         return
     fi
 
-    if [ -f "$ARKENOS_DIR/certs/cert.pem" ] && [ -s "$ARKENOS_DIR/certs/cert.pem" ]; then
+    if [ -f "$NENYAX_DIR/certs/cert.pem" ] && [ -s "$NENYAX_DIR/certs/cert.pem" ]; then
         ok "Self-signed certs already exist"
         return
     fi
 
     info "Generating self-signed HTTPS certificate..."
-    mkdir -p "$ARKENOS_DIR/certs"
+    mkdir -p "$NENYAX_DIR/certs"
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout "$ARKENOS_DIR/certs/key.pem" \
-        -out "$ARKENOS_DIR/certs/cert.pem" \
+        -keyout "$NENYAX_DIR/certs/key.pem" \
+        -out "$NENYAX_DIR/certs/cert.pem" \
         -subj "/CN=$PUBLIC_IP" \
         -addext "subjectAltName=IP:$PUBLIC_IP" \
         2>/dev/null
@@ -229,14 +229,14 @@ write_caddyfile() {
 	}'
 
     if [ -n "$USER_DOMAIN" ]; then
-        cat > "$ARKENOS_DIR/Caddyfile" <<EOF
+        cat > "$NENYAX_DIR/Caddyfile" <<EOF
 $USER_DOMAIN {
 $CADDY_ROUTES
 }
 EOF
         ok "Caddyfile: HTTPS with Let's Encrypt for $USER_DOMAIN"
     else
-        cat > "$ARKENOS_DIR/Caddyfile" <<EOF
+        cat > "$NENYAX_DIR/Caddyfile" <<EOF
 :443 {
 	tls /certs/cert.pem /certs/key.pem
 $CADDY_ROUTES
@@ -248,23 +248,23 @@ EOF
 
 # ── Generate .env ───────────────────────────────────────────────────────────
 generate_env() {
-    if [ -f "$ARKENOS_DIR/.env" ]; then
+    if [ -f "$NENYAX_DIR/.env" ]; then
         warn ".env already exists — preserving existing credentials"
         # Update only the URL config (in case domain changed)
-        sed -i "s|^ARKENOS_URL=.*|ARKENOS_URL=$ARKENOS_URL|" "$ARKENOS_DIR/.env"
+        sed -i "s|^NENYAX_URL=.*|NENYAX_URL=$NENYAX_URL|" "$NENYAX_DIR/.env"
         # Source existing values for the summary printout
-        . "$ARKENOS_DIR/.env"
+        . "$NENYAX_DIR/.env"
         ok "Updated URL config in existing .env"
         return
     fi
 
     POSTGRES_PASSWORD=$(gen_password)
-    MINIO_ROOT_USER="arkenos-minio"
+    MINIO_ROOT_USER="nenyax-minio"
     MINIO_ROOT_PASSWORD=$(gen_password)
     BETTER_AUTH_SECRET=$(gen_password)
 
-    cat > "$ARKENOS_DIR/.env" <<EOF
-# Arkenos Production Environment
+    cat > "$NENYAX_DIR/.env" <<EOF
+# Nenyax Production Environment
 # Auto-generated by install.sh — $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 # =============================================
 
@@ -275,17 +275,17 @@ MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
 BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 
 # URL Configuration
-ARKENOS_URL=$ARKENOS_URL
+NENYAX_URL=$NENYAX_URL
 EOF
 
-    chmod 600 "$ARKENOS_DIR/.env"
+    chmod 600 "$NENYAX_DIR/.env"
     ok "Generated .env with secure random credentials"
 }
 
 # ── Start services ──────────────────────────────────────────────────────────
 start_services() {
-    info "Building and starting Arkenos (this may take 3-5 minutes on first run)..."
-    cd "$ARKENOS_DIR"
+    info "Building and starting Nenyax (this may take 3-5 minutes on first run)..."
+    cd "$NENYAX_DIR"
     docker compose -f docker-compose.prod.yml up -d --build
 
     info "Waiting for services to be healthy..."
@@ -294,12 +294,12 @@ start_services() {
     # Check if backend is responding
     RETRIES=30
     for i in $(seq 1 $RETRIES); do
-        if docker exec arkenos-backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" >/dev/null 2>&1; then
+        if docker exec nenyax-backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" >/dev/null 2>&1; then
             ok "Backend is healthy"
             break
         fi
         if [ "$i" -eq "$RETRIES" ]; then
-            warn "Backend health check timed out — it may still be starting. Check: docker logs arkenos-backend"
+            warn "Backend health check timed out — it may still be starting. Check: docker logs nenyax-backend"
         fi
         sleep 5
     done
@@ -308,32 +308,32 @@ start_services() {
 # ── Build base agent image ──────────────────────────────────────────────────
 build_base_image() {
     info "Building custom agent base image (for custom agents)..."
-    cd "$ARKENOS_DIR"
-    docker build -t arkenos-agent-base:latest -f agent/Dockerfile.base agent/
-    ok "Base agent image built: arkenos-agent-base:latest"
+    cd "$NENYAX_DIR"
+    docker build -t nenyax-agent-base:latest -f agent/Dockerfile.base agent/
+    ok "Base agent image built: nenyax-agent-base:latest"
 }
 
 # ── Print summary ───────────────────────────────────────────────────────────
 print_summary() {
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║             Arkenos is running!                         ║${NC}"
+    echo -e "${GREEN}║             Nenyax is running!                          ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${CYAN}URL:${NC}        $ARKENOS_URL"
+    echo -e "  ${CYAN}URL:${NC}        $NENYAX_URL"
     echo ""
-    echo -e "  ${CYAN}Credentials (saved to $ARKENOS_DIR/.env):${NC}"
+    echo -e "  ${CYAN}Credentials (saved to $NENYAX_DIR/.env):${NC}"
     echo -e "    Postgres:  postgres:$POSTGRES_PASSWORD @ localhost:5432"
     echo -e "    MinIO:     $MINIO_ROOT_USER:$MINIO_ROOT_PASSWORD"
     echo ""
     echo -e "  ${CYAN}Next steps:${NC}"
-    echo "    1. Open $ARKENOS_URL in your browser"
+    echo "    1. Open $NENYAX_URL in your browser"
     echo "    2. Create your account"
     echo "    3. Go to Settings → API Keys and add your provider keys"
     echo "       (LiveKit, Google AI, Resemble AI, etc.)"
     echo ""
     echo -e "  ${CYAN}Useful commands:${NC}"
-    echo "    cd $ARKENOS_DIR"
+    echo "    cd $NENYAX_DIR"
     echo "    docker compose -f docker-compose.prod.yml logs -f     # View logs"
     echo "    docker compose -f docker-compose.prod.yml restart      # Restart"
     echo "    docker compose -f docker-compose.prod.yml down         # Stop"

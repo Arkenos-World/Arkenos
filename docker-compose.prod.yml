@@ -83,7 +83,7 @@ services:
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      FRONTEND_URL: ${ARKENOS_URL:-http://localhost}
+      FRONTEND_URL: ${NENYAX_URL:-http://localhost}
       CONTAINER_BACKEND_URL: http://nenyax-backend:8000/api
       DOCKER_SOCKET: unix:///var/run/docker.sock
       CONTAINER_NETWORK: nenyax_default
@@ -119,14 +119,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${ARKENOS_URL:-http://localhost}/api
+        NEXT_PUBLIC_API_URL: ${NENYAX_URL:-http://localhost}/api
     container_name: nenyax-frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${ARKENOS_URL:-http://localhost}/api
+      NEXT_PUBLIC_API_URL: ${NENYAX_URL:-http://localhost}/api
       INTERNAL_API_URL: http://backend:8000/api
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/nenyax
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${ARKENOS_URL:-http://localhost}
+      BETTER_AUTH_URL: ${NENYAX_URL:-http://localhost}
       NEXT_PUBLIC_TELEMETRY: "false"
     depends_on:
       postgres:

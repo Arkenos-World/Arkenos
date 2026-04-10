@@ -95,7 +95,22 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      agent-base:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  # ============================================
+  # Agent Base Image (one-shot builder)
+  # Ensures nenyax-agent-base:latest exists for custom agent builds.
+  # ============================================
+  agent-base:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile.base
+    image: nenyax-agent-base:latest
+    container_name: nenyax-agent-base-build
+    command: ["true"]
+    restart: "no"
 
   # ============================================
   # Voice Agent (LiveKit — standard agent)

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { BarChart3, Scale } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 export function EconomicsSection() {
   return (
@@ -41,7 +41,7 @@ export function EconomicsSection() {
               
               {/* Rows */}
               {[
-                { layer: "Platform Fee", nenyax: "$0.00", alt: "~$0.05 / min", highlight: true },
+                { layer: "Platform Fee", nenyax: "animated-zero" as const, alt: "~$0.05 / min", highlight: true },
                 { layer: "Intelligence", nenyax: "Google Gemini", alt: "Locked Models", highlight: true },
                 { layer: "STT / TTS", nenyax: "Direct API Cost", alt: "Marked up" },
                 { layer: "Telephony", nenyax: "Your Twilio SIP", alt: "Per-minute toll" },
@@ -51,7 +51,15 @@ export function EconomicsSection() {
                   <span className="w-1/3 text-center">
                     {row.highlight ? (
                       <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-[12px] font-semibold text-emerald-600 shadow-sm">
-                        {row.nenyax}
+                        {row.nenyax === "animated-zero" ? (
+                          <motion.span
+                            animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 0 0 rgba(16,185,129,0)", "0 0 12px 4px rgba(16,185,129,0.25)", "0 0 0 0 rgba(16,185,129,0)"] }}
+                            transition={{ delay: 1.5, duration: 0.6, repeat: 2 }}
+                            className="inline-flex"
+                          >
+                            <AnimatedCounter value={0} prefix="$" decimals={2} className="text-emerald-600 font-semibold" />
+                          </motion.span>
+                        ) : row.nenyax}
                       </span>
                     ) : (
                       <span className="text-[14px] font-semibold text-zinc-900">{row.nenyax}</span>
@@ -81,7 +89,9 @@ export function EconomicsSection() {
               <div className="flex items-end justify-between border-b border-black/5 pb-6">
                 <div>
                   <div className="text-[11px] font-mono text-zinc-400 mb-2 uppercase tracking-wider">Session: <span className="text-zinc-900 font-medium">call_9281x</span></div>
-                  <div className="text-4xl md:text-5xl font-medium text-zinc-900 tracking-tight">$0.042</div>
+                  <div className="text-4xl md:text-5xl font-medium text-zinc-900 tracking-tight">
+                    <AnimatedCounter value={0.042} prefix="$" decimals={3} />
+                  </div>
                 </div>
                 <div className="text-[11px] font-mono text-emerald-600 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-2 mb-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -98,7 +108,7 @@ export function EconomicsSection() {
                       <span className="font-medium text-zinc-800">Google Gemini</span>
                       <span className="text-zinc-500 font-mono text-[10px] uppercase border border-black/10 bg-white px-1.5 rounded">LLM</span>
                     </div>
-                    <span className="font-mono text-zinc-900 font-medium">$0.012</span>
+                    <span className="font-mono text-zinc-900 font-medium"><AnimatedCounter value={0.012} prefix="$" decimals={3} delay={0.1} /></span>
                   </div>
                   <div className="flex justify-between text-[12px] font-mono text-zinc-400 pl-4 border-l border-black/10 ml-1">
                     <span>840 tokens</span>
@@ -114,7 +124,7 @@ export function EconomicsSection() {
                       <span className="font-medium text-zinc-800">Resemble AI</span>
                       <span className="text-zinc-500 font-mono text-[10px] uppercase border border-black/10 bg-white px-1.5 rounded">TTS</span>
                     </div>
-                    <span className="font-mono text-zinc-900 font-medium">$0.022</span>
+                    <span className="font-mono text-zinc-900 font-medium"><AnimatedCounter value={0.022} prefix="$" decimals={3} delay={0.2} /></span>
                   </div>
                   <div className="flex justify-between text-[12px] font-mono text-zinc-400 pl-4 border-l border-black/10 ml-1">
                     <span>310 chars</span>
@@ -130,7 +140,7 @@ export function EconomicsSection() {
                       <span className="font-medium text-zinc-800">Deepgram</span>
                       <span className="text-zinc-500 font-mono text-[10px] uppercase border border-black/10 bg-white px-1.5 rounded">STT</span>
                     </div>
-                    <span className="font-mono text-zinc-900 font-medium">$0.008</span>
+                    <span className="font-mono text-zinc-900 font-medium"><AnimatedCounter value={0.008} prefix="$" decimals={3} delay={0.3} /></span>
                   </div>
                   <div className="flex justify-between text-[12px] font-mono text-zinc-400 pl-4 border-l border-black/10 ml-1">
                     <span>1m 12s</span>

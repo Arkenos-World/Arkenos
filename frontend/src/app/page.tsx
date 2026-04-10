@@ -16,6 +16,7 @@ import { TelephonySection } from "@/components/landing/telephony-section";
 import { EconomicsSection } from "@/components/landing/economics-section";
 import { DeveloperSection } from "@/components/landing/developer-section";
 import { OpenSourceSection } from "@/components/landing/open-source-section";
+import { FaqSection } from "@/components/landing/faq-section";
 import { CtaSection } from "@/components/landing/cta-section";
 import { SocialProofSection } from "@/components/landing/social-proof-section";
 
@@ -39,6 +40,7 @@ export default function Home() {
         <EconomicsSection />
         <DeveloperSection />
         <OpenSourceSection />
+        <FaqSection />
         <CtaSection setAuthOpen={setAuthOpen} />
       </main>
 

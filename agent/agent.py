@@ -777,21 +777,40 @@ async def entrypoint(ctx: agents.JobContext):
             except Exception as e:
                 logger.error(f"Pre-call webhook failed: {e}")
 
-    # Create TTS with the configured voice (official LiveKit Resemble plugin)
-    logger.info(f"[PIPELINE] Initializing TTS (Resemble AI official plugin), voice_id={voice_id}")
-    try:
-        resemble_key = os.environ.get("RESEMBLE_API_KEY")
-        resemble_voice = voice_id or os.environ.get("RESEMBLE_VOICE_UUID")
-        logger.info(f"[PIPELINE] Resemble API key present: {bool(resemble_key)}, voice_uuid: {resemble_voice}")
-        tts = resemble.TTS(
-            voice_uuid=resemble_voice,
-            model="chatterbox-turbo",
-            use_streaming=True,
-        )
-        logger.info("[PIPELINE] TTS initialized: model=chatterbox-turbo, streaming=True")
-    except Exception as e:
-        logger.error(f"[PIPELINE] FAILED to initialize TTS (Resemble): {e}", exc_info=True)
-        raise
+    # Create TTS with the configured provider and voice
+    tts_provider = config.get("tts_provider", "resemble")
+
+    if tts_provider == "google":
+        google_voice_name = config.get("google_voice_name", "Kore")
+        # Extract short name if full ID was saved (e.g., "en-US-Chirp3-HD-Kore" -> "Kore")
+        if "-" in google_voice_name:
+            google_voice_name = google_voice_name.split("-")[-1]
+        logger.info(f"[PIPELINE] Initializing TTS (Gemini TTS), voice={google_voice_name}")
+        try:
+            tts = google.beta.GeminiTTS(
+                model="gemini-2.5-flash-preview-tts",
+                voice_name=google_voice_name,
+            )
+            logger.info(f"[PIPELINE] TTS initialized: Gemini TTS, voice={google_voice_name}")
+        except Exception as e:
+            logger.error(f"[PIPELINE] FAILED to initialize TTS (Google): {e}", exc_info=True)
+            raise
+    else:
+        # Default: Resemble AI TTS
+        logger.info(f"[PIPELINE] Initializing TTS (Resemble AI official plugin), voice_id={voice_id}")
+        try:
+            resemble_key = os.environ.get("RESEMBLE_API_KEY")
+            resemble_voice = voice_id or os.environ.get("RESEMBLE_VOICE_UUID")
+            logger.info(f"[PIPELINE] Resemble API key present: {bool(resemble_key)}, voice_uuid: {resemble_voice}")
+            tts = resemble.TTS(
+                voice_uuid=resemble_voice,
+                model="chatterbox-turbo",
+                use_streaming=True,
+            )
+            logger.info("[PIPELINE] TTS initialized: model=chatterbox-turbo, streaming=True")
+        except Exception as e:
+            logger.error(f"[PIPELINE] FAILED to initialize TTS (Resemble): {e}", exc_info=True)
+            raise
     
     # --- CREATE BACKEND SESSION ---
     # For SIP calls, use the agent owner's user_id so sessions appear in their call log.
@@ -871,7 +890,10 @@ async def entrypoint(ctx: agents.JobContext):
     logger.info(f"[PIPELINE] ===== Pipeline Summary =====")
     logger.info(f"[PIPELINE]   STT: {stt_provider}")
     logger.info(f"[PIPELINE]   LLM: {llm_provider} ({llm_model or 'default'})")
-    logger.info(f"[PIPELINE]   TTS: resemble-ai (voice={voice_id or 'default'})")
+    if tts_provider == "google":
+        logger.info(f"[PIPELINE]   TTS: gemini-tts (voice={config.get('google_voice_name', 'default')})")
+    else:
+        logger.info(f"[PIPELINE]   TTS: resemble-ai (voice={voice_id or 'default'})")
     logger.info(f"[PIPELINE]   VAD: silero")
     logger.info(f"[PIPELINE]   Turn: dynamic endpointing (0.5-1.0s), adaptive interruption (ML)")
     logger.info(f"[PIPELINE]   IVR detection: enabled")

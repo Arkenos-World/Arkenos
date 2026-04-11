@@ -31,6 +31,7 @@ export default function OnboardingPage() {
     const { data: sessionData, isPending: sessionLoading } = useSession();
     const { data: orgs, isPending: orgsLoading } = useListOrganizations();
 
+    // Step 2 (invite members) is commented out — not yet supported
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [orgName, setOrgName] = useState("");
     const [creating, setCreating] = useState(false);
@@ -88,8 +89,12 @@ export default function OnboardingPage() {
                 // Set as active organization
                 await organization.setActive({ organizationId: orgId });
                 setCreatedOrgId(orgId);
-                setStep(2);
+                // Skip step 2 (invite members) — not yet supported
+                setStep(3);
                 toast.success("Organization created");
+                setTimeout(() => {
+                    router.push("/dashboard");
+                }, 1500);
             }
         } catch {
             toast.error("Something went wrong. Please try again.");
@@ -148,9 +153,9 @@ export default function OnboardingPage() {
                 <NenyaxLogo className="h-8 text-foreground" />
             </div>
 
-            {/* Progress indicator */}
+            {/* Progress indicator (2 steps — invite step commented out) */}
             <div className="flex items-center gap-2 mb-8">
-                {[1, 2, 3].map((s) => (
+                {[1, 3].map((s) => (
                     <div
                         key={s}
                         className={`h-2 rounded-full transition-all duration-300 ${
@@ -211,7 +216,7 @@ export default function OnboardingPage() {
                 </Card>
             )}
 
-            {/* Step 2: Invite team */}
+            {/* Step 2: Invite team — commented out, not yet supported
             {step === 2 && (
                 <Card className="w-full max-w-md animate-[slide-up-fade_0.3s_ease-out]">
                     <CardHeader className="text-center">
@@ -263,7 +268,6 @@ export default function OnboardingPage() {
                             {inviting ? "Sending..." : "Send invitation"}
                         </Button>
 
-                        {/* Invited list */}
                         {invitedEmails.length > 0 && (
                             <div className="space-y-2 pt-2">
                                 <p className="text-xs font-medium text-muted-foreground">
@@ -290,6 +294,7 @@ export default function OnboardingPage() {
                     </CardContent>
                 </Card>
             )}
+            */}
 
             {/* Step 3: Success */}
             {step === 3 && (

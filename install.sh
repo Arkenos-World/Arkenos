@@ -13,7 +13,7 @@
 set -euo pipefail
 
 NENYAX_DIR="/opt/nenyax"
-REPO_URL="https://github.com/Nenyax-World/Nenyax.git"
+REPO_URL="https://github.com/Nenyax-AI/Nenyax.git"
 BRANCH="master"
 
 # ── Colors ──────────────────────────────────────────────────────────────────

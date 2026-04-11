@@ -7,7 +7,7 @@
 Build, deploy, and manage production voice agents with runtime compute, persistent memory, MCP tool integration, and full infrastructure control — all from a single platform.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![GitHub Stars](https://img.shields.io/github/stars/Nenyax-World/Nenyax?style=social)](https://github.com/Nenyax-World/Nenyax)
+[![GitHub Stars](https://img.shields.io/github/stars/Nenyax-AI/Nenyax?style=social)](https://github.com/Nenyax-AI/Nenyax)
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/nenyax)
 
 [Website](https://nenyax.ai) · [Documentation](https://nenyax.mintlify.app) · [Discord](https://discord.gg/nenyax) · [Twitter](https://twitter.com/nenyaxai)
@@ -100,7 +100,7 @@ Caller ──→ Twilio SIP ──→ LiveKit Room ──→ Nenyax Agent
 ### Local Development
 
 ```bash
-git clone https://github.com/Nenyax-World/Nenyax.git
+git clone https://github.com/Nenyax-AI/Nenyax.git
 cd Nenyax
 
 # Only one env var needed
@@ -129,7 +129,7 @@ For running services outside Docker, see the [Development Guide](https://nenyax.
 Deploy Nenyax on any Linux VPS with a single command. This is the recommended deployment method — it supports **all features** including custom agents with Docker sandboxes.
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Nenyax-World/Nenyax/master/install.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Nenyax-AI/Nenyax/master/install.sh)"
 ```
 
 The install script automatically:

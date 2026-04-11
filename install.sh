@@ -168,6 +168,7 @@ clone_repo() {
     if [ -d "$NENYAX_DIR/.git" ]; then
         info "Nenyax directory exists, pulling latest..."
         cd "$NENYAX_DIR"
+        git remote set-url origin "$REPO_URL"
         git fetch origin
         git reset --hard "origin/$BRANCH"
         ok "Updated to latest"

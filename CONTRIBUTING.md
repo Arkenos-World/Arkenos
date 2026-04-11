@@ -25,7 +25,7 @@ Use the following conventions:
 
 ```bash
 # Clone
-git clone https://github.com/Nenyax-World/Nenyax.git
+git clone https://github.com/Nenyax-AI/Nenyax.git
 cd Nenyax
 
 # Backend
@@ -64,7 +64,7 @@ python agent.py dev
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/Nenyax-World/Nenyax/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
+Use [GitHub Issues](https://github.com/Nenyax-AI/Nenyax/issues) with the provided templates. Include enough detail to reproduce the problem — environment, steps, expected vs actual behavior, and relevant logs.
 
 ## Code Style
 

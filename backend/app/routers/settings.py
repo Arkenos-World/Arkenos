@@ -237,6 +237,7 @@ async def test_provider_connection(
         "elevenlabs": _test_elevenlabs,
         "twilio": _test_twilio,
         "telnyx": _test_telnyx,
+        "zai": _test_zai,
     }
 
     tester = testers.get(provider)
@@ -286,6 +287,24 @@ async def _test_google(resolve_key) -> TestResult:
     if resp.status_code == 200:
         return TestResult(provider="google", success=True, message="Google AI API key is valid")
     return TestResult(provider="google", success=False, message=f"Google API returned {resp.status_code}")
+
+
+async def _test_zai(resolve_key) -> TestResult:
+    api_key = resolve_key("zai_api_key")
+    if not api_key:
+        return TestResult(provider="zai", success=False, message="Missing Z.ai API key")
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://api.z.ai/api/paas/v4/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10,
+            )
+        if resp.status_code == 200:
+            return TestResult(provider="zai", success=True, message="Z.ai API key is valid")
+        return TestResult(provider="zai", success=False, message=f"Z.ai API returned {resp.status_code}")
+    except Exception as e:
+        return TestResult(provider="zai", success=False, message=str(e))
 
 
 async def _test_resemble(resolve_key) -> TestResult:

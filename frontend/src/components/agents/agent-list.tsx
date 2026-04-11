@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { trackAgentCreated } from "@/lib/tracking";
@@ -145,6 +145,40 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
 
     const apiUrl = getApiUrl();
 
+    // Fetch session stats per agent (calls + avg duration)
+    const [agentStats, setAgentStats] = useState<Record<string, { calls: number; avgDuration: string }>>({});
+
+    const fetchAgentStats = useCallback(async () => {
+        if (!auth["Authorization"]) return;
+        try {
+            const res = await fetch(`${apiUrl}/sessions/?limit=10000`, { headers: auth, cache: "no-store" });
+            if (!res.ok) return;
+            const data = await res.json();
+            const sessions: { agent_id?: string; duration?: number }[] = data.sessions || [];
+
+            const map: Record<string, { count: number; totalDur: number }> = {};
+            for (const s of sessions) {
+                if (!s.agent_id) continue;
+                if (!map[s.agent_id]) map[s.agent_id] = { count: 0, totalDur: 0 };
+                map[s.agent_id].count++;
+                map[s.agent_id].totalDur += s.duration ?? 0;
+            }
+
+            const stats: Record<string, { calls: number; avgDuration: string }> = {};
+            for (const [id, { count, totalDur }] of Object.entries(map)) {
+                const avgSec = count > 0 ? Math.round(totalDur / count) : 0;
+                const mins = Math.floor(avgSec / 60);
+                const secs = String(avgSec % 60).padStart(2, "0");
+                stats[id] = { calls: count, avgDuration: `${mins}:${secs}` };
+            }
+            setAgentStats(stats);
+        } catch {
+            // silently fail — stats are non-critical
+        }
+    }, [apiUrl, auth]);
+
+    useEffect(() => { fetchAgentStats(); }, [fetchAgentStats]);
+
     // Set default voice when voices load
     useEffect(() => {
         if (resembleVoices.length > 0 && !selectedVoice) {
@@ -272,16 +306,16 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold">Assistants</h1>
-                    <p className="text-muted-foreground">Create and manage your voice assistants</p>
+                    <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Assistants</h1>
+                    <p className="text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">Create and manage your voice assistants</p>
                 </div>
 
                 <Button
-                    className="gap-2 transition-transform hover:scale-105 active:scale-95"
+                    className="gap-2 rounded-full h-10 px-5 shadow-sm transition-transform hover:scale-105 active:scale-95 shrink-0"
                     onClick={() => setIsOpen(true)}
                     disabled={!allConfigured}
                     title={!allConfigured ? "Configure API keys first" : undefined}
@@ -494,13 +528,13 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
 
             {/* Agents Grid */}
             {agents.length === 0 ? (
-                <Card>
-                    <CardContent className="py-16 text-center">
-                        <BotIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                        <h3 className="font-semibold mb-2">No assistants yet</h3>
-                        <p className="text-muted-foreground mb-4">Create your first voice assistant to get started</p>
+                <Card className="rounded-2xl border border-dashed border-black/10 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/50 shadow-none">
+                    <CardContent className="py-20 flex flex-col items-center justify-center text-center">
+                        <BotIcon className="h-12 w-12 mx-auto mb-4 text-zinc-300 dark:text-zinc-600" />
+                        <h3 className="font-medium text-[15px] text-zinc-900 dark:text-zinc-100 mb-1">No assistants yet</h3>
+                        <p className="text-[14px] text-zinc-500 dark:text-zinc-400 mb-6">Create your first voice assistant to get started</p>
                         <Button
-                            className="gap-2"
+                            className="gap-2 rounded-full h-11 px-6 shadow-sm transition-transform hover:scale-105 active:scale-95"
                             onClick={() => setIsOpen(true)}
                             disabled={!allConfigured}
                             title={!allConfigured ? "Configure API keys first" : undefined}
@@ -511,13 +545,13 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                     {agents.map((agent, index) => {
                         const { icon: agentIcon, bg: agentBg } = getAgentCardIcon(agent);
                         return (
                         <Card
                             key={agent.id}
-                            className="hover:border-primary/50 transition-colors cursor-pointer animate-[slide-up-fade_0.4s_ease-out_both]"
+                            className="rounded-2xl border-black/5 dark:border-white/[0.06] shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:border-black/10 dark:hover:border-white/10 transition-all cursor-pointer animate-[slide-up-fade_0.4s_ease-out_both]"
                             style={{ animationDelay: `${index * 0.06}s` }}
                             onClick={() => handleAgentClick(agent.id)}
                         >
@@ -561,11 +595,11 @@ export function AgentList({ initialAgents, userId }: AgentListProps) {
                                 <div className="flex gap-6 text-sm">
                                     <div>
                                         <p className="text-muted-foreground">Calls</p>
-                                        <p className="font-medium">{agent.calls || 0}</p>
+                                        <p className="font-medium">{agentStats[agent.id]?.calls ?? 0}</p>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">Avg Duration</p>
-                                        <p className="font-medium">{agent.avgDuration || "0:00"}</p>
+                                        <p className="font-medium">{agentStats[agent.id]?.avgDuration ?? "0:00"}</p>
                                     </div>
                                 </div>
                             </CardContent>

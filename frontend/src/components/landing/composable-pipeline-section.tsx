@@ -87,7 +87,7 @@ export function ComposablePipelineSection() {
               
               {/* STT Column */}
               <div className="flex flex-col items-center w-full md:w-64 z-10">
-                <h3 className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-10 bg-[#FAFAFA] dark:bg-[#080808] px-2 relative z-10">Speech to Text</h3>
+                <h3 className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-14 bg-[#FAFAFA] dark:bg-[#080808] px-2 relative z-10">Speech to Text</h3>
                 <div className="relative flex flex-col gap-4 w-full">
                   {/* Glass Pane */}
                   <div className="absolute -inset-6 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-white/10 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] z-0 hidden md:block" />
@@ -100,7 +100,7 @@ export function ComposablePipelineSection() {
 
               {/* LLM Column */}
               <div className="flex flex-col items-center w-full md:w-64 z-10">
-                <h3 className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-10 bg-[#FAFAFA] dark:bg-[#080808] px-2 relative z-10">Intelligence</h3>
+                <h3 className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-14 bg-[#FAFAFA] dark:bg-[#080808] px-2 relative z-10">Intelligence</h3>
                 <div className="relative flex flex-col gap-4 w-full">
                   {/* Glass Pane */}
                   <div className="absolute -inset-8 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-white/10 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] z-0 hidden md:block" />
@@ -113,7 +113,7 @@ export function ComposablePipelineSection() {
 
               {/* TTS Column */}
               <div className="flex flex-col items-center w-full md:w-64 z-10">
-                <h3 className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-10 bg-[#FAFAFA] dark:bg-[#080808] px-2 relative z-10">Text to Speech</h3>
+                <h3 className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-14 bg-[#FAFAFA] dark:bg-[#080808] px-2 relative z-10">Text to Speech</h3>
                 <div className="relative flex flex-col gap-4 w-full">
                   {/* Glass Pane */}
                   <div className="absolute -inset-6 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-white/10 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] z-0 hidden md:block" />
@@ -132,22 +132,24 @@ export function ComposablePipelineSection() {
               fromRef={sttRef}
               toRef={llmRef}
               curvature={0}
-              pathColor="rgba(0,0,0,0.05)"
+              pathColor="currentColor"
+              pathOpacity={0.1}
               pathWidth={2}
               gradientStartColor="#a7f3d0"
               gradientStopColor="#10b981"
-              className="z-0 hidden md:block"
+              className="z-0 hidden md:block text-zinc-900 dark:text-zinc-100"
             />
             <AnimatedBeam
               containerRef={containerRef}
               fromRef={llmRef}
               toRef={ttsRef}
               curvature={0}
-              pathColor="rgba(0,0,0,0.05)"
+              pathColor="currentColor"
+              pathOpacity={0.1}
               pathWidth={2}
               gradientStartColor="#a7f3d0"
               gradientStopColor="#10b981"
-              className="z-0 hidden md:block"
+              className="z-0 hidden md:block text-zinc-900 dark:text-zinc-100"
             />
           </motion.div>
         </div>

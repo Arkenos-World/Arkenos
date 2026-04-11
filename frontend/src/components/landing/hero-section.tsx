@@ -30,7 +30,8 @@ export function HeroSection({ setAuthOpen }: { setAuthOpen: (b: boolean) => void
   return (
     <section className="relative bg-[#FAFAFA] dark:bg-[#080808] pt-32 pb-16 overflow-hidden w-full">
       {/* Subtle ambient light from top */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[300px] bg-white dark:bg-zinc-800 rounded-full blur-[120px] pointer-events-none opacity-60" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[300px] bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none opacity-60" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[200px] bg-white dark:bg-zinc-800 rounded-full blur-[100px] pointer-events-none opacity-40" />
 
       <div className="max-w-7xl mx-auto px-6 md:px-8 relative z-10">
         
@@ -45,12 +46,14 @@ export function HeroSection({ setAuthOpen }: { setAuthOpen: (b: boolean) => void
               variants={wordVariants}
               className="text-4xl sm:text-5xl lg:text-[4.5rem] font-medium leading-[1.05] tracking-tight text-zinc-900 dark:text-zinc-100"
             >
-              Enterprise-grade<br />
-              <TextRotate
-                words={["conversational AI", "voice agents", "call automation", "AI pipelines"]}
-                className="text-4xl sm:text-5xl lg:text-[4.5rem] font-medium"
-              /><br />
-              infrastructure.
+              The orchestration layer for<br />
+              <div className="inline-flex min-w-[300px] sm:min-w-[400px] lg:min-w-[600px] h-[1.1em] overflow-visible">
+                <TextRotate
+                  words={["conversational AI", "voice agents", "call automation", "AI pipelines"]}
+                  className="text-4xl sm:text-5xl lg:text-[4.5rem] font-medium text-emerald-600 dark:text-emerald-500"
+                />
+              </div><br />
+              at enterprise scale.
             </motion.h1>
           </motion.div>
 

@@ -107,6 +107,13 @@ const PROVIDER_META: Record<string, {
         keyLabels: { google_api_key: "API Key" },
         keyPlaceholders: { google_api_key: "AIza..." },
     },
+    zai: {
+        icon: Brain,
+        description: "GLM large language models by Z.ai",
+        docsUrl: "https://open.z.ai",
+        keyLabels: { zai_api_key: "API Key" },
+        keyPlaceholders: { zai_api_key: "your_zai_api_key" },
+    },
     resemble: {
         icon: AudioLines,
         description: "Text-to-speech for agent voice synthesis",
@@ -161,6 +168,12 @@ const PROVIDER_META: Record<string, {
     },
 };
 
+// LLM providers for the dropdown
+const LLM_PROVIDERS = [
+    { id: "google", label: "Google AI (Gemini)" },
+    { id: "zai", label: "Z.ai (GLM)" },
+];
+
 // STT providers for the dropdown
 const STT_PROVIDERS = [
     { id: "assemblyai", label: "AssemblyAI" },
@@ -174,9 +187,9 @@ const TELEPHONY_PROVIDERS = [
     { id: "telnyx", label: "Telnyx" },
 ];
 
-// Sections — STT and Telephony are handled separately with their own grouped cards
+// Sections — LLM, STT and Telephony are handled separately with their own grouped cards
 const SECTIONS = [
-    { label: "Required", providers: ["livekit", "google", "resemble"] },
+    { label: "Required", providers: ["livekit", "resemble"] },
 ];
 
 function ProviderCard({
@@ -374,6 +387,82 @@ function ProviderCard({
                         Test Connection
                     </Button>
                 </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function LLMCard({
+    providers,
+    onSaved,
+    auth,
+}: {
+    providers: Record<string, ProviderStatus>;
+    onSaved: () => void;
+    auth: AuthHeaders;
+}) {
+    const [selectedProvider, setSelectedProvider] = useState(() => {
+        const configured = LLM_PROVIDERS.find(p => providers[p.id]?.configured);
+        return configured?.id || "google";
+    });
+
+    const provider = providers[selectedProvider];
+    const meta = PROVIDER_META[selectedProvider];
+
+    if (!provider || !meta) return null;
+
+    return (
+        <Card className="relative animate-[slide-up-fade_0.4s_ease-out_both]">
+            <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                            <Brain className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-base">LLM Intelligence</CardTitle>
+                            <CardDescription className="text-xs mt-0.5">At least one LLM provider required</CardDescription>
+                        </div>
+                    </div>
+                    <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                    </a>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Provider</Label>
+                    <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {LLM_PROVIDERS.map(p => (
+                                <SelectItem key={p.id} value={p.id}>
+                                    <div className="flex items-center gap-2">
+                                        <Circle
+                                            className={`h-2 w-2 ${providers[p.id]?.configured
+                                                    ? "fill-emerald-500 text-emerald-500"
+                                                    : "fill-muted-foreground/30 text-muted-foreground/30"
+                                                }`}
+                                        />
+                                        {p.label}
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <SelectedGroupedProvider
+                    providerId={selectedProvider}
+                    provider={provider}
+                    meta={meta}
+                    onSaved={onSaved}
+                    auth={auth}
+                />
             </CardContent>
         </Card>
     );
@@ -782,6 +871,16 @@ export function APIKeysClient() {
                                     auth={auth}
                                 />
                             ))}
+
+                        {/* LLM card in the grid */}
+                        <LLMCard
+                            providers={Object.fromEntries(
+                                LLM_PROVIDERS.map(p => [p.id, status.providers[p.id]])
+                                    .filter(([, v]) => v)
+                            )}
+                            onSaved={fetchStatus}
+                            auth={auth}
+                        />
 
                         {/* STT card in the grid */}
                         <STTCard

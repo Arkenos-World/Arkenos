@@ -39,6 +39,12 @@ interface Agent {
     id: string;
     name: string;
     type: string;
+    config?: {
+        stt_provider?: string;
+        llm_provider?: string;
+        llm_model?: string;
+        voice_id?: string;
+    };
 }
 
 // Default agent that's always available
@@ -290,49 +296,61 @@ export default function VoicePage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {/* Model Stack */}
-                                <div className="rounded-lg border bg-card">
-                                    <div className="p-3 border-b">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Voice Pipeline</p>
+                                {(() => {
+                                    const agent = agents.find(a => a.id === selectedAgent);
+                                    const sttProvider = agent?.config?.stt_provider || "deepgram";
+                                    const llmProvider = agent?.config?.llm_provider || "gemini";
+                                    const llmModel = agent?.config?.llm_model || "gemini-3-flash-preview";
+                                    const sttLabel = sttProvider === "assemblyai" ? "AssemblyAI" : sttProvider === "elevenlabs" ? "ElevenLabs" : "Deepgram";
+                                    const sttModel = sttProvider === "assemblyai" ? "universal" : sttProvider === "elevenlabs" ? "scribe" : "nova-2";
+                                    const llmLabel = llmProvider === "zai" ? "Z.ai (GLM)" : "Google Gemini";
+                                    const llmModelShort = llmModel.replace("gemini-", "").replace("glm-", "GLM ");
+                                    return (
+                                    <div className="rounded-lg border bg-card">
+                                        <div className="p-3 border-b">
+                                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Voice Pipeline</p>
+                                        </div>
+                                        <div className="divide-y">
+                                            <div className="p-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-8 h-8 rounded flex items-center justify-center ${PIPELINE_COLORS.stt}`}>
+                                                        <span className="text-xs font-bold">STT</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">{sttLabel}</p>
+                                                        <p className="text-xs text-muted-foreground">Speech to Text</p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs font-mono bg-muted px-2 py-1 rounded">{sttModel}</span>
+                                            </div>
+                                            <div className="p-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-8 h-8 rounded flex items-center justify-center ${PIPELINE_COLORS.llm}`}>
+                                                        <span className="text-xs font-bold">LLM</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">{llmLabel}</p>
+                                                        <p className="text-xs text-muted-foreground">Language Model</p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs font-mono bg-muted px-2 py-1 rounded">{llmModelShort}</span>
+                                            </div>
+                                            <div className="p-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-8 h-8 rounded flex items-center justify-center ${PIPELINE_COLORS.tts}`}>
+                                                        <span className="text-xs font-bold">TTS</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">Resemble AI</p>
+                                                        <p className="text-xs text-muted-foreground">Text to Speech</p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs font-mono bg-muted px-2 py-1 rounded">custom</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="divide-y">
-                                        <div className="p-3 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-8 h-8 rounded flex items-center justify-center ${PIPELINE_COLORS.stt}`}>
-                                                    <span className="text-xs font-bold">STT</span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium">Deepgram</p>
-                                                    <p className="text-xs text-muted-foreground">Speech to Text</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-mono bg-muted px-2 py-1 rounded">nova-2</span>
-                                        </div>
-                                        <div className="p-3 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-8 h-8 rounded flex items-center justify-center ${PIPELINE_COLORS.llm}`}>
-                                                    <span className="text-xs font-bold">LLM</span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium">Google Gemini</p>
-                                                    <p className="text-xs text-muted-foreground">Language Model</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-mono bg-muted px-2 py-1 rounded">3.0-flash</span>
-                                        </div>
-                                        <div className="p-3 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-8 h-8 rounded flex items-center justify-center ${PIPELINE_COLORS.tts}`}>
-                                                    <span className="text-xs font-bold">TTS</span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium">Resemble AI</p>
-                                                    <p className="text-xs text-muted-foreground">Text to Speech</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-mono bg-muted px-2 py-1 rounded">custom</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                    );
+                                })()}
                                 <Button size="lg" onClick={startSession} className="w-full gap-2">
                                     <MicrophoneIcon className="h-5 w-5" />
                                     Start Session

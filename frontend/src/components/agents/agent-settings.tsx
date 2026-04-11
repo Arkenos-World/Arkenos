@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { trackAgentDeleted } from "@/lib/tracking";
 import { useAuthHeaders } from "@/lib/auth-headers";
+import { GEMINI_TTS_VOICES } from "@/lib/google-tts-voices";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -130,6 +131,9 @@ interface Agent {
         llm_model?: string;
         stt_provider?: string;
         voice_id?: string;
+        tts_provider?: string;
+        google_voice_name?: string;
+        google_voice_language?: string;
         template?: string;
         webhooks?: WebhookConfigState;
         functions?: FunctionDefinition[];
@@ -141,12 +145,25 @@ interface AgentSettingsProps {
     userId: string;
 }
 
-const LLM_MODELS = [
-    { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)" },
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-    { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
-    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
+const LLM_PROVIDERS = [
+    { id: "gemini", name: "Gemini", keyProvider: "google" },
+    { id: "zai", name: "Z.ai (GLM)", keyProvider: "zai" },
 ];
+
+const LLM_MODELS: Record<string, { id: string; name: string }[]> = {
+    gemini: [
+        { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)" },
+        { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+        { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
+        { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
+    ],
+    zai: [
+        { id: "glm-4.5-flash", name: "GLM 4.5 Flash" },
+        { id: "glm-4.5-air", name: "GLM 4.5 Air" },
+        { id: "glm-4.7", name: "GLM 4.7" },
+        { id: "glm-4.5", name: "GLM 4.5" },
+    ],
+};
 
 const FIRST_MESSAGE_MODES = [
     { id: "assistant_speaks_first", name: "Assistant speaks first" },
@@ -210,6 +227,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
 
     // Form state
     const [name, setName] = useState(agent.name);
+    const [llmProvider, setLlmProvider] = useState(agent.config?.llm_provider || "gemini");
     const [llmModel, setLlmModel] = useState(agent.config?.llm_model || "gemini-3-flash-preview");
     const [firstMessageMode, setFirstMessageMode] = useState(agent.config?.first_message_mode || "assistant_speaks_first");
     const [firstMessage, setFirstMessage] = useState(agent.config?.first_message || "");
@@ -230,7 +248,19 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
             })
             .catch(() => {});
     }, [isCustom, agent.id, auth.Authorization]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        const models = LLM_MODELS[llmProvider] || [];
+        if (models.length > 0 && !models.some(m => m.id === llmModel)) {
+            setLlmModel(models[0].id);
+        }
+    }, [llmProvider]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const [sttProvider, setSttProvider] = useState(agent.config?.stt_provider || "deepgram");
+    const [ttsProvider, setTtsProvider] = useState(agent.config?.tts_provider || "resemble");
+
+    // Google Gemini TTS states
+    const [googleVoiceName, setGoogleVoiceName] = useState(agent.config?.google_voice_name || "Kore");
 
     const apiUrl = getApiUrl();
 
@@ -516,10 +546,12 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             system_prompt: systemPrompt,
                             first_message: firstMessage,
                             first_message_mode: firstMessageMode,
-                            llm_provider: "gemini",
+                            llm_provider: llmProvider,
                             llm_model: llmModel,
                             stt_provider: sttProvider,
-                            voice_id: voiceId,
+                            voice_id: ttsProvider === "resemble" ? voiceId : undefined,
+                            tts_provider: ttsProvider,
+                            google_voice_name: ttsProvider === "google" ? googleVoiceName : undefined,
                             webhooks: webhookConfig,
                             functions,
                         },
@@ -538,7 +570,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
         } finally {
             setIsSaving(false);
         }
-    }, [agent.id, agent.config, userId, name, systemPrompt, firstMessage, firstMessageMode, llmModel, sttProvider, voiceId, webhookConfig, functions]);
+    }, [agent.id, agent.config, userId, name, systemPrompt, firstMessage, firstMessageMode, llmProvider, llmModel, sttProvider, voiceId, webhookConfig, functions, ttsProvider, googleVoiceName]);
 
     const handleTestCall = () => {
         router.push(`/preview?agentId=${agent.id}`);
@@ -712,12 +744,16 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Provider</Label>
-                                    <Select defaultValue="gemini" disabled>
+                                    <Select value={llmProvider} onValueChange={setLlmProvider}>
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="gemini">Gemini</SelectItem>
+                                            {LLM_PROVIDERS.filter(p => isProviderReady(p.keyProvider)).map((provider) => (
+                                                <SelectItem key={provider.id} value={provider.id}>
+                                                    {provider.name}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -728,7 +764,7 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {LLM_MODELS.map((model) => (
+                                            {(LLM_MODELS[llmProvider] || []).map((model) => (
                                                 <SelectItem key={model.id} value={model.id}>
                                                     {model.name}
                                                 </SelectItem>
@@ -804,23 +840,26 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                     <Card>
                         <CardHeader>
                             <CardTitle>Voice</CardTitle>
-                            <CardDescription>Choose a Resemble AI voice for your agent.</CardDescription>
+                            <CardDescription>Choose a voice for your agent.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
-                                {/* TTS Provider (locked) */}
+                                {/* TTS Provider */}
                                 <div className="space-y-2">
                                     <Label>TTS Provider</Label>
-                                    <Select defaultValue="resemble" disabled>
+                                    <Select value={ttsProvider} onValueChange={setTtsProvider}>
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="resemble">Resemble AI</SelectItem>
+                                            <SelectItem value="google">Google Cloud TTS</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
+                                {ttsProvider === "resemble" && (
+                                <>
                                 {/* Currently selected voice */}
                                 {selectedVoiceName && (
                                     <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-accent border border-border text-sm">
@@ -932,6 +971,53 @@ export function AgentSettings({ agent, userId }: AgentSettingsProps) {
                                     Powered by <strong>Resemble AI</strong>. Multilingual voices can also speak English.
                                     Save changes to apply the new voice.
                                 </p>
+                                </>
+                                )}
+
+                                {ttsProvider === "google" && (
+                                    <div className="space-y-4">
+                                        {/* Currently selected */}
+                                        {googleVoiceName && (
+                                            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-accent border border-border text-sm">
+                                                <span className="font-medium">Selected:</span>
+                                                <span className="text-muted-foreground">{googleVoiceName}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Voice cards grid */}
+                                        <div className="rounded-lg border border-border overflow-hidden">
+                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 p-2">
+                                                {GEMINI_TTS_VOICES.map(voice => (
+                                                    <button
+                                                        key={voice.id}
+                                                        type="button"
+                                                        onClick={() => setGoogleVoiceName(voice.id)}
+                                                        className={`text-left p-3 rounded-md border transition-colors ${
+                                                            googleVoiceName === voice.id
+                                                                ? "border-primary bg-accent ring-1 ring-primary"
+                                                                : "border-border hover:bg-accent/50"
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <AudioLines className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="font-medium text-sm truncate">{voice.id}</p>
+                                                                <p className="text-xs text-muted-foreground">{voice.gender} · {voice.tone}</p>
+                                                            </div>
+                                                            {googleVoiceName === voice.id && (
+                                                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">Active</Badge>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <p className="text-xs text-muted-foreground">
+                                            Powered by <strong>Gemini TTS</strong>. 30 multilingual voices. Uses your Google API key.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

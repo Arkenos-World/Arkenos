@@ -13,6 +13,7 @@ dependencies = [
     "livekit-plugins-resemble>=1.5.0",
     "livekit-plugins-silero>=1.5.0",
     "livekit-plugins-google>=1.5.0",
+    "livekit-plugins-openai>=1.5.0",
 
     # HTTP and async
     "httpx>=0.28.0",

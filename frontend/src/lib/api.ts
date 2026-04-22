@@ -1,13 +1,19 @@
 /**
  * Resolve the backend API base URL.
- * Accepts URLs with or without the /api suffix so Render's fromService
- * (which gives just the host) works automatically.
+ *
+ * Browser: always returns a relative "/api" so fetches go same-origin and
+ * the reverse proxy (Caddy in prod, Next rewrites in dev) routes to backend.
+ * This avoids baking a host into the client bundle at build time.
+ *
+ * Server: uses INTERNAL_API_URL (Docker-internal) or NEXT_PUBLIC_API_URL,
+ * accepting URLs with or without the /api suffix.
  */
 export function getApiUrl(): string {
+  if (typeof window !== "undefined") return "/api";
   const raw =
-    (typeof window === "undefined"
-      ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL
-      : process.env.NEXT_PUBLIC_API_URL) || "http://localhost:8000/api";
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:8000/api";
   return raw.endsWith("/api") ? raw : `${raw.replace(/\/+$/, "")}/api`;
 }
 
